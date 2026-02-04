@@ -25,13 +25,46 @@ chrome.commands.onCommand.addListener((command, tab) => {
   }
 });
 
-// Message relay for TTS server requests (content scripts can't fetch localhost directly in MV3)
+// ─── Offscreen document for audio playback ────────────────────────────────
+let offscreenCreated = false;
+
+async function ensureOffscreen() {
+  if (offscreenCreated) return;
+  try {
+    await chrome.offscreen.createDocument({
+      url: "offscreen.html",
+      reasons: ["AUDIO_PLAYBACK"],
+      justification: "Playing TTS audio for Read Aloud extension",
+    });
+    offscreenCreated = true;
+  } catch (e) {
+    // Already exists
+    if (e.message?.includes("Only a single offscreen")) {
+      offscreenCreated = true;
+    } else {
+      throw e;
+    }
+  }
+}
+
+// Track which tab is actively reading
+let activeTabId = null;
+
+// ─── Message handler ──────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Forward audio events from offscreen to the active content script tab
+  if (message.type === "AUDIO_ENDED" || message.type === "AUDIO_ERROR" || message.type === "AUDIO_TIME") {
+    if (activeTabId) {
+      chrome.tabs.sendMessage(activeTabId, message).catch(() => {});
+    }
+    return;
+  }
+
   if (message.type === "TTS_REQUEST") {
     handleTTSRequest(message).then(sendResponse).catch((err) => {
       sendResponse({ error: err.message });
     });
-    return true; // keep channel open for async response
+    return true;
   }
 
   if (message.type === "HEALTH_CHECK") {
@@ -46,6 +79,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ error: err.message });
     });
     return true;
+  }
+
+  // Audio control messages from content script → offscreen
+  if (message.type === "PLAY_AUDIO") {
+    activeTabId = sender.tab?.id;
+    ensureOffscreen().then(() => {
+      chrome.runtime.sendMessage({
+        target: "offscreen",
+        type: "PLAY",
+        audio_base64: message.audio_base64,
+        speed: message.speed,
+      }, sendResponse);
+    }).catch((err) => {
+      sendResponse({ ok: false, error: err.message });
+    });
+    return true;
+  }
+
+  if (message.type === "PAUSE_AUDIO" || message.type === "RESUME_AUDIO" || message.type === "STOP_AUDIO" || message.type === "SET_AUDIO_SPEED") {
+    const typeMap = {
+      PAUSE_AUDIO: "PAUSE",
+      RESUME_AUDIO: "RESUME",
+      STOP_AUDIO: "STOP",
+      SET_AUDIO_SPEED: "SET_SPEED",
+    };
+    if (offscreenCreated) {
+      chrome.runtime.sendMessage({
+        target: "offscreen",
+        type: typeMap[message.type],
+        speed: message.speed,
+      });
+    }
+    return;
   }
 });
 
@@ -91,7 +157,7 @@ async function handleGetVoices(serverUrl) {
 async function handleTTSRequest(message) {
   const serverUrl = message.serverUrl || (await getServerUrl());
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 60000);
   try {
     const response = await fetch(`${serverUrl}/api/tts-with-timestamps`, {
       method: "POST",

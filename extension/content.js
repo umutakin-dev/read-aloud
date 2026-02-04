@@ -56,10 +56,43 @@
   }
 
   function splitIntoParagraphs(text) {
-    return text
+    // First try double newlines
+    let paragraphs = text
       .split(/\n\s*\n/)
       .map((p) => p.replace(/\s+/g, " ").trim())
       .filter((p) => p.length > 20);
+
+    // If too few paragraphs, try single newlines
+    if (paragraphs.length <= 1) {
+      paragraphs = text
+        .split(/\n/)
+        .map((p) => p.replace(/\s+/g, " ").trim())
+        .filter((p) => p.length > 20);
+    }
+
+    // Split any paragraph over 500 chars into sentences
+    const result = [];
+    for (const para of paragraphs) {
+      if (para.length <= 500) {
+        result.push(para);
+      } else {
+        // Split on sentence boundaries
+        const sentences = para.match(/[^.!?]+[.!?]+[\s)]*/g) || [para];
+        let chunk = "";
+        for (const sent of sentences) {
+          if (chunk.length + sent.length > 500 && chunk.length > 0) {
+            result.push(chunk.trim());
+            chunk = "";
+          }
+          chunk += sent;
+        }
+        if (chunk.trim().length > 0) {
+          result.push(chunk.trim());
+        }
+      }
+    }
+
+    return result.length > 0 ? result : paragraphs;
   }
 
   // ─── Text Node Mapping ────────────────────────────────────────────────────
@@ -201,10 +234,10 @@
   // ─── Animation loop for highlighting ──────────────────────────────────────
   function startHighlightLoop() {
     function tick() {
-      if (!state.playing || !state.audio) return;
+      if (!state.playing) return;
       highlightWord(
         state.timestamps,
-        state.audio.currentTime,
+        state._currentTime || 0,
         state.textNodeMap,
         state._paragraphOffset
       );
@@ -220,7 +253,7 @@
     }
   }
 
-  // ─── Server Communication ─────────────────────────────────────────────────
+  // ─── Server Communication (via background service worker) ────────────────
   async function checkServerHealth() {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage(
@@ -243,7 +276,9 @@
           serverUrl: state.serverUrl,
         },
         (response) => {
-          if (response && response.ok) {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (response && response.ok) {
             resolve(response.data);
           } else {
             reject(new Error(response?.error || "TTS request failed"));
@@ -253,15 +288,38 @@
     });
   }
 
-  // ─── Audio Playback ────────────────────────────────────────────────────────
+  // ─── Audio Playback (via offscreen document through background) ─────────
+  let audioResolve = null;
+  let audioReject = null;
+
+  // Listen for audio events relayed from background
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === "AUDIO_TIME" && state.playing) {
+      state._currentTime = msg.currentTime;
+    }
+    if (msg.type === "AUDIO_ENDED") {
+      if (audioResolve) { audioResolve(); audioResolve = null; audioReject = null; }
+    }
+    if (msg.type === "AUDIO_ERROR") {
+      if (audioReject) { audioReject(new Error(msg.message || "Audio playback error")); audioResolve = null; audioReject = null; }
+    }
+  });
+
   function playAudioFromBase64(base64) {
     return new Promise((resolve, reject) => {
-      const audio = new Audio(`data:audio/wav;base64,${base64}`);
-      audio.playbackRate = state.speed;
-      audio.onended = () => resolve();
-      audio.onerror = (e) => reject(new Error("Audio playback error"));
-      audio.play().catch(reject);
-      state.audio = audio;
+      audioResolve = resolve;
+      audioReject = reject;
+      chrome.runtime.sendMessage({
+        type: "PLAY_AUDIO",
+        audio_base64: base64,
+        speed: state.speed,
+      }, (response) => {
+        if (response && !response.ok) {
+          audioResolve = null;
+          audioReject = null;
+          reject(new Error(response.error || "Audio play failed"));
+        }
+      });
     });
   }
 
@@ -280,6 +338,10 @@
       stopReadAloud();
       return;
     }
+
+    // Cancel any browser TTS that might be running
+    speechSynthesis.cancel();
+    state.utterance = null;
 
     state.currentParagraph = index;
     updateToolbarStatus(`Paragraph ${index + 1}/${state.paragraphs.length}`);
@@ -323,9 +385,17 @@
       }
     } catch (err) {
       console.error("Read Aloud: TTS playback error", err);
-      // Try Web Speech API fallback
-      state.useServer = false;
-      playParagraphWithWebSpeech(index);
+      // Only fall back if the server is actually down, not on transient audio errors
+      const serverOk = await checkServerHealth();
+      if (!serverOk) {
+        updateToolbarStatus(`Server down - falling back to browser TTS`);
+        state.useServer = false;
+        setTimeout(() => playParagraphWithWebSpeech(index), 1000);
+      } else {
+        // Transient error, retry the same paragraph
+        updateToolbarStatus(`Retrying paragraph ${index + 1}...`);
+        setTimeout(() => playParagraphWithServer(index), 500);
+      }
     }
   }
 
@@ -553,9 +623,7 @@
       const val = parseFloat(speedSlider.value);
       state.speed = val;
       speedLabel.textContent = `${val.toFixed(1)}x`;
-      if (state.audio) {
-        state.audio.playbackRate = val;
-      }
+      chrome.runtime.sendMessage({ type: "SET_AUDIO_SPEED", speed: val });
       chrome.storage.local.set({ speed: val });
     });
 
@@ -594,11 +662,10 @@
     stopHighlightLoop();
     clearHighlights();
     state.playing = false;
-    if (state.audio) {
-      state.audio.pause();
-      state.audio.src = "";
-      state.audio = null;
-    }
+    state._currentTime = 0;
+    chrome.runtime.sendMessage({ type: "STOP_AUDIO" });
+    audioResolve = null;
+    audioReject = null;
     if (state.utterance) {
       speechSynthesis.cancel();
       state.utterance = null;
@@ -608,18 +675,16 @@
   function pausePlayback() {
     state.playing = false;
     stopHighlightLoop();
-    if (state.audio) {
-      state.audio.pause();
-    }
+    chrome.runtime.sendMessage({ type: "PAUSE_AUDIO" });
     if (state.utterance) {
       speechSynthesis.pause();
     }
   }
 
   function resumePlayback() {
-    if (state.audio) {
+    if (audioResolve) {
       state.playing = true;
-      state.audio.play();
+      chrome.runtime.sendMessage({ type: "RESUME_AUDIO" });
       startHighlightLoop();
     } else if (state.utterance) {
       state.playing = true;
@@ -683,6 +748,7 @@
     stopHealthCheckTimer();
     clearHighlights();
     removeToolbar();
+    chrome.runtime.sendMessage({ type: "STOP_AUDIO" });
     state.active = false;
     state.playing = false;
     state.paragraphs = [];
@@ -690,6 +756,7 @@
     state.prefetchCache = {};
     state.textNodeMap = null;
     state._paragraphOffset = null;
+    state._currentTime = 0;
   }
 
   // ─── Message Listener ─────────────────────────────────────────────────────
