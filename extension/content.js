@@ -137,13 +137,6 @@
 
   const MIN_PARAGRAPH_CHARS = 20;
 
-  // A block that is nothing but a link gets spelled out — nine seconds of
-  // "aitch tee tee pee ess colon slash slash" for one URL, under a single
-  // highlight. Links inside a sentence are kept: the sentence is worth
-  // hearing, and rewriting the text would stop findParagraphOffset locating it
-  // in the page.
-  const BARE_URL = /^(?:https?:\/\/|www\.)\S+$/i;
-
   function paragraphsFromRoot(root) {
     const paragraphs = [];
     for (const block of root.querySelectorAll(BLOCK_SELECTOR)) {
@@ -152,7 +145,6 @@
       if (block.querySelector(BLOCK_SELECTOR)) continue;
       const text = block.textContent.replace(/\s+/g, " ").trim();
       if (text.length <= MIN_PARAGRAPH_CHARS) continue;
-      if (BARE_URL.test(text)) continue;
       paragraphs.push(text);
     }
     return paragraphs;
@@ -210,20 +202,51 @@
   // detail — the reader still navigates whole paragraphs.
   const MAX_CHUNK_CHARS = 500;
 
-  function splitParagraphIntoChunks(paragraph) {
-    if (paragraph.length <= MAX_CHUNK_CHARS) return [paragraph];
+  // Kokoro spells a URL out one character at a time: 16 seconds of audio for a
+  // 153-character line that was mostly a Guardian link. Rewriting the text to
+  // drop it is not an option — the chunk has to stay matchable against the page
+  // for findParagraphOffset — but splitting *around* it is, because each
+  // remaining fragment is still an exact run of the page text.
+  const URL_IN_TEXT = /\bhttps?:\/\/\S+|\bwww\.\S+\.\S+/gi;
 
-    const sentences = paragraph.match(/[^.!?]+[.!?]+[\s)]*/g) || [paragraph];
-    const chunks = [];
-    let chunk = "";
-    for (const sentence of sentences) {
-      if (chunk.length + sentence.length > MAX_CHUNK_CHARS && chunk.length > 0) {
-        chunks.push(chunk.trim());
-        chunk = "";
-      }
-      chunk += sentence;
+  function splitAroundUrls(text) {
+    const pieces = [];
+    let cursor = 0;
+
+    const keep = (piece) => {
+      const trimmed = piece.trim();
+      // Whatever is left either side of a link can be punctuation on its own —
+      // a stray "(" is not worth a synthesis round trip.
+      if (trimmed && /[a-z0-9]/i.test(trimmed)) pieces.push(trimmed);
+    };
+
+    for (const match of text.matchAll(URL_IN_TEXT)) {
+      keep(text.slice(cursor, match.index));
+      cursor = match.index + match[0].length;
     }
-    if (chunk.trim().length > 0) chunks.push(chunk.trim());
+    keep(text.slice(cursor));
+
+    return pieces;
+  }
+
+  function splitParagraphIntoChunks(paragraph) {
+    const chunks = [];
+    for (const piece of splitAroundUrls(paragraph)) {
+      if (piece.length <= MAX_CHUNK_CHARS) {
+        chunks.push(piece);
+        continue;
+      }
+      const sentences = piece.match(/[^.!?]+[.!?]+[\s)]*/g) || [piece];
+      let chunk = "";
+      for (const sentence of sentences) {
+        if (chunk.length + sentence.length > MAX_CHUNK_CHARS && chunk.length > 0) {
+          chunks.push(chunk.trim());
+          chunk = "";
+        }
+        chunk += sentence;
+      }
+      if (chunk.trim().length > 0) chunks.push(chunk.trim());
+    }
     return chunks;
   }
 

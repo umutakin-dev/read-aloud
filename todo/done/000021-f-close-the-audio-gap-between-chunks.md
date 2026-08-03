@@ -1,7 +1,7 @@
 # Close the audio gap between chunks
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -62,6 +62,16 @@ So the boundary pays for two 1.8 MB structured clones, a storage write, a `getCo
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** abc7d7b (perf: preload the next chunk so the boundary is not spent shipping audio)
+
+### 2026-08-03
+- **Progress:** Verified: Umut listened through almost an entire Hacker News thread and noticed no gaps at chunk boundaries, where previously each one paid for two 1.8MB structured clones, a storage write, a getContexts round trip and a fresh decode.
 
 ### 2026-08-03
 
