@@ -18,6 +18,19 @@ dependencies = [
     "en-core-web-sm",
 ]
 
+[dependency-groups]
+# httpx is what starlette's TestClient drives; both are already present
+# transitively, but the tests depend on them directly so they are named here.
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.27.0",
+    "starlette>=0.37.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

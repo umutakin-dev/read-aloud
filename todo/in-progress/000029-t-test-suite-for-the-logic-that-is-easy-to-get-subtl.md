@@ -1,7 +1,7 @@
 # Test suite for the logic that is easy to get subtly wrong
 
 **Type:** 🔧 Task
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -53,6 +53,16 @@ What this cannot cover is the integration: injection, offscreen playback, servic
 - [ ] Verified
 
 ## Log
+
+### 2026-08-03
+- **Note:** Extracting alignment.py surfaced a latent shadowing bug: the prune left a second definition of align_timestamps_to_text in tts_engine.py that overrode the import. Caught by the failing test rather than by inspection, which is the point of the exercise.
+
+### 2026-08-03
+- **Progress:** Extracted the pure logic into extension/lib/textkit.js and server/src/tts_server/alignment.py so tests can reach it without loading the extension or importing torch. 91 JS tests via node --test with jsdom, 23 Python tests via pytest. background.js and offscreen.js are loaded whole under stubs rather than having pieces extracted from them, so the tests break when those files change.
+
+### 2026-08-03
+
+- **Progress:** Started work
 
 ### 2026-08-03
 

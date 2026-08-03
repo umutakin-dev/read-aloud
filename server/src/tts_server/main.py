@@ -7,8 +7,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
+from .alignment import preview
 from .models import TTSRequest, TTSWithTimestampsResponse, VoiceInfo, WordTimestamp
-from .tts_engine import TTSEngine, log_environment, preview
+from .tts_engine import TTSEngine, log_environment
 
 # READ_ALOUD_LOG_LEVEL=DEBUG adds per-chunk timing detail and the full list of
 # tokens that could not be aligned to the request text.
