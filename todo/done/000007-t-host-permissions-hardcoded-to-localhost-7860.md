@@ -1,7 +1,7 @@
 # host_permissions hardcoded to localhost:7860
 
 **Type:** 🔧 Task
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -42,6 +42,16 @@ It currently still works, but only by accident: the server sends permissive CORS
 - [ ] Verified
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 7ed98e8 (fix: restrict CORS, request host permission, correct timestamp fallback) and 71d8f5f (fix: narrow optional host permissions to localhost)
+
+### 2026-08-03
+- **Progress:** Verified: Chrome showed Read Aloud under Access requested, granting it produced Connected (kokoro), and the default localhost server needed no manual permission.
 
 ### 2026-08-03
 - **Decision:** Narrowed optional_host_permissions from http://*/* and https://*/* to localhost and 127.0.0.1 only. The wildcard put Read Aloud under Chrome's 'Access requested' grouping on every site — reintroducing the broad claim that on-demand injection had just removed. Non-localhost servers now need granting by hand under Details > Site access, which Umut chose as the right trade.

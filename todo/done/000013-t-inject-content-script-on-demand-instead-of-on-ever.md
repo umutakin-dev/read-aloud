@@ -1,7 +1,7 @@
 # Inject content script on demand instead of on every page
 
 **Type:** 🔧 Task
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -52,6 +52,16 @@ The injected script must tolerate re-injection. A stale copy orphaned by an exte
 - [ ] Verified
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 42369b4 (refactor: inject the content script on demand instead of on every page) and e0812e7 (fix: clear orphaned toolbar and highlights on injection)
+
+### 2026-08-03
+- **Progress:** Verified by clean-room install: extension removed, tab reloaded without it, extension loaded fresh, then Ctrl+Shift+U on that already-open tab worked without reloading the page. That is exactly the case declarative injection could never handle.
 
 ### 2026-08-03
 - **Note:** Implemented and control-flow verified, but the acceptance criteria need Chrome: activeTab grant on each entry point, and the reload-the-extension-without-reloading-the-tab case. Left in progress until verified in the browser.

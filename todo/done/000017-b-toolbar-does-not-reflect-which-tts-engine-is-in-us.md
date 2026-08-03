@@ -1,7 +1,7 @@
 # Toolbar does not reflect which TTS engine is in use
 
 **Type:** 🐛 Bug
-**Status:** 📋 Backlog
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -47,6 +47,16 @@ The engine in use is persistent state, so it should have a persistent indicator 
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 542b3e2 (feat: navigate by paragraph, resume after offscreen teardown, show engine)
+
+### 2026-08-03
+- **Progress:** Verified: the toolbar carries a green Kokoro indicator throughout a session instead of the engine being invisible.
 
 ### 2026-08-03
 

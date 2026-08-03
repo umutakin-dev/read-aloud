@@ -137,6 +137,13 @@
 
   const MIN_PARAGRAPH_CHARS = 20;
 
+  // A block that is nothing but a link gets spelled out — nine seconds of
+  // "aitch tee tee pee ess colon slash slash" for one URL, under a single
+  // highlight. Links inside a sentence are kept: the sentence is worth
+  // hearing, and rewriting the text would stop findParagraphOffset locating it
+  // in the page.
+  const BARE_URL = /^(?:https?:\/\/|www\.)\S+$/i;
+
   function paragraphsFromRoot(root) {
     const paragraphs = [];
     for (const block of root.querySelectorAll(BLOCK_SELECTOR)) {
@@ -144,7 +151,9 @@
       // children, and taking both would read it twice.
       if (block.querySelector(BLOCK_SELECTOR)) continue;
       const text = block.textContent.replace(/\s+/g, " ").trim();
-      if (text.length > MIN_PARAGRAPH_CHARS) paragraphs.push(text);
+      if (text.length <= MIN_PARAGRAPH_CHARS) continue;
+      if (BARE_URL.test(text)) continue;
+      paragraphs.push(text);
     }
     return paragraphs;
   }

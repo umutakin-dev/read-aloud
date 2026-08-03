@@ -1,7 +1,7 @@
 # Navigate by real paragraphs, not synthesis chunks
 
 **Type:** ✨ Feature
-**Status:** 📋 Backlog
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -55,6 +55,16 @@ Highlighting is unaffected: it resolves per chunk, and a chunk is still a contig
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 542b3e2 (feat: navigate by paragraph, resume after offscreen teardown, show engine)
+
+### 2026-08-03
+- **Progress:** Verified: the toolbar counts real paragraphs — Paragraph 3/198 on a Hacker News thread — rather than the synthesis chunks it used to report.
 
 ### 2026-08-03
 

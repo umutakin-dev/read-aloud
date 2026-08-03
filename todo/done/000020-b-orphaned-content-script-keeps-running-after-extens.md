@@ -1,7 +1,7 @@
 # Orphaned content script keeps running after extension reload
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -54,6 +54,16 @@ Worth noting the reported line numbers predate the chunk refactor, but both mech
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** f3888f0 (fix: stop an orphaned content script instead of letting it run on)
+
+### 2026-08-03
+- **Progress:** Verified: after a clean install the extensions error page is empty through a full reading session, where previously an orphan spammed Extension context invalidated every poll interval.
 
 ### 2026-08-03
 

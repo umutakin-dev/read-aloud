@@ -1,7 +1,7 @@
 # Paragraph detection collapses on pages without text newlines
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -52,6 +52,16 @@ Related: the first paragraph takes a visibly long time to start with nothing sai
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** bd248fb (fix: find paragraphs from block elements, not newlines in flattened text)
+
+### 2026-08-03
+- **Progress:** Verified on the Hacker News thread that broke it: 198 paragraphs where newline splitting gave 2, and the word highlight lands correctly inside a comment body.
 
 ### 2026-08-03
 
