@@ -414,22 +414,76 @@
     }
   }
 
+  // ─── Messaging ────────────────────────────────────────────────────────────
+  // Reloading the extension invalidates this script's chrome.* bridge but does
+  // not stop the script. Every send then throws "Extension context invalidated"
+  // — synchronously, inside a promise executor, so it surfaces as an unhandled
+  // rejection on every health-check tick for as long as the tab stays open.
+  function extensionAlive() {
+    try {
+      return Boolean(chrome.runtime && chrome.runtime.id);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Resolves null instead of throwing when there is nothing to talk to.
+  function sendMessage(message) {
+    return new Promise((resolve) => {
+      if (!extensionAlive()) {
+        resolve(null);
+        return;
+      }
+      try {
+        chrome.runtime.sendMessage(message, (response) => {
+          // Read it, or Chrome logs it as an unchecked error.
+          void chrome.runtime.lastError;
+          resolve(response ?? null);
+        });
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  }
+
+  // Fire-and-forget for the playback controls, where there is nothing useful to
+  // do with a failure.
+  function postMessage(message) {
+    sendMessage(message);
+  }
+
+  // An orphan cannot do anything useful and would otherwise keep its timers
+  // firing and — worse — keep speaking. Go quiet and leave the page clean.
+  function selfDestruct() {
+    console.warn("Read Aloud: extension was reloaded, stopping this copy");
+    stopHealthCheckTimer();
+    stopHighlightLoop();
+    try {
+      speechSynthesis.cancel();
+    } catch (e) {
+      /* page may be unloading */
+    }
+    clearHighlights();
+    removeToolbar();
+    state.active = false;
+    state.playing = false;
+    state.utterance = null;
+  }
+
   // ─── Server Communication (via background service worker) ────────────────
   async function checkServerHealth() {
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage(
-        { type: "HEALTH_CHECK", serverUrl: state.serverUrl },
-        (response) => {
-          resolve(response && response.ok);
-        }
-      );
+    const response = await sendMessage({
+      type: "HEALTH_CHECK",
+      serverUrl: state.serverUrl,
     });
+    return Boolean(response && response.ok);
   }
 
   // Audio is always synthesized at 1.0x and sped up at playback time via
   // audio.playbackRate. Doing it server-side too would compound the two rates,
   // and would bake a speed into every prefetched paragraph.
   async function requestTTSWithTimestamps(text) {
+    if (!extensionAlive()) throw new Error("Extension context invalidated");
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(
         {
@@ -494,15 +548,14 @@
     return new Promise((resolve, reject) => {
       audioResolve = resolve;
       audioReject = reject;
-      chrome.runtime.sendMessage({
+      sendMessage({
         type: "PLAY_AUDIO",
         audio_base64: base64,
         speed: state.speed,
-      }, (response) => {
-        // Reading lastError also stops Chrome logging it as unchecked.
-        if (chrome.runtime.lastError) {
-          failAudio(new Error(chrome.runtime.lastError.message));
-        } else if (response && !response.ok) {
+      }).then((response) => {
+        if (!response) {
+          failAudio(new Error("Could not reach the extension"));
+        } else if (!response.ok) {
           failAudio(new Error(response.error || "Audio play failed"));
         }
       });
@@ -679,6 +732,12 @@
 
     utterance.onend = () => {
       clearHighlights();
+      // Stop at the chunk boundary rather than waiting up to a poll interval
+      // for the health timer to notice — this one is audible.
+      if (!extensionAlive()) {
+        selfDestruct();
+        return;
+      }
       if (state.active) {
         playChunkWithWebSpeech(index + 1);
       }
@@ -711,6 +770,13 @@
   // failed — the toolbar kept claiming Kokoro while nothing was wrong yet.
   function startHealthCheckTimer() {
     state.healthCheckTimer = setInterval(async () => {
+      // This interval is what kept an orphaned copy alive, throwing on every
+      // tick for as long as the tab stayed open. Nothing else notices, because
+      // the teardown handshake only runs when a replacement is injected.
+      if (!extensionAlive()) {
+        selfDestruct();
+        return;
+      }
       const healthy = await checkServerHealth();
       if (!state.active || healthy === state.serverHealthy) return;
       state.serverHealthy = healthy;
@@ -908,7 +974,7 @@
       const val = parseFloat(speedSlider.value);
       state.speed = val;
       speedLabel.textContent = `${val.toFixed(1)}x`;
-      chrome.runtime.sendMessage({ type: "SET_AUDIO_SPEED", speed: val });
+      postMessage({ type: "SET_AUDIO_SPEED", speed: val });
       chrome.storage.local.set({ speed: val });
     });
 
@@ -987,7 +1053,7 @@
     clearHighlights();
     state.playing = false;
     state._currentTime = 0;
-    chrome.runtime.sendMessage({ type: "STOP_AUDIO" });
+    postMessage({ type: "STOP_AUDIO" });
     // Settle rather than drop it — a pending promise here would strand the
     // paragraph that is awaiting it.
     finishAudio("cancelled");
@@ -1000,7 +1066,7 @@
   function pausePlayback() {
     state.playing = false;
     stopHighlightLoop();
-    chrome.runtime.sendMessage({ type: "PAUSE_AUDIO" });
+    postMessage({ type: "PAUSE_AUDIO" });
     if (state.utterance) {
       speechSynthesis.pause();
     }
@@ -1028,8 +1094,8 @@
     // word has not changed, and after a pause that check would suppress the
     // first frame — leaving whatever was on screen before the pause.
     lastHighlightedWord = -1;
-    chrome.runtime.sendMessage({ type: "RESUME_AUDIO" }, (response) => {
-      if (chrome.runtime.lastError || !response?.resumed) {
+    sendMessage({ type: "RESUME_AUDIO" }).then((response) => {
+      if (!response?.resumed) {
         // Chrome discards an AUDIO_PLAYBACK offscreen document once it stops
         // playing, so a pause of more than a minute or two leaves nothing to
         // resume. Rebuild it and pick up from where the audio had reached.
@@ -1046,25 +1112,22 @@
       playCurrentChunk();
       return;
     }
-    chrome.runtime.sendMessage(
-      {
-        type: "PLAY_AUDIO",
-        audio_base64: state._audioBase64,
-        speed: state.speed,
-        startAt: state._currentTime || 0,
-      },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          failAudio(new Error(chrome.runtime.lastError.message));
-        } else if (response && !response.ok) {
-          failAudio(new Error(response.error || "Audio replay failed"));
-        } else {
-          // The promise from the original play is still pending and will settle
-          // on AUDIO_ENDED as usual, so nothing else needs rewiring.
-          startHighlightLoop();
-        }
+    sendMessage({
+      type: "PLAY_AUDIO",
+      audio_base64: state._audioBase64,
+      speed: state.speed,
+      startAt: state._currentTime || 0,
+    }).then((response) => {
+      if (!response) {
+        failAudio(new Error("Could not reach the extension"));
+      } else if (!response.ok) {
+        failAudio(new Error(response.error || "Audio replay failed"));
+      } else {
+        // The promise from the original play is still pending and will settle
+        // on AUDIO_ENDED as usual, so nothing else needs rewiring.
+        startHighlightLoop();
       }
-    );
+    });
   }
 
   // ─── Main Toggle ──────────────────────────────────────────────────────────
@@ -1123,7 +1186,7 @@
     stopHealthCheckTimer();
     clearHighlights();
     removeToolbar();
-    chrome.runtime.sendMessage({ type: "STOP_AUDIO" });
+    postMessage({ type: "STOP_AUDIO" });
     state.active = false;
     state.playing = false;
     state.waitingForServer = false;
@@ -1161,6 +1224,6 @@
     state.playing = false;
     chrome.runtime.onMessage.removeListener(onAudioMessage);
     chrome.runtime.onMessage.removeListener(onToggleMessage);
-    chrome.runtime.sendMessage({ type: "STOP_AUDIO" });
+    postMessage({ type: "STOP_AUDIO" });
   };
 })();
