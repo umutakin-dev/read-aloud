@@ -1,7 +1,7 @@
 # Run the test suite on push and pull request
 
 **Type:** 🔧 Task
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -43,6 +43,13 @@ Deliberately out of scope: installing torch in CI. Multiple gigabytes for tests 
 - [ ] Verified
 
 ## Log
+
+### 2026-08-03
+- **Progress:** Workflow added: two jobs on push and pull request, Node 22/24 and Python 3.10/3.13, with concurrency cancelling superseded runs. Verified locally on every matrix leg. The Python job runs --no-project so uv never installs torch from the cu128 index — 23 tests in 0.16s instead of a 2.6GB download onto a runner with no GPU.
+
+### 2026-08-03
+
+- **Progress:** Started work
 
 ### 2026-08-03
 

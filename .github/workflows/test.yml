@@ -1,0 +1,60 @@
+name: Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# A second push to the same branch makes the first run irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  javascript:
+    name: Extension (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22 is the floor: node --test needs 21+ to accept a glob pattern.
+        # 24 is current, so an upgrade cannot break this silently.
+        node: ["22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+  python:
+    name: Server (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The declared floor and the current release. Nothing between them is
+        # worth the minutes — these tests are string handling.
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # Deliberately --no-project. `uv sync` would install torch from the cu128
+      # index — 2.6GB onto a runner that will never have a GPU — and nothing
+      # here needs it: the tests import tts_server.alignment, which is kept
+      # clear of numpy, soundfile and torch precisely so this stays cheap.
+      - name: Run tests
+        working-directory: server
+        run: >
+          uv run --no-project --python ${{ matrix.python }}
+          --with pytest --with httpx --with starlette
+          pytest -q

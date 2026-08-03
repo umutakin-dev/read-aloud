@@ -163,7 +163,16 @@ chunking, the text index, word spans — plus the manifest, the injection flow i
 covers token alignment and the CORS policy.
 
 Neither needs a GPU and the Python tests do not import torch: everything they
-touch lives in `alignment.py`, which is deliberately kept clear of it.
+touch lives in `alignment.py`, which is deliberately kept clear of it. So the
+server suite also runs without installing the project at all:
+
+```bash
+uv run --directory server --no-project \
+  --with pytest --with httpx --with starlette pytest
+```
+
+Both suites run on push and pull request via `.github/workflows/test.yml`,
+across Node 22 and 24 and Python 3.10 and 3.13.
 
 What they do not cover is integration — injection into a live page, offscreen
 playback, service-worker eviction. That needs a real browser and is not
