@@ -36,6 +36,20 @@ uv run uvicorn tts_server.main:app --port 7860
 
 The server will download the Kokoro model on first run (~350MB).
 
+#### Allowed origins
+
+The server only accepts cross-origin requests from Chrome extension origins, so
+an arbitrary website you happen to be browsing cannot drive your GPU. The
+extension's own requests are unaffected — a host it holds a permission for is
+not a cross-origin request at all.
+
+To point another client at it:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `READ_ALOUD_ALLOWED_ORIGINS` | *(empty)* | Comma-separated list of exact origins to allow |
+| `READ_ALOUD_ALLOWED_ORIGIN_REGEX` | `^chrome-extension://[a-p]{32}$` | Origin pattern to allow |
+
 ### Chrome Extension
 
 1. Open `chrome://extensions` in Chrome
@@ -68,6 +82,13 @@ Click the extension icon to access:
 - **Voice**: Select from available Kokoro voices
 - **Speed**: Default playback speed
 - **Server URL**: TTS server address (default: `http://localhost:7860`)
+
+Only the default `http://localhost:7860` is granted in the manifest. Saving a
+different Server URL prompts for permission to reach that host; the popup shows
+an error if you decline.
+
+Audio is always synthesized at 1.0x and sped up during playback, so the speed
+slider applies instantly and does not invalidate already-fetched paragraphs.
 
 ## API Endpoints
 

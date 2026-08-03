@@ -129,8 +129,13 @@ class TTSEngine:
                             "end": round(cumulative_offset + token.end_ts, 4),
                         })
             else:
-                # Fallback: estimate word timing from audio duration
-                words = text.split() if not audio_chunks else result.graphemes.split()
+                # No token timings for this chunk — spread its own words evenly
+                # across its own duration. Reading from the full request text
+                # here (as this once did for the first chunk) crams every word
+                # of the request into one chunk's worth of audio, and then emits
+                # them all again for the chunk that actually contains them.
+                graphemes = getattr(result, "graphemes", None)
+                words = graphemes.split() if graphemes else []
                 if words:
                     word_dur = chunk_duration / len(words)
                     for i, word in enumerate(words):
@@ -139,6 +144,13 @@ class TTSEngine:
                             "start": round(cumulative_offset + i * word_dur, 4),
                             "end": round(cumulative_offset + (i + 1) * word_dur, 4),
                         })
+                else:
+                    # Better to highlight nothing for this chunk than to
+                    # highlight the wrong words.
+                    logger.warning(
+                        "Chunk has neither token timings nor graphemes; "
+                        "no timestamps emitted for it"
+                    )
 
             audio_chunks.append(audio_np)
             cumulative_samples += len(audio_np)

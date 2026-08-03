@@ -82,15 +82,49 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   checkServer();
 
+  // The manifest only grants the default localhost server. Any other host needs
+  // its permission requested at runtime — and it has to happen inside the click
+  // handler, since chrome.permissions.request() requires a user gesture.
+  async function ensureServerPermission(serverUrl) {
+    let origin;
+    try {
+      origin = `${new URL(serverUrl).origin}/*`;
+    } catch {
+      return { ok: false, error: "Not a valid URL" };
+    }
+    if (await chrome.permissions.contains({ origins: [origin] })) {
+      return { ok: true };
+    }
+    const granted = await chrome.permissions.request({ origins: [origin] });
+    return granted
+      ? { ok: true }
+      : { ok: false, error: `Permission denied for ${origin}` };
+  }
+
+  function showSaveError(message) {
+    statusDot.className = "dot disconnected";
+    statusText.textContent = message;
+    btnSave.textContent = "Save Settings";
+  }
+
   btnSave.addEventListener("click", async () => {
+    const serverUrl = serverUrlInput.value.trim().replace(/\/$/, "");
+
+    const permission = await ensureServerPermission(serverUrl);
+    if (!permission.ok) {
+      showSaveError(permission.error);
+      return;
+    }
+
     const newSettings = {
       voice: voiceSelect.value,
       speed: parseFloat(speedInput.value),
-      serverUrl: serverUrlInput.value.replace(/\/$/, ""),
+      serverUrl,
     };
     await chrome.storage.local.set(newSettings);
     // Keep the snapshot current — checkServer() below re-applies settings.voice.
     Object.assign(settings, newSettings);
+    serverUrlInput.value = serverUrl;
     btnSave.textContent = "Saved!";
     setTimeout(() => {
       btnSave.textContent = "Save Settings";

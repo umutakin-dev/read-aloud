@@ -1,5 +1,6 @@
 import base64
 import logging
+import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,12 +14,38 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Read Aloud TTS Server", version="0.1.0")
 
+# Only the extension should be able to drive this server. With `allow_origins=["*"]`
+# any site the user happened to be browsing could POST to it and occupy the GPU.
+#
+# Chrome extension IDs are 32 characters from a-p, and an unpacked extension gets
+# a different one on every machine, so the default matches the shape rather than a
+# specific ID. Override either setting for a different client:
+#
+#     READ_ALOUD_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+#     READ_ALOUD_ALLOWED_ORIGIN_REGEX=^chrome-extension://abcdef...$
+#
+# Note that the extension's own requests to a host it holds a permission for are
+# not CORS requests at all, so this policy does not affect them.
+DEFAULT_ORIGIN_REGEX = r"^chrome-extension://[a-p]{32}$"
+
+allowed_origin_regex = os.environ.get(
+    "READ_ALOUD_ALLOWED_ORIGIN_REGEX", DEFAULT_ORIGIN_REGEX
+)
+allowed_origins = [
+    origin.strip()
+    for origin in os.environ.get("READ_ALOUD_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=allowed_origin_regex,
+    # No cookies or auth are involved, and credentialed wildcard origins are
+    # invalid per the CORS spec anyway.
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 engine = TTSEngine()
