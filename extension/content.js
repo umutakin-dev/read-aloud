@@ -46,6 +46,8 @@
     serverUrl: "http://localhost:7860",
     useServer: true,       // false = Web Speech API fallback
     serverHealthy: null,   // last observed health, independent of what is in use
+    allowBrowserFallback: false,  // opt-in; otherwise we wait for Kokoro
+    waitingForServer: false,
     toolbar: null,
     utterance: null,       // for Web Speech API fallback
     prefetchCache: {},     // chunk index -> TTS response data
@@ -75,10 +77,16 @@
 
   // ─── Load settings ──────────────────────────────────────────────────────────
   async function loadSettings() {
-    const result = await chrome.storage.local.get(["voice", "speed", "serverUrl"]);
+    const result = await chrome.storage.local.get([
+      "voice",
+      "speed",
+      "serverUrl",
+      "allowBrowserFallback",
+    ]);
     if (result.voice) state.voice = result.voice;
     if (result.speed) state.speed = result.speed;
     if (result.serverUrl) state.serverUrl = result.serverUrl;
+    state.allowBrowserFallback = result.allowBrowserFallback === true;
   }
 
   // ─── Text Extraction ───────────────────────────────────────────────────────
@@ -505,6 +513,15 @@
       // document during a pause — see resumePlayback.
       state._audioBase64 = data.audio_base64;
 
+      // Audio is on its way, so whatever hold we were in is over. Covers the
+      // request succeeding on a path that did not go through retryServerNow.
+      if (state.waitingForServer) {
+        state.waitingForServer = false;
+        state.serverHealthy = true;
+        updatePlayButton(true);
+        updateEngineIndicator();
+      }
+
       state.playing = true;
       startHighlightLoop();
 
@@ -533,6 +550,12 @@
       if (!state.active) return;
       state.serverHealthy = serverOk;
       if (!serverOk) {
+        if (!state.allowBrowserFallback) {
+          // Reading in a voice the user did not ask for is worse than not
+          // reading. Hold here; the health poll picks it up when it returns.
+          waitForServer(index);
+          return;
+        }
         state.useServer = false;
         updateEngineIndicator();
         // Re-check on the way in: stopping during the delay must not restart it.
@@ -542,6 +565,38 @@
         setTimeout(() => state.active && playChunkWithServer(index), 500);
       }
     }
+  }
+
+  // ─── Waiting for the server ───────────────────────────────────────────────
+  // Reached when the server is unreachable and browser fallback is off. The
+  // toolbar is open because the reader wants to read, and the likeliest reason
+  // the server is down is that it has not been started yet — so hold position
+  // and resume rather than tearing down. Stop is still right there.
+  function waitForServer(chunkIndex) {
+    state.currentChunk = chunkIndex;
+    state.playing = false;
+    state.waitingForServer = true;
+    state.useServer = true; // still the intent, just not reachable
+    stopHighlightLoop();
+    clearHighlights();
+    updatePlayButton(false);
+    updateToolbarStatus(`Waiting for the Kokoro server at ${state.serverUrl}`);
+    updateEngineIndicator();
+  }
+
+  async function retryServerNow() {
+    updateToolbarStatus("Checking the Kokoro server...");
+    const healthy = await checkServerHealth();
+    if (!state.active) return;
+    state.serverHealthy = healthy;
+    if (!healthy) {
+      waitForServer(state.currentChunk);
+      return;
+    }
+    state.waitingForServer = false;
+    updatePlayButton(true);
+    updateEngineIndicator();
+    playCurrentChunk();
   }
 
   // ─── Web Speech API Fallback ──────────────────────────────────────────────
@@ -598,10 +653,12 @@
   }
 
   function playCurrentChunk() {
-    if (state.useServer) {
-      playChunkWithServer(state.currentChunk);
-    } else {
+    // Browser speech only ever runs when it has been opted into — a stale
+    // useServer=false must not become a silent voice swap.
+    if (!state.useServer && state.allowBrowserFallback) {
       playChunkWithWebSpeech(state.currentChunk);
+    } else {
+      playChunkWithServer(state.currentChunk);
     }
   }
 
@@ -614,6 +671,16 @@
       const healthy = await checkServerHealth();
       if (!state.active || healthy === state.serverHealthy) return;
       state.serverHealthy = healthy;
+
+      // Held waiting because fallback is off — pick up from the chunk that
+      // failed, which is usually the moment the user finally started the server.
+      if (healthy && state.waitingForServer) {
+        state.waitingForServer = false;
+        updatePlayButton(true);
+        updateEngineIndicator();
+        playCurrentChunk();
+        return;
+      }
 
       // Recovering is safe to act on immediately; going down is not. The
       // current chunk may already be playing from cache, and one failed poll
@@ -730,6 +797,7 @@
         .engine.ok::before { background: #a6e3a1; }
         .engine.warn::before { background: #f9e2af; }
         .engine.fallback::before { background: #fab387; }
+        .engine.down::before { background: #f38ba8; }
       </style>
       <div class="toolbar">
         <button id="btn-prev" title="Previous paragraph">&#9664;&#9664;</button>
@@ -823,7 +891,13 @@
     if (!el) return;
 
     let label, cls, title;
-    if (!state.useServer) {
+    if (state.waitingForServer) {
+      label = "Server down";
+      cls = "engine down";
+      title =
+        `Waiting for the Kokoro server at ${state.serverUrl}. ` +
+        "Enable browser fallback in the extension popup to read without it.";
+    } else if (!state.useServer) {
       label = "Browser TTS";
       cls = "engine fallback";
       title = "Kokoro server unavailable — using the browser's built-in speech";
@@ -890,6 +964,12 @@
   }
 
   function resumePlayback() {
+    // Pressing Play while held is an explicit "try again now" — don't make the
+    // user wait out the poll interval.
+    if (state.waitingForServer) {
+      retryServerNow();
+      return;
+    }
     if (state.utterance) {
       state.playing = true;
       speechSynthesis.resume();
@@ -979,10 +1059,17 @@
     // Check server health
     const serverOk = await checkServerHealth();
     state.serverHealthy = serverOk;
+    state.currentChunk = 0;
+
+    if (!serverOk && !state.allowBrowserFallback) {
+      // Start the poll before waiting, or nothing would ever notice recovery.
+      startHealthCheckTimer();
+      waitForServer(0);
+      return;
+    }
+
     state.useServer = serverOk;
     updateEngineIndicator();
-
-    state.currentChunk = 0;
     updatePlayButton(true);
     playCurrentChunk();
     startHealthCheckTimer();
@@ -997,6 +1084,7 @@
     chrome.runtime.sendMessage({ type: "STOP_AUDIO" });
     state.active = false;
     state.playing = false;
+    state.waitingForServer = false;
     state.chunks = [];
     state.paragraphStarts = [];
     state.currentChunk = 0;

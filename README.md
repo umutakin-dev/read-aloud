@@ -8,7 +8,7 @@ Chrome extension that reads web pages aloud using a local Kokoro TTS server with
 - Word and sentence-level highlighting using CSS Custom Highlight API
 - Automatic text extraction via Mozilla Readability.js
 - Toolbar with play/pause, prev/next paragraph, speed control
-- Web Speech API fallback when server is unavailable
+- Optional Web Speech API fallback when the server is unavailable (off by default)
 - Auto-reconnect when server comes back online
 - Right-click context menu and keyboard shortcut (Ctrl+Shift+U)
 
@@ -128,6 +128,13 @@ Click the extension icon to access:
 - **Voice**: Select from available Kokoro voices
 - **Speed**: Default playback speed
 - **Server URL**: TTS server address (default: `http://localhost:7860`)
+- **Fall back to browser speech**: Off by default
+
+With fallback off, an unreachable server never produces browser speech. The
+toolbar shows a red **Server down** indicator and waits, resuming from the
+paragraph it stopped at as soon as the server answers — pressing Play retries
+immediately rather than waiting for the next poll. Turn it on if you would
+rather hear the browser's built-in voice than nothing.
 
 Only the default `http://localhost:7860` is granted in the manifest. Saving a
 different Server URL prompts for permission to reach that host; the popup shows

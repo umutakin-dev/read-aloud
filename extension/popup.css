@@ -100,6 +100,33 @@ input[type="range"] {
   color: #a6adc8;
 }
 
+/* Overrides the uppercase block label styling for a checkbox row. */
+label.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 0;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13px;
+  color: #cdd6f4;
+  cursor: pointer;
+}
+
+label.checkbox-row input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: #89b4fa;
+  flex-shrink: 0;
+}
+
+label.checkbox-row small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #6c7086;
+}
+
 button {
   width: 100%;
   padding: 8px;

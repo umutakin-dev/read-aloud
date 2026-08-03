@@ -5,10 +5,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   const speedInput = document.getElementById("speed-input");
   const speedValue = document.getElementById("speed-value");
   const serverUrlInput = document.getElementById("server-url");
+  const allowFallback = document.getElementById("allow-fallback");
   const btnSave = document.getElementById("btn-save");
 
   // Load saved settings
-  const settings = await chrome.storage.local.get(["voice", "speed", "serverUrl"]);
+  const settings = await chrome.storage.local.get([
+    "voice",
+    "speed",
+    "serverUrl",
+    "allowBrowserFallback",
+  ]);
+  // Off unless explicitly turned on — swapping in a noticeably worse voice
+  // without being asked is not a graceful degradation.
+  allowFallback.checked = settings.allowBrowserFallback === true;
   if (settings.speed) {
     speedInput.value = settings.speed;
     speedValue.textContent = `${settings.speed}x`;
@@ -35,6 +44,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   speedInput.addEventListener("input", () => {
     speedValue.textContent = `${parseFloat(speedInput.value).toFixed(1)}x`;
+  });
+
+  // The offline message depends on this, so refresh it without waiting for Save.
+  allowFallback.addEventListener("change", () => {
+    if (statusDot.classList.contains("disconnected")) {
+      statusText.textContent = allowFallback.checked
+        ? "Server unavailable (will use browser speech)"
+        : "Server unavailable (Read Aloud will wait for it)";
+    }
   });
 
   // Check server health and load voices
@@ -76,7 +94,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     } else {
       statusDot.classList.add("disconnected");
-      statusText.textContent = "Server unavailable (will use browser TTS)";
+      statusText.textContent = allowFallback.checked
+        ? "Server unavailable (will use browser speech)"
+        : "Server unavailable (Read Aloud will wait for it)";
     }
   }
 
@@ -120,6 +140,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       voice: voiceSelect.value,
       speed: parseFloat(speedInput.value),
       serverUrl,
+      allowBrowserFallback: allowFallback.checked,
     };
     await chrome.storage.local.set(newSettings);
     // Keep the snapshot current — checkServer() below re-applies settings.voice.

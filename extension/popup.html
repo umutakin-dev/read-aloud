@@ -33,6 +33,17 @@
       <input type="text" id="server-url" value="http://localhost:7860" spellcheck="false">
     </div>
 
+    <div class="section">
+      <label class="checkbox-row" for="allow-fallback">
+        <input type="checkbox" id="allow-fallback">
+        <span>
+          Fall back to browser speech
+          <small>Read with the browser's built-in voice when the Kokoro server
+          is unavailable. Off means Read Aloud waits for the server instead.</small>
+        </span>
+      </label>
+    </div>
+
     <button id="btn-save">Save Settings</button>
 
     <div class="shortcut-hint">
