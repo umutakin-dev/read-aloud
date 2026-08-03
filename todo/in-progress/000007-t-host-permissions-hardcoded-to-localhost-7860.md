@@ -44,6 +44,9 @@ It currently still works, but only by accident: the server sends permissive CORS
 ## Log
 
 ### 2026-08-03
+- **Decision:** Narrowed optional_host_permissions from http://*/* and https://*/* to localhost and 127.0.0.1 only. The wildcard put Read Aloud under Chrome's 'Access requested' grouping on every site — reintroducing the broad claim that on-demand injection had just removed. Non-localhost servers now need granting by hand under Details > Site access, which Umut chose as the right trade.
+
+### 2026-08-03
 - **Progress:** Shipped in 7ed98e8.
 
 ### 2026-08-03

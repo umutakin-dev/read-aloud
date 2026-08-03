@@ -112,13 +112,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch {
       return { ok: false, error: "Not a valid URL" };
     }
-    if (await chrome.permissions.contains({ origins: [origin] })) {
-      return { ok: true };
+
+    try {
+      if (await chrome.permissions.contains({ origins: [origin] })) {
+        return { ok: true };
+      }
+      const granted = await chrome.permissions.request({ origins: [origin] });
+      return granted
+        ? { ok: true }
+        : { ok: false, error: `Permission denied for ${origin}` };
+    } catch (e) {
+      // Only localhost is listed as optional in the manifest, deliberately —
+      // claiming every host would put Read Aloud under "Access requested" on
+      // every site you visit. Anything else has to be granted by hand.
+      return {
+        ok: false,
+        error: "Only localhost can be granted here — for another host, allow it under Details > Site access in chrome://extensions",
+      };
     }
-    const granted = await chrome.permissions.request({ origins: [origin] });
-    return granted
-      ? { ok: true }
-      : { ok: false, error: `Permission denied for ${origin}` };
   }
 
   function showSaveError(message) {

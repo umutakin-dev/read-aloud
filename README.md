@@ -137,8 +137,12 @@ immediately rather than waiting for the next poll. Turn it on if you would
 rather hear the browser's built-in voice than nothing.
 
 Only the default `http://localhost:7860` is granted in the manifest. Saving a
-different Server URL prompts for permission to reach that host; the popup shows
-an error if you decline.
+different **localhost** port prompts for permission to reach it.
+
+Anything other than localhost has to be allowed by hand, under **Details > Site
+access** in `chrome://extensions`. That is deliberate: listing every host as an
+optional permission puts Read Aloud under "Access requested" on every site you
+visit, which is precisely the broad claim the on-demand injection removed.
 
 Audio is always synthesized at 1.0x and sped up during playback, so the speed
 slider applies instantly and does not invalidate already-fetched paragraphs.

@@ -14,8 +14,8 @@
     "http://localhost:7860/*"
   ],
   "optional_host_permissions": [
-    "http://*/*",
-    "https://*/*"
+    "http://localhost/*",
+    "http://127.0.0.1/*"
   ],
   "background": {
     "service_worker": "background.js"
