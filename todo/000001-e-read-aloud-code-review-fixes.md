@@ -28,10 +28,12 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - #000011 🐛 Popup overwrites saved voice when server is down
 - #000012 🔧 Restrict CORS origins on TTS server
 - #000013 🔧 Inject content script on demand instead of on every page
+- #000014 🔧 Install CUDA torch build with CPU fallback
+- #000015 🔧 Add verbose diagnostic logging to TTS server
 
 
 ## Progress
-█████░░░░░░░░░░░░░░░ 25% (3/12)
+███████░░░░░░░░░░░░░ 36% (5/14)
 
 - 🔨 #000002 Playback speed is applied twice
 - 🔨 #000003 Word highlighting never matches page DOM text
@@ -45,6 +47,8 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - 🔨 #000011 Popup overwrites saved voice when server is down
 - ✅ #000012 Restrict CORS origins on TTS server
 - 🔨 #000013 Inject content script on demand instead of on every page
+- ✅ #000014 Install CUDA torch build with CPU fallback
+- ✅ #000015 Add verbose diagnostic logging to TTS server
 
 ## Estimation
 
@@ -71,6 +75,12 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-08-03
+- **Note:** Added #000015 Add verbose diagnostic logging to TTS server to Items
+
+### 2026-08-03
+- **Note:** Added #000014 Install CUDA torch build with CPU fallback to Items
 
 ### 2026-08-03
 - **Note:** Added #000013 Inject content script on demand instead of on every page to Items
