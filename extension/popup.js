@@ -17,6 +17,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     serverUrlInput.value = settings.serverUrl;
   }
 
+  // Show the saved voice straight away. Without this the select holds only the
+  // hardcoded default until the voice list arrives, and saving while the server
+  // is unreachable would silently overwrite the user's choice.
+  function showSavedVoice() {
+    if (!settings.voice) return;
+    if (!voiceSelect.querySelector(`option[value="${CSS.escape(settings.voice)}"]`)) {
+      const opt = document.createElement("option");
+      opt.value = settings.voice;
+      opt.textContent = settings.voice;
+      voiceSelect.appendChild(opt);
+    }
+    voiceSelect.value = settings.voice;
+  }
+
+  showSavedVoice();
+
   speedInput.addEventListener("input", () => {
     speedValue.textContent = `${parseFloat(speedInput.value).toFixed(1)}x`;
   });
@@ -54,9 +70,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           opt.textContent = `${voice.name} (${voice.gender})`;
           voiceSelect.appendChild(opt);
         }
-        if (settings.voice) {
-          voiceSelect.value = settings.voice;
-        }
+        // Re-select afterwards; this also keeps a saved voice the server no
+        // longer offers rather than silently dropping to the first option.
+        showSavedVoice();
       }
     } else {
       statusDot.classList.add("disconnected");
@@ -73,6 +89,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       serverUrl: serverUrlInput.value.replace(/\/$/, ""),
     };
     await chrome.storage.local.set(newSettings);
+    // Keep the snapshot current — checkServer() below re-applies settings.voice.
+    Object.assign(settings, newSettings);
     btnSave.textContent = "Saved!";
     setTimeout(() => {
       btnSave.textContent = "Save Settings";

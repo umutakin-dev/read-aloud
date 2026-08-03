@@ -9,19 +9,39 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+// Pages with no content script — chrome:// URLs, the PDF viewer, the Web Store,
+// or any tab that was already open when the extension loaded — reject with
+// "Could not establish connection". Flag it on the badge instead of letting it
+// surface as an unhandled rejection with nothing shown to the user.
+function toggleReadAloud(tabId, selectedText) {
+  if (tabId === undefined) return;
+  chrome.tabs
+    .sendMessage(tabId, { type: "TOGGLE_READ_ALOUD", selectedText: selectedText || null })
+    .catch(() => showUnavailableBadge(tabId));
+}
+
+function showUnavailableBadge(tabId) {
+  chrome.action.setBadgeText({ tabId, text: "!" }).catch(() => {});
+  chrome.action.setBadgeBackgroundColor({ tabId, color: "#f38ba8" }).catch(() => {});
+  chrome.action
+    .setTitle({ tabId, title: "Read Aloud can't read this page" })
+    .catch(() => {});
+  setTimeout(() => {
+    chrome.action.setBadgeText({ tabId, text: "" }).catch(() => {});
+    chrome.action.setTitle({ tabId, title: "Read Aloud" }).catch(() => {});
+  }, 3000);
+}
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "read-aloud") {
-    chrome.tabs.sendMessage(tab.id, {
-      type: "TOGGLE_READ_ALOUD",
-      selectedText: info.selectionText || null,
-    });
+    toggleReadAloud(tab?.id, info.selectionText);
   }
 });
 
 // Keyboard shortcut
 chrome.commands.onCommand.addListener((command, tab) => {
   if (command === "toggle-read-aloud") {
-    chrome.tabs.sendMessage(tab.id, { type: "TOGGLE_READ_ALOUD" });
+    toggleReadAloud(tab?.id);
   }
 });
 
