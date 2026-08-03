@@ -14,7 +14,8 @@ chrome.runtime.onInstalled.addListener(() => {
 // until asked for — and so does not sit behind Chrome's broadest install
 // warning either. activeTab covers this: it is granted by all three entry
 // points below (action click, context menu item, commands shortcut).
-const CONTENT_SCRIPTS = ["lib/Readability.js", "content.js"];
+// Order matters: content.js reads ReadAloudText out of textkit at load.
+const CONTENT_SCRIPTS = ["lib/Readability.js", "lib/textkit.js", "content.js"];
 const CONTENT_STYLES = ["content.css"];
 
 async function toggleReadAloud(tabId, selectedText) {

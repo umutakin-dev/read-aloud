@@ -147,6 +147,37 @@ visit, which is precisely the broad claim the on-demand injection removed.
 Audio is always synthesized at 1.0x and sped up during playback, so the speed
 slider applies instantly and does not invalidate already-fetched paragraphs.
 
+## Tests
+
+```bash
+npm install          # once, for jsdom
+npm test             # extension
+
+uv sync --directory server
+uv run --directory server pytest
+```
+
+The extension suite covers `extension/lib/textkit.js` — paragraph extraction,
+chunking, the text index, word spans — plus the manifest, the injection flow in
+`background.js`, and the preload handshake in `offscreen.js`. The server suite
+covers token alignment and the CORS policy.
+
+Neither needs a GPU and the Python tests do not import torch: everything they
+touch lives in `alignment.py`, which is deliberately kept clear of it. So the
+server suite also runs without installing the project at all:
+
+```bash
+uv run --directory server --no-project \
+  --with pytest --with httpx --with starlette pytest
+```
+
+Both suites run on push and pull request via `.github/workflows/test.yml`,
+across Node 22 and 24 and Python 3.10 and 3.13.
+
+What they do not cover is integration — injection into a live page, offscreen
+playback, service-worker eviction. That needs a real browser and is not
+automated yet.
+
 ## API Endpoints
 
 | Endpoint | Method | Description |
