@@ -16,6 +16,20 @@
     }
   }
 
+  // The handshake above only reaches a copy new enough to publish that hook.
+  // A copy left by a build that predates it — or one whose context died partway
+  // through its own cleanup — strands its toolbar in the page instead. Clear any
+  // stray host directly so a fresh injection never stacks a second one on top.
+  document.getElementById("read-aloud-toolbar-host")?.remove();
+
+  // Same reasoning for the highlight registry: it is per-document, so an
+  // orphaned copy's ranges outlive it and would sit on the page as a dead
+  // highlight until something else cleared them.
+  if (CSS.highlights) {
+    CSS.highlights.delete("read-aloud-word");
+    CSS.highlights.delete("read-aloud-sentence");
+  }
+
   // ─── State ──────────────────────────────────────────────────────────────────
   let state = {
     active: false,
