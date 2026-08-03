@@ -5,15 +5,16 @@ and it cannot re-derive them by joining the words itself: Kokoro emits
 punctuation as its own tokens and splits contractions, so any fixed join drifts
 further from the truth with every word. That was #000004.
 
-Imported from the module directly — torch is only touched by TTSEngine, which
-these never construct.
+Imported from tts_server.alignment rather than tts_server.tts_engine: the
+latter imports numpy, soundfile and torch at module level, and none of that is
+needed to test string handling.
 """
 
 import logging
 
 import pytest
 
-from tts_server.tts_engine import align_timestamps_to_text
+from tts_server.alignment import align_timestamps_to_text
 
 
 def timestamps(*words):
