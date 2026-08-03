@@ -35,6 +35,36 @@ VOICE_CATALOG = {
 SAMPLE_RATE = 24000
 
 
+def align_timestamps_to_text(text: str, timestamps: list[dict]) -> list[dict]:
+    """Attach the character span of each spoken word within `text`.
+
+    The client needs to turn a word into a DOM Range, and it cannot re-derive
+    the offsets by joining the words itself: Kokoro emits punctuation as its
+    own tokens and splits contractions, so any fixed join drifts further from
+    the truth with every word.
+
+    Words are matched by scanning forward from the previous match, so repeated
+    words resolve to the correct occurrence. A word that cannot be found (Kokoro
+    rewrites some tokens, e.g. "1990" -> "nineteen ninety") leaves its span as
+    None and does not advance the cursor, so one miss cannot cascade.
+    """
+    lowered = text.lower()
+    cursor = 0
+    for ts in timestamps:
+        word = ts["word"]
+        if not word:
+            continue
+        idx = text.find(word, cursor)
+        if idx == -1:
+            idx = lowered.find(word.lower(), cursor)
+        if idx == -1:
+            continue
+        ts["start_char"] = idx
+        ts["end_char"] = idx + len(word)
+        cursor = idx + len(word)
+    return timestamps
+
+
 class TTSEngine:
     _instance = None
     _lock = threading.Lock()
@@ -117,7 +147,7 @@ class TTSEngine:
             raise ValueError("No audio generated")
 
         audio = np.concatenate(audio_chunks)
-        return audio, SAMPLE_RATE, all_timestamps
+        return audio, SAMPLE_RATE, align_timestamps_to_text(text, all_timestamps)
 
     def audio_to_wav_bytes(self, audio: np.ndarray, sample_rate: int) -> bytes:
         buf = io.BytesIO()

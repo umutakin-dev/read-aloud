@@ -18,7 +18,7 @@
     prefetchCache: {},     // paragraph index -> TTS response data
     healthCheckTimer: null,
     animFrameId: null,
-    textNodeMap: null,      // array of { node, start, end } for current paragraph DOM
+    textIndex: null,       // { text, nodes, offsets } — collapsed page text mapped to the DOM
   };
 
   // CSS Custom Highlight API registries
@@ -95,140 +95,193 @@
     return result.length > 0 ? result : paragraphs;
   }
 
-  // ─── Text Node Mapping ────────────────────────────────────────────────────
-  // Build a map of text nodes in the visible DOM to enable highlighting.
-  // We search the actual page DOM for the paragraph text and create Range objects.
-  function buildTextNodeMap() {
+  // ─── Text Index ───────────────────────────────────────────────────────────
+  // splitIntoParagraphs collapses whitespace, so the page text has to be
+  // collapsed identically or the paragraph is never found. We build that
+  // collapsed string alongside a per-character map back into the DOM, which is
+  // what lets a character span become a Range.
+  const WHITESPACE = /\s/;
+
+  function isRenderedText(node) {
+    const parent = node.parentElement;
+    if (!parent) return false;
+    const tag = parent.tagName;
+    if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") return false;
+    // Hidden text is in the DOM but not in what Readability extracted, so
+    // including it would shift every offset after it.
+    if (typeof parent.checkVisibility === "function") {
+      return parent.checkVisibility({ visibilityProperty: true });
+    }
+    return true;
+  }
+
+  function buildTextIndex() {
     const walker = document.createTreeWalker(
       document.body,
       NodeFilter.SHOW_TEXT,
       {
         acceptNode(node) {
-          if (!node.textContent.trim()) return NodeFilter.FILTER_REJECT;
-          const parent = node.parentElement;
-          if (!parent) return NodeFilter.FILTER_REJECT;
-          const tag = parent.tagName;
-          if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") {
-            return NodeFilter.FILTER_REJECT;
-          }
-          return NodeFilter.FILTER_ACCEPT;
+          // Whitespace-only nodes are kept, not rejected: the space between
+          // `<span>foo</span> <span>bar</span>` lives in one, and dropping it
+          // would splice the two words into "foobar".
+          return isRenderedText(node)
+            ? NodeFilter.FILTER_ACCEPT
+            : NodeFilter.FILTER_REJECT;
         },
       }
     );
 
-    const nodes = [];
-    let offset = 0;
+    let text = "";
+    const nodes = [];    // nodes[i] + offsets[i] locate text[i] in the DOM
+    const offsets = [];
+    let pendingSpace = false;
     let node;
+
     while ((node = walker.nextNode())) {
-      const text = node.textContent;
-      nodes.push({ node, start: offset, end: offset + text.length, text });
-      offset += text.length;
-    }
-    return nodes;
-  }
-
-  function findRangesForParagraph(paragraphText, textNodeMap) {
-    // Find where the paragraph text appears in the concatenated page text
-    const fullText = textNodeMap.map((n) => n.text).join("");
-    const idx = fullText.indexOf(paragraphText.substring(0, 100));
-    if (idx === -1) return null;
-    return idx; // offset in concatenated text
-  }
-
-  function createRangeForWord(wordStart, wordEnd, textNodeMap) {
-    const range = document.createRange();
-    let startSet = false;
-
-    for (const entry of textNodeMap) {
-      if (!startSet && wordStart < entry.end && wordStart >= entry.start) {
-        const localStart = wordStart - entry.start;
-        range.setStart(entry.node, Math.min(localStart, entry.text.length));
-        startSet = true;
-      }
-      if (startSet && wordEnd <= entry.end && wordEnd >= entry.start) {
-        const localEnd = wordEnd - entry.start;
-        range.setEnd(entry.node, Math.min(localEnd, entry.text.length));
-        return range;
+      const raw = node.textContent;
+      for (let i = 0; i < raw.length; i++) {
+        if (WHITESPACE.test(raw[i])) {
+          // Defer it — a run of whitespace collapses to at most one space, and
+          // leading whitespace is dropped entirely.
+          pendingSpace = text.length > 0;
+          continue;
+        }
+        if (pendingSpace) {
+          text += " ";
+          nodes.push(node);
+          offsets.push(i);
+          pendingSpace = false;
+        }
+        text += raw[i];
+        nodes.push(node);
+        offsets.push(i);
       }
     }
-    return null;
+
+    return { text, nodes, offsets };
+  }
+
+  function findParagraphOffset(paragraphText) {
+    if (!state.textIndex) state.textIndex = buildTextIndex();
+
+    let idx = state.textIndex.text.indexOf(paragraphText);
+    if (idx === -1) {
+      // The page may have changed since the index was built — lazy-loaded
+      // images, expanding sections, ads settling. Rebuild once before giving up.
+      state.textIndex = buildTextIndex();
+      idx = state.textIndex.text.indexOf(paragraphText);
+    }
+    if (idx === -1) {
+      // Readability sometimes alters a paragraph slightly (entity decoding,
+      // dropped inline nodes). A prefix match still anchors the highlight.
+      const probe = paragraphText.slice(0, 60);
+      if (probe.length >= 20) idx = state.textIndex.text.indexOf(probe);
+    }
+    if (idx === -1) {
+      console.warn(
+        "Read Aloud: paragraph not found in page DOM, highlighting disabled for it:",
+        paragraphText.slice(0, 60)
+      );
+      return null;
+    }
+    return idx;
+  }
+
+  // `end` is exclusive. Anchoring the end to the last character rather than the
+  // position after it keeps the Range off a collapsed space, which may belong to
+  // a different text node than the character preceding it.
+  function createRangeForSpan(start, end, index) {
+    if (!index || start < 0 || end <= start || end > index.text.length) return null;
+    try {
+      const range = document.createRange();
+      range.setStart(index.nodes[start], index.offsets[start]);
+      range.setEnd(index.nodes[end - 1], index.offsets[end - 1] + 1);
+      return range;
+    } catch (e) {
+      // Node detached since the index was built.
+      return null;
+    }
   }
 
   // ─── Highlighting ──────────────────────────────────────────────────────────
+  let lastHighlightedWord = -1;
+
   function clearHighlights() {
     if (wordHighlight) wordHighlight.clear();
     if (sentenceHighlight) sentenceHighlight.clear();
+    lastHighlightedWord = -1;
   }
 
-  function highlightWord(timestamps, currentTime, textNodeMap, paragraphOffset) {
-    if (!wordHighlight || !textNodeMap || paragraphOffset === null) return;
+  // Resolve a character span for every word once, up front. Server-aligned
+  // spans are authoritative; a word the server could not align is placed
+  // immediately after its predecessor, so one miss does not shift the rest —
+  // the next aligned word snaps the cursor back to the truth.
+  function resolveWordSpans(timestamps) {
+    let cursor = 0;
+    for (const ts of timestamps) {
+      if (ts.start_char != null && ts.end_char != null) {
+        ts._start = ts.start_char;
+        ts._end = ts.end_char;
+      } else {
+        ts._start = cursor;
+        ts._end = cursor + ts.word.length;
+      }
+      cursor = ts._end + 1;
+    }
+    return timestamps;
+  }
+
+  function scrollRangeIntoView(range) {
+    const rect = range.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+    if (rect.top >= 0 && rect.bottom <= window.innerHeight) return;
+    const el = range.startContainer.parentElement;
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  const SENTENCE_END = /[.!?;]$/;
+
+  function highlightWord(timestamps, currentTime, index, paragraphOffset) {
+    if (!wordHighlight || !index || paragraphOffset === null) return;
+
+    let current = -1;
+    for (let i = 0; i < timestamps.length; i++) {
+      if (currentTime >= timestamps[i].start && currentTime < timestamps[i].end) {
+        current = i;
+        break;
+      }
+    }
+    // Nothing to do between words, and repeating the work every frame would
+    // re-trigger the smooth scroll below before it has finished.
+    if (current === -1 || current === lastHighlightedWord) return;
+    lastHighlightedWord = current;
 
     wordHighlight.clear();
     sentenceHighlight.clear();
 
-    // Find current word
-    let currentWordIdx = -1;
-    for (let i = 0; i < timestamps.length; i++) {
-      if (currentTime >= timestamps[i].start && currentTime < timestamps[i].end) {
-        currentWordIdx = i;
-        break;
-      }
-    }
-    if (currentWordIdx === -1) return;
-
-    // Build current word range
-    const word = timestamps[currentWordIdx];
-    // Calculate character offset of this word in the paragraph text
-    let charOffset = 0;
-    for (let i = 0; i < currentWordIdx; i++) {
-      charOffset += timestamps[i].word.length + 1; // +1 for space
-    }
-    const wordRange = createRangeForWord(
-      paragraphOffset + charOffset,
-      paragraphOffset + charOffset + word.word.length,
-      textNodeMap
+    const word = timestamps[current];
+    const wordRange = createRangeForSpan(
+      paragraphOffset + word._start,
+      paragraphOffset + word._end,
+      index
     );
     if (wordRange) {
       wordHighlight.add(wordRange);
-
-      // Auto-scroll
-      const rect = wordRange.getBoundingClientRect();
-      if (rect.top < 0 || rect.bottom > window.innerHeight) {
-        const el = wordRange.startContainer.parentElement;
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }
+      scrollRangeIntoView(wordRange);
     }
 
-    // Build sentence range (from last punctuation to next punctuation)
-    let sentStart = currentWordIdx;
-    let sentEnd = currentWordIdx;
-    const punctuation = /[.!?;]/;
-    while (sentStart > 0 && !punctuation.test(timestamps[sentStart - 1].word.slice(-1))) {
-      sentStart--;
-    }
-    while (sentEnd < timestamps.length - 1 && !punctuation.test(timestamps[sentEnd].word.slice(-1))) {
-      sentEnd++;
-    }
+    // Sentence runs from just after the previous terminator to the next one.
+    let first = current;
+    let last = current;
+    while (first > 0 && !SENTENCE_END.test(timestamps[first - 1].word)) first--;
+    while (last < timestamps.length - 1 && !SENTENCE_END.test(timestamps[last].word)) last++;
 
-    let sentCharStart = 0;
-    for (let i = 0; i < sentStart; i++) {
-      sentCharStart += timestamps[i].word.length + 1;
-    }
-    let sentCharEnd = 0;
-    for (let i = 0; i <= sentEnd; i++) {
-      sentCharEnd += timestamps[i].word.length + (i < sentEnd ? 1 : 0);
-    }
-
-    const sentRange = createRangeForWord(
-      paragraphOffset + sentCharStart,
-      paragraphOffset + sentCharEnd,
-      textNodeMap
+    const sentRange = createRangeForSpan(
+      paragraphOffset + timestamps[first]._start,
+      paragraphOffset + timestamps[last]._end,
+      index
     );
-    if (sentRange) {
-      sentenceHighlight.add(sentRange);
-    }
+    if (sentRange) sentenceHighlight.add(sentRange);
   }
 
   // ─── Animation loop for highlighting ──────────────────────────────────────
@@ -238,7 +291,7 @@
       highlightWord(
         state.timestamps,
         state._currentTime || 0,
-        state.textNodeMap,
+        state.textIndex,
         state._paragraphOffset
       );
       state.animFrameId = requestAnimationFrame(tick);
@@ -265,6 +318,9 @@
     });
   }
 
+  // Audio is always synthesized at 1.0x and sped up at playback time via
+  // audio.playbackRate. Doing it server-side too would compound the two rates,
+  // and would bake a speed into every prefetched paragraph.
   async function requestTTSWithTimestamps(text) {
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(
@@ -272,7 +328,6 @@
           type: "TTS_REQUEST",
           text,
           voice: state.voice,
-          speed: state.speed,
           serverUrl: state.serverUrl,
         },
         (response) => {
@@ -357,14 +412,9 @@
 
       if (!state.active) return;
 
-      state.timestamps = data.timestamps || [];
-
-      // Build text node map and find paragraph offset
-      state.textNodeMap = buildTextNodeMap();
-      state._paragraphOffset = findRangesForParagraph(
-        state.paragraphs[index],
-        state.textNodeMap
-      );
+      state.timestamps = resolveWordSpans(data.timestamps || []);
+      state._paragraphOffset = findParagraphOffset(state.paragraphs[index]);
+      lastHighlightedWord = -1;
 
       state.playing = true;
       startHighlightLoop();
@@ -414,26 +464,23 @@
     state.utterance = utterance;
 
     // Word boundary highlighting
-    state.textNodeMap = buildTextNodeMap();
-    state._paragraphOffset = findRangesForParagraph(
-      state.paragraphs[index],
-      state.textNodeMap
-    );
+    const paragraphText = state.paragraphs[index];
+    state._paragraphOffset = findParagraphOffset(paragraphText);
 
     utterance.onboundary = (event) => {
-      if (event.name === "word" && state.textNodeMap && state._paragraphOffset !== null) {
-        if (wordHighlight) wordHighlight.clear();
-        const charStart = state._paragraphOffset + event.charIndex;
-        const charEnd = charStart + event.charLength;
-        const range = createRangeForWord(charStart, charEnd, state.textNodeMap);
-        if (range) {
-          wordHighlight.add(range);
-          const rect = range.getBoundingClientRect();
-          if (rect.top < 0 || rect.bottom > window.innerHeight) {
-            const el = range.startContainer.parentElement;
-            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-          }
-        }
+      if (event.name !== "word" || !state.textIndex || state._paragraphOffset === null) return;
+      // charLength is optional in the spec and Chrome omits it, so measure the
+      // word at charIndex ourselves when it is missing.
+      const length =
+        event.charLength || (paragraphText.slice(event.charIndex).match(/^\S+/) || [""])[0].length;
+      if (!length) return;
+
+      const charStart = state._paragraphOffset + event.charIndex;
+      const range = createRangeForSpan(charStart, charStart + length, state.textIndex);
+      if (range) {
+        wordHighlight.clear();
+        wordHighlight.add(range);
+        scrollRangeIntoView(range);
       }
     };
 
@@ -754,7 +801,7 @@
     state.paragraphs = [];
     state.timestamps = [];
     state.prefetchCache = {};
-    state.textNodeMap = null;
+    state.textIndex = null;
     state._paragraphOffset = null;
     state._currentTime = 0;
   }

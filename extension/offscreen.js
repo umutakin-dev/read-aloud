@@ -70,8 +70,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 function stopAudio() {
   clearInterval(timeInterval);
   if (audio) {
+    // Remove event listeners BEFORE stopping to prevent stale error/ended events
+    audio.onended = null;
+    audio.onerror = null;
+    audio.onplay = null;
     audio.pause();
-    audio.src = "";
     audio = null;
   }
 }

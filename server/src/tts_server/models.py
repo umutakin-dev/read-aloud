@@ -11,6 +11,11 @@ class WordTimestamp(BaseModel):
     word: str
     start: float
     end: float
+    # Character span of this word within the request text. None when the word
+    # could not be aligned (Kokoro sometimes rewrites tokens, e.g. expanding
+    # numerals), in which case the client falls back to its own estimate.
+    start_char: int | None = None
+    end_char: int | None = None
 
 
 class TTSWithTimestampsResponse(BaseModel):

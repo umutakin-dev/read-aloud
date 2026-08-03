@@ -165,7 +165,9 @@ async function handleTTSRequest(message) {
       body: JSON.stringify({
         text: message.text,
         voice: message.voice || "af_heart",
-        speed: message.speed || 1.0,
+        // Always 1.0 — playback speed is applied by the offscreen player via
+        // audio.playbackRate. Synthesizing at a rate as well would compound them.
+        speed: 1.0,
       }),
       signal: controller.signal,
     });
