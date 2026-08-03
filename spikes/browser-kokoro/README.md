@@ -13,6 +13,11 @@ Not part of the test suite and not run in CI. Kept because the conclusion is
 load-bearing for the roadmap, and a claim this consequential should be
 reproducible rather than taken on trust.
 
+One gotcha worth recording: **passing a bare string to `tts.stream()` hangs.**
+It builds a `TextSplitterStream` internally but never closes it, so the final
+sentence is never flushed and the iterator waits forever. Construct the
+splitter yourself, `push()`, then `close()`.
+
 ## Conclusion
 
 **Timestamps do not survive, and cannot be reconstructed.**
@@ -48,13 +53,36 @@ outrun reading or every sentence stalls.
 
 It also demonstrates the highlighting this option would ship with. **Sentence
 highlights are exact**, from real audio boundaries. **Word highlights are
-estimated**, splitting each sentence's measured duration across its words by
-character length. Watching how far that drifts within a long sentence is the
-whole point.
+estimated**, splitting each sentence's measured duration across its words.
+Watching how far that drifts within a long sentence is the whole point.
 
-Weighting by phoneme count would track speech better than characters, but the
-phoneme string is not reliably one group per word — `1990` becomes two — so it
-needs an alignment step this page does not attempt.
+## Weighting words: characters or phonemes
+
+Duration follows sounds rather than spelling, so phoneme counts should estimate
+better than character counts. `stream()` returns the phoneme string per
+sentence, whitespace-separated roughly per word — but only roughly, because
+Kokoro normalizes before phonemizing and that moves in **both** directions:
+
+| text | phonemes | |
+|---|---|---|
+| `1990` | `nˈaɪntiːn nˈaɪndi` | one word becomes two groups |
+| `3:45` | `θɹˈiː fˈoːɹɾi fˈaɪv` | one becomes three |
+| `that the` | `ðætðə` | two words merge into one |
+
+Measured over eight sentences, **five aligned one to one** — and the three that
+did not were chosen deliberately to break it. Ordinary prose aligns; numbers,
+times, currency and abbreviations do not.
+
+So the page weights by phonemes when the counts line up and falls back to
+characters when they do not, rather than guessing an alignment. It reports the
+hit rate, and the estimator is switchable so the two can be compared on the
+same sentence.
+
+Stress marks and punctuation carry no weight — they are not sounds. The length
+mark `ː` does, since it genuinely means a longer vowel.
+
+On a four-second sentence the two estimators put a word start up to **0.26s**
+apart, so the choice is not cosmetic.
 
 ## Numbers so far
 

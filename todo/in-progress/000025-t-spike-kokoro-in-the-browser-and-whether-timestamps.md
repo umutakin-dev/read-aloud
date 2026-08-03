@@ -117,6 +117,9 @@ Measuring WebGPU is only worth doing under 2 or 3. Under 1 it is wasted work.
 ## Log
 
 ### 2026-08-03
+- **Note:** Phoneme-weighted word estimates added alongside character weighting, switchable so the two can be compared on the same sentence. Measured the alignment first rather than assuming: over eight sentences the phoneme string matched one group per word on five, and the three failures were all normalization — 1990 expands to two groups, 3:45 to three, while 'that the' merges into one. So mismatches go both ways, which a naive split-only alignment would not handle. Weighting falls back to characters when counts disagree, and the page reports the hit rate. On a four-second sentence the estimators disagree by up to 0.26s, so the choice is not cosmetic. Also recorded that tts.stream() hangs on a bare string — it never closes the splitter it builds.
+
+### 2026-08-03
 - **Progress:** Built a browser page under spikes/browser-kokoro/page to answer what Node could not: real WebGPU speed, and whether sentence-exact plus word-estimated highlighting is tolerable to read along with. Loads kokoro-js from jsDelivr via an import map, so no build step. Reports load time, time to first audio, and the realtime ratio including playback — the last being decisive, since synthesis must outrun reading or every sentence stalls.
 
 ### 2026-08-03

@@ -18,6 +18,7 @@ const ui = {
   load: el("load"),
   speak: el("speak"),
   stop: el("stop"),
+  estimator: el("estimator"),
   support: el("support"),
   text: el("text"),
   reading: el("reading"),
@@ -27,6 +28,7 @@ const ui = {
   mFirst: el("m-first"),
   mRate: el("m-rate"),
   mSentences: el("m-sentences"),
+  mAlign: el("m-align"),
 };
 
 const log = (message) => {
@@ -97,28 +99,54 @@ ui.load.addEventListener("click", async () => {
 
 // ─── Estimating word timings ────────────────────────────────────────────────
 // Sentence boundaries are exact — they come from real audio. Within a sentence
-// there is nothing to go on, so the measured duration is split across words by
-// character length. Longer words take longer to say, roughly.
+// there is nothing to go on, so the measured duration is divided across the
+// words by weight. Two ways to weight them:
 //
-// Weighting by phoneme count would track speech better, but the phoneme string
-// is not reliably one group per word ("1990" becomes two), so that needs
-// alignment this spike does not attempt.
-function estimateWordSpans(sentence, duration) {
+//   characters — crude, but always available
+//   phonemes   — closer, since duration follows sounds rather than spelling
+//
+// The phoneme string is whitespace-separated roughly per word, but only
+// roughly. Kokoro normalizes before phonemizing, and that moves in both
+// directions: "1990" becomes two groups, "3:45" becomes three, while
+// "that the" collapses into one. Measured over eight sentences, five aligned
+// one-to-one — and the three that did not were deliberately chosen to break it.
+// Ordinary prose aligns.
+//
+// So phoneme weighting is used when the counts line up and falls back to
+// characters when they do not, rather than guessing an alignment.
+
+// Stress marks are not sounds and punctuation is not spoken, so neither should
+// carry weight. The length mark is kept: it genuinely means a longer vowel.
+const NOT_A_SOUND = /[ˈˌ.,;:!?¡¿—…"«»“”()]/g;
+
+function phonemeWeight(group) {
+  return group.replace(NOT_A_SOUND, "").length;
+}
+
+function estimateWordSpans(sentence, phonemes, duration, mode) {
   const words = [...sentence.matchAll(/\S+/g)].map((m) => ({
     text: m[0],
     start: m.index,
     end: m.index + m[0].length,
   }));
 
-  const total = words.reduce((sum, w) => sum + w.text.length, 0) || 1;
+  const groups = phonemes?.match(/\S+/g) ?? [];
+  const aligned = mode === "phonemes" && groups.length === words.length;
+
+  const weights = words.map((word, i) =>
+    Math.max(aligned ? phonemeWeight(groups[i]) : word.text.length, 1)
+  );
+  const total = weights.reduce((sum, w) => sum + w, 0) || 1;
+
   let elapsed = 0;
-  for (const word of words) {
-    const share = (word.text.length / total) * duration;
+  words.forEach((word, i) => {
+    const share = (weights[i] / total) * duration;
     word.startTime = elapsed;
     word.endTime = elapsed + share;
     elapsed += share;
-  }
-  return words;
+  });
+
+  return { words, aligned };
 }
 
 // ─── Reading ────────────────────────────────────────────────────────────────
@@ -133,12 +161,15 @@ ui.speak.addEventListener("click", async () => {
   const text = ui.text.value.trim();
   const voice = ui.voice.value;
   const speed = Number(ui.speed.value);
+  const estimator = ui.estimator.value;
 
   ui.reading.innerHTML = "";
   const startedAt = performance.now();
   let firstAudioAt = null;
   let synthesisMs = 0;
   let audioSeconds = 0;
+  let alignedSentences = 0;
+  let totalSentences = 0;
   const perSentence = [];
 
   // Synthesis and playback are interleaved deliberately: it is the only way to
@@ -162,12 +193,21 @@ ui.speak.addEventListener("click", async () => {
     const duration = samples.length / rate;
     audioSeconds += duration;
     perSentence.push(duration);
-    log(`sentence: ${duration.toFixed(2)}s of audio | ${chunk.text.slice(0, 50)}`);
 
     // Render this sentence, word by word, so the highlight has somewhere to go.
     const sentenceEl = document.createElement("span");
     sentenceEl.className = "sentence";
-    const words = estimateWordSpans(chunk.text, duration);
+    const { words, aligned } = estimateWordSpans(chunk.text, chunk.phonemes, duration, estimator);
+
+    totalSentences++;
+    if (aligned) alignedSentences++;
+    const basis = aligned ? "phonemes" : "characters";
+    log(`${duration.toFixed(2)}s | ${basis.padEnd(10)} | ${chunk.text.slice(0, 46)}`);
+    if (estimator === "phonemes" && !aligned) {
+      const groups = chunk.phonemes?.match(/\S+/g) ?? [];
+      log(`         ${words.length} words vs ${groups.length} phoneme groups — fell back`);
+    }
+
     const wordEls = words.map((word) => {
       const span = document.createElement("span");
       span.className = "word";
@@ -189,6 +229,11 @@ ui.speak.addEventListener("click", async () => {
     ui.mRate.textContent =
       `${audioSeconds.toFixed(1)}s of audio | ${ratio.toFixed(1)}x realtime including playback`;
     ui.mSentences.textContent = perSentence.map((d) => `${d.toFixed(1)}s`).join(", ");
+    ui.mAlign.textContent =
+      estimator === "phonemes"
+        ? `${alignedSentences}/${totalSentences} sentences weighted by phonemes, ` +
+          `${totalSentences - alignedSentences} fell back to characters`
+        : "not used — character weighting selected";
   }
 
   ui.speak.disabled = false;
