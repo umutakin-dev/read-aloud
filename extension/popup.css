@@ -1,0 +1,161 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-size: 14px;
+}
+
+.popup {
+  width: 300px;
+  padding: 16px;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #cdd6f4;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px;
+  background: #313244;
+  border-radius: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #585b70;
+  flex-shrink: 0;
+}
+
+.dot.connected {
+  background: #a6e3a1;
+}
+
+.dot.disconnected {
+  background: #f38ba8;
+}
+
+#status-text {
+  font-size: 13px;
+  color: #a6adc8;
+}
+
+.section {
+  margin-bottom: 12px;
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  color: #a6adc8;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+select, input[type="text"] {
+  width: 100%;
+  padding: 6px 10px;
+  background: #313244;
+  border: 1px solid #585b70;
+  border-radius: 6px;
+  color: #cdd6f4;
+  font-size: 13px;
+  outline: none;
+}
+
+select:focus, input[type="text"]:focus {
+  border-color: #89b4fa;
+}
+
+.speed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+input[type="range"] {
+  flex: 1;
+  accent-color: #89b4fa;
+}
+
+#speed-value {
+  font-size: 13px;
+  min-width: 32px;
+  text-align: center;
+  color: #a6adc8;
+}
+
+/* Overrides the uppercase block label styling for a checkbox row. */
+label.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 0;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13px;
+  color: #cdd6f4;
+  cursor: pointer;
+}
+
+label.checkbox-row input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: #89b4fa;
+  flex-shrink: 0;
+}
+
+label.checkbox-row small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #6c7086;
+}
+
+button {
+  width: 100%;
+  padding: 8px;
+  background: #89b4fa;
+  border: none;
+  border-radius: 6px;
+  color: #1e1e2e;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+button:hover {
+  background: #74c7ec;
+}
+
+.shortcut-hint {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #585b70;
+  text-align: center;
+}
+
+kbd {
+  background: #313244;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #a6adc8;
+}
