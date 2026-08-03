@@ -41,22 +41,30 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 
 
 ## Progress
-██████████░░░░░░░░░░ 50% (7/14)
+███████████████░░░░░ 73% (16/22)
 
-- 🔨 #000002 Playback speed is applied twice
+- ✅ #000002 Playback speed is applied twice
 - ✅ #000003 Word highlighting never matches page DOM text
 - ✅ #000004 Word highlight offsets drift within a paragraph
 - 🔨 #000005 Active tab ID lost when service worker is evicted
 - ✅ #000006 Server word-timestamp fallback mis-estimates timing
-- 🔨 #000007 host_permissions hardcoded to localhost:7860
+- ✅ #000007 host_permissions hardcoded to localhost:7860
 - ✅ #000008 Remove stale player.html web accessible resource
-- 🔨 #000009 stopCurrentAudio orphans the pending audio promise
+- ✅ #000009 stopCurrentAudio orphans the pending audio promise
 - 🔨 #000010 Unhandled rejection when no content script is present
-- 🔨 #000011 Popup overwrites saved voice when server is down
+- ✅ #000011 Popup overwrites saved voice when server is down
 - ✅ #000012 Restrict CORS origins on TTS server
-- 🔨 #000013 Inject content script on demand instead of on every page
+- ✅ #000013 Inject content script on demand instead of on every page
 - ✅ #000014 Install CUDA torch build with CPU fallback
 - ✅ #000015 Add verbose diagnostic logging to TTS server
+- ✅ #000016 Navigate by real paragraphs, not synthesis chunks
+- ✅ #000017 Toolbar does not reflect which TTS engine is in use
+- 🔨 #000018 Make browser TTS fallback opt-in, off by default
+- ✅ #000019 Paragraph detection collapses on pages without text newlines
+- ✅ #000020 Orphaned content script keeps running after extension reload
+- 🔨 #000021 Close the audio gap between chunks
+- 🔨 #000022 Saved settings do not reach a session already running
+- 🔨 #000023 Bare URLs are read out character by character
 
 ## Estimation
 
