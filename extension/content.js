@@ -89,6 +89,43 @@
     state.allowBrowserFallback = result.allowBrowserFallback === true;
   }
 
+  // Settings were read once per session, so saving from the popup mid-read did
+  // nothing while the popup said "Saved!". Apply them to the session in flight.
+  function onSettingsChanged(changes, area) {
+    if (area !== "local" || !state.active) return;
+
+    if (changes.serverUrl) {
+      state.serverUrl = changes.serverUrl.newValue || state.serverUrl;
+    }
+    if (changes.allowBrowserFallback) {
+      state.allowBrowserFallback = changes.allowBrowserFallback.newValue === true;
+      updateEngineIndicator();
+    }
+    if (changes.speed && changes.speed.newValue !== state.speed) {
+      state.speed = changes.speed.newValue;
+      updateSpeedControl(state.speed);
+      postMessage({ type: "SET_AUDIO_SPEED", speed: state.speed });
+    }
+    if (changes.voice && changes.voice.newValue !== state.voice) {
+      state.voice = changes.voice.newValue;
+      applyNewVoice();
+    }
+  }
+
+  chrome.storage.onChanged.addListener(onSettingsChanged);
+
+  // Nothing already synthesized can be reused: the prefetch cache and the
+  // player's decoded preload are both in the previous voice.
+  function applyNewVoice() {
+    const wasPlaying = state.playing;
+    const chunk = state.currentChunk;
+    state.prefetchCache = {};
+    stopCurrentAudio();
+    state.currentChunk = chunk;
+    // A change made while paused should not start it reading.
+    if (wasPlaying) playCurrentChunk();
+  }
+
   // ─── Text Extraction ───────────────────────────────────────────────────────
   // Paragraphs come from block elements rather than from newlines in flattened
   // text. Whether flattened text carries a newline where a paragraph ended is a
@@ -458,6 +495,11 @@
     console.warn("Read Aloud: extension was reloaded, stopping this copy");
     stopHealthCheckTimer();
     stopHighlightLoop();
+    try {
+      chrome.storage.onChanged.removeListener(onSettingsChanged);
+    } catch (e) {
+      /* bridge is already gone */
+    }
     try {
       speechSynthesis.cancel();
     } catch (e) {
@@ -1028,6 +1070,15 @@
     if (status) status.textContent = text;
   }
 
+  // Keeps the toolbar honest when speed is changed from the popup instead.
+  function updateSpeedControl(value) {
+    if (!state._shadow) return;
+    const slider = state._shadow.getElementById("speed-slider");
+    const label = state._shadow.getElementById("speed-label");
+    if (slider) slider.value = value;
+    if (label) label.textContent = `${Number(value).toFixed(1)}x`;
+  }
+
   // Which engine is producing the audio is persistent state, so it gets its own
   // persistent indicator rather than borrowing the status line — which is
   // rewritten on every chunk and so lost any "(Browser TTS)" suffix almost
@@ -1268,6 +1319,7 @@
     state.playing = false;
     chrome.runtime.onMessage.removeListener(onAudioMessage);
     chrome.runtime.onMessage.removeListener(onToggleMessage);
+    chrome.storage.onChanged.removeListener(onSettingsChanged);
     postMessage({ type: "STOP_AUDIO" });
   };
 })();

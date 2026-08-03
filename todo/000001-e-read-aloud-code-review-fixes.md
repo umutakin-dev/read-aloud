@@ -36,6 +36,7 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - #000019 🐛 Paragraph detection collapses on pages without text newlines
 - #000020 🐛 Orphaned content script keeps running after extension reload
 - #000021 ✨ Close the audio gap between chunks
+- #000022 🐛 Saved settings do not reach a session already running
 
 
 ## Progress
@@ -81,6 +82,9 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-08-03
+- **Note:** Added #000022 Saved settings do not reach a session already running to Items
 
 ### 2026-08-03
 - **Note:** Added #000021 Close the audio gap between chunks to Items
