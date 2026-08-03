@@ -307,6 +307,79 @@ test("buildTextIndex", async (t) => {
   });
 });
 
+// ─── locating a chunk in the page ───────────────────────────────────────────
+// Searching from position zero found the *first* copy of a repeated phrase, so
+// the highlight landed on the wrong one and dragged the viewport with it.
+test("findChunkOffset", async (t) => {
+  // A quoted comment: the same sentence appears twice on the page.
+  const page =
+    "I think it is workman like. " + // 0
+    "Someone replies: I think it is workman like. And I disagree.";
+  const chunk = "I think it is workman like.";
+  const second = page.indexOf(chunk, 1);
+
+  await t.test("finds the first occurrence with no hint", () => {
+    assert.equal(kit.findChunkOffset(page, chunk), 0);
+  });
+
+  await t.test("finds the occurrence being read, given a hint", () => {
+    assert.equal(kit.findChunkOffset(page, chunk, 5), second);
+  });
+
+  await t.test("does not go backwards past the hint when it need not", () => {
+    assert.ok(kit.findChunkOffset(page, chunk, 5) > 5);
+  });
+
+  await t.test("falls back to the whole page when nothing lies ahead", () => {
+    // A stale hint, or a page that changed under us. Highlighting the wrong
+    // copy still beats not highlighting.
+    assert.equal(kit.findChunkOffset(page, chunk, page.length - 5), 0);
+  });
+
+  await t.test("reports a miss when the text is not there at all", () => {
+    assert.equal(kit.findChunkOffset(page, "not present anywhere", 0), -1);
+    assert.equal(kit.findChunkOffset(page, "not present anywhere", 10), -1);
+  });
+
+  await t.test("walking a document of repeated phrases visits each in turn", () => {
+    const line = "The same line again. ";
+    const document = line.repeat(5);
+    const found = [];
+    let from = 0;
+    for (let i = 0; i < 5; i++) {
+      const at = kit.findChunkOffset(document, line.trim(), from);
+      found.push(at);
+      from = at + line.length;
+    }
+    assert.deepEqual(found, [0, 21, 42, 63, 84]);
+  });
+});
+
+test("searchStartFor", async (t) => {
+  await t.test("starts at the beginning when nothing is resolved yet", () => {
+    assert.equal(kit.searchStartFor({}, 0), 0);
+  });
+
+  await t.test("starts from the chunk immediately before", () => {
+    assert.equal(kit.searchStartFor({ 0: 100, 1: 250, 2: 400 }, 3), 400);
+  });
+
+  await t.test("ignores chunks after the one being resolved", () => {
+    // Jumping backwards: chunk 5 is known, but resolving chunk 2 must not
+    // start from past it, or the search would run off the end.
+    assert.equal(kit.searchStartFor({ 0: 100, 1: 250, 5: 900 }, 2), 250);
+  });
+
+  await t.test("starts at the beginning when jumping before everything known", () => {
+    assert.equal(kit.searchStartFor({ 3: 400, 4: 550 }, 0), 0);
+  });
+
+  await t.test("takes the nearest, not the largest offset", () => {
+    // Offsets are not necessarily ordered by index if a rebuild intervened.
+    assert.equal(kit.searchStartFor({ 0: 900, 1: 100 }, 2), 100);
+  });
+});
+
 // ─── resolveWordSpans ───────────────────────────────────────────────────────
 // Offsets were re-derived by assuming one space between every token, which
 // drifts as soon as Kokoro emits punctuation as its own token.

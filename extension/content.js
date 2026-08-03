@@ -54,6 +54,7 @@
     healthCheckTimer: null,
     animFrameId: null,
     textIndex: null,       // { text, nodes, offsets } — collapsed page text mapped to the DOM
+    _chunkOffsets: {},     // chunk index -> where it was found in textIndex.text
   };
 
   function paragraphCount() {
@@ -134,6 +135,9 @@
     paragraphsFromRoot,
     splitIntoParagraphs,
     buildChunks,
+    buildTextIndex,
+    findChunkOffset,
+    searchStartFor,
     resolveWordSpans,
   } = ReadAloudText;
 
@@ -164,21 +168,31 @@
     return splitIntoParagraphs(document.body.innerText);
   }
 
-  function findParagraphOffset(paragraphText) {
+  function findParagraphOffset(paragraphText, chunkIndex) {
     if (!state.textIndex) state.textIndex = buildTextIndex(document.body);
 
-    let idx = state.textIndex.text.indexOf(paragraphText);
+    // Search forward from the nearest chunk already located, so a phrase that
+    // appears more than once on the page resolves to the copy being read
+    // rather than the first one in the document.
+    const from = searchStartFor(state._chunkOffsets, chunkIndex);
+    let idx = findChunkOffset(state.textIndex.text, paragraphText, from);
+
     if (idx === -1) {
       // The page may have changed since the index was built — lazy-loaded
       // images, expanding sections, ads settling. Rebuild once before giving up.
+      // Every remembered offset pointed into the old index, so they go with it,
+      // and this search starts from the beginning rather than a stale hint.
       state.textIndex = buildTextIndex(document.body);
-      idx = state.textIndex.text.indexOf(paragraphText);
+      state._chunkOffsets = {};
+      idx = findChunkOffset(state.textIndex.text, paragraphText, 0);
     }
     if (idx === -1) {
       // Readability sometimes alters a paragraph slightly (entity decoding,
       // dropped inline nodes). A prefix match still anchors the highlight.
       const probe = paragraphText.slice(0, 60);
-      if (probe.length >= 20) idx = state.textIndex.text.indexOf(probe);
+      if (probe.length >= 20) {
+        idx = findChunkOffset(state.textIndex.text, probe, from);
+      }
     }
     if (idx === -1) {
       console.warn(
@@ -187,6 +201,10 @@
       );
       return null;
     }
+
+    // Remembered so the chunks after this one, and a later jump back to it,
+    // start their search from the right place.
+    state._chunkOffsets[chunkIndex] = idx;
     return idx;
   }
 
@@ -521,7 +539,7 @@
       if (!state.active) return;
 
       state.timestamps = resolveWordSpans(data.timestamps || []);
-      state._paragraphOffset = findParagraphOffset(state.chunks[index].text);
+      state._paragraphOffset = findParagraphOffset(state.chunks[index].text, index);
       lastHighlightedWord = -1;
       // Kept so playback can be rebuilt if Chrome discards the offscreen
       // document during a pause — see resumePlayback.
@@ -632,7 +650,7 @@
     state.utterance = utterance;
 
     // Word boundary highlighting
-    state._paragraphOffset = findParagraphOffset(chunkText);
+    state._paragraphOffset = findParagraphOffset(chunkText, index);
 
     utterance.onboundary = (event) => {
       if (event.name !== "word" || !state.textIndex || state._paragraphOffset == null) return;
@@ -1080,6 +1098,7 @@
     await loadSettings();
     state.active = true;
     state.prefetchCache = {};
+    state._chunkOffsets = {};
 
     createToolbar();
     updateToolbarStatus("Extracting text...");
@@ -1136,6 +1155,7 @@
     state.timestamps = [];
     state.prefetchCache = {};
     state.textIndex = null;
+    state._chunkOffsets = {};
     state._paragraphOffset = null;
     state._currentTime = 0;
     state._audioBase64 = null;
