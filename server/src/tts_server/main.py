@@ -22,10 +22,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Model downloads log every HTTP request they make, which buries everything else.
-if LOG_LEVEL != "DEBUG":
-    for noisy in ("httpx", "httpcore", "urllib3", "filelock"):
-        logging.getLogger(noisy).setLevel(logging.WARNING)
+# Model downloads dump full request and response headers at DEBUG — hundreds of
+# lines per file, which buries the synthesis and alignment output that DEBUG was
+# turned on to see. Capped independently of this app's level; set
+# READ_ALOUD_LOG_HTTP=1 on the rare occasion the wire traffic is the problem.
+HTTP_LEVEL = logging.DEBUG if os.environ.get("READ_ALOUD_LOG_HTTP") == "1" else logging.WARNING
+for noisy in ("httpx", "httpcore", "urllib3", "filelock", "huggingface_hub"):
+    logging.getLogger(noisy).setLevel(HTTP_LEVEL)
 
 
 @asynccontextmanager

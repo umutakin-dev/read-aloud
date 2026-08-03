@@ -76,9 +76,11 @@ located in the request text — that rate is the best predictor of word
 highlighting drifting, since every unaligned token is a word the extension has
 to estimate a position for.
 
-`DEBUG` adds per-chunk timing, the full list of unaligned tokens, and the HTTP
-traffic from model downloads (suppressed at `INFO`, where it otherwise buries
-everything else).
+`DEBUG` adds per-chunk timing and the full list of unaligned tokens.
+
+Model-download HTTP traffic is suppressed at every level, since it dumps full
+headers per file and buries the output you turned `DEBUG` on to read. Set
+`READ_ALOUD_LOG_HTTP=1` on the rare occasion the wire traffic is the problem.
 
 #### Allowed origins
 
