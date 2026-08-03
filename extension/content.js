@@ -544,20 +544,39 @@
 
   chrome.runtime.onMessage.addListener(onAudioMessage);
 
-  function playAudioFromBase64(base64) {
+  function playAudioFromBase64(base64, key) {
     return new Promise((resolve, reject) => {
       audioResolve = resolve;
       audioReject = reject;
-      sendMessage({
-        type: "PLAY_AUDIO",
-        audio_base64: base64,
-        speed: state.speed,
-      }).then((response) => {
+
+      const send = (withAudio) =>
+        sendMessage({
+          type: "PLAY_AUDIO",
+          key,
+          audio_base64: withAudio ? base64 : undefined,
+          speed: state.speed,
+        });
+
+      const handle = (response) => {
         if (!response) {
           failAudio(new Error("Could not reach the extension"));
         } else if (!response.ok) {
           failAudio(new Error(response.error || "Audio play failed"));
+        } else if (response.usedPreload) {
+          state._preloadedKey = null;
         }
+      };
+
+      // Ask the player to use what it already decoded. Shipping ~1.8MB of
+      // base64 through two message hops is most of the gap at a chunk
+      // boundary, so only do it when the player says it has nothing.
+      send(key !== state._preloadedKey).then((response) => {
+        if (response?.needAudio) {
+          state._preloadedKey = null;
+          send(true).then(handle);
+          return;
+        }
+        handle(response);
       });
     });
   }
@@ -567,9 +586,25 @@
     try {
       const data = await requestTTSWithTimestamps(state.chunks[index].text);
       state.prefetchCache[index] = data;
+      preloadNext(index);
     } catch (e) {
       // Silently fail prefetch
     }
+  }
+
+  // Hand the immediately-next chunk to the player so it can decode and load it
+  // while the current one is still playing. Only the next one — anything
+  // further ahead would just be displaced by it.
+  function preloadNext(index) {
+    if (index !== state.currentChunk + 1) return;
+    const data = state.prefetchCache[index];
+    if (!data) return;
+    state._preloadedKey = index;
+    postMessage({
+      type: "PRELOAD_AUDIO",
+      key: index,
+      audio_base64: data.audio_base64,
+    });
   }
 
   async function playChunkWithServer(index) {
@@ -625,8 +660,11 @@
       for (let i = 1; i <= 2; i++) {
         prefetchChunk(index + i);
       }
+      // An earlier prefetch may already have cached the next chunk, in which
+      // case nothing above would trigger its preload.
+      preloadNext(index + 1);
 
-      const outcome = await playAudioFromBase64(data.audio_base64);
+      const outcome = await playAudioFromBase64(data.audio_base64, index);
 
       // Stop/prev/next already tore down the highlight state and may have
       // started somewhere else — leave it alone.
@@ -1053,6 +1091,8 @@
     clearHighlights();
     state.playing = false;
     state._currentTime = 0;
+    // STOP drops the preload too, so the key must not survive it.
+    state._preloadedKey = null;
     postMessage({ type: "STOP_AUDIO" });
     // Settle rather than drop it — a pending promise here would strand the
     // paragraph that is awaiting it.
@@ -1112,8 +1152,11 @@
       playCurrentChunk();
       return;
     }
+    // Always carries the audio: any preload belongs to the next chunk, not
+    // this one, and the document may have just been rebuilt anyway.
     sendMessage({
       type: "PLAY_AUDIO",
+      key: state.currentChunk,
       audio_base64: state._audioBase64,
       speed: state.speed,
       startAt: state._currentTime || 0,
@@ -1199,6 +1242,7 @@
     state._paragraphOffset = null;
     state._currentTime = 0;
     state._audioBase64 = null;
+    state._preloadedKey = null;
   }
 
   // ─── Message Listener ─────────────────────────────────────────────────────

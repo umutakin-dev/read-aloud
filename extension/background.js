@@ -103,6 +103,17 @@ async function ensureOffscreen() {
   }
 }
 
+// Resolves null when nothing answered, rather than rejecting — callers decide
+// whether that is worth creating the document for.
+function sendToOffscreen(message) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      void chrome.runtime.lastError;
+      resolve(response ?? null);
+    });
+  });
+}
+
 // ─── Active reading tab ───────────────────────────────────────────────────
 // Chrome evicts the service worker after ~30s idle. During playback the 50ms
 // AUDIO_TIME traffic keeps it alive, but pausing stops that, so a module
@@ -173,21 +184,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Audio control messages from content script → offscreen
   if (message.type === "PLAY_AUDIO") {
+    const play = {
+      target: "offscreen",
+      type: "PLAY",
+      key: message.key,
+      audio_base64: message.audio_base64,
+      speed: message.speed,
+      startAt: message.startAt,
+    };
+
+    // Try the document first. Checking it exists costs a getContexts round
+    // trip, and this runs at every chunk boundary where the gap is audible —
+    // so pay for it only when the send actually fails.
     setActiveTab(sender.tab?.id)
-      .then(ensureOffscreen)
-      .then(() => {
-        chrome.runtime.sendMessage({
-          target: "offscreen",
-          type: "PLAY",
-          audio_base64: message.audio_base64,
-          speed: message.speed,
-          startAt: message.startAt,
-        }, sendResponse);
+      .then(() => sendToOffscreen(play))
+      .then((response) => {
+        if (response) {
+          sendResponse(response);
+          return;
+        }
+        return ensureOffscreen()
+          .then(() => sendToOffscreen(play))
+          .then((retry) =>
+            sendResponse(retry || { ok: false, error: "offscreen player did not respond" })
+          );
       })
       .catch((err) => {
         sendResponse({ ok: false, error: err.message });
       });
     return true;
+  }
+
+  // Fire-and-forget: a lost preload only costs the fast path, and PLAY falls
+  // back to carrying the audio itself.
+  if (message.type === "PRELOAD_AUDIO") {
+    sendToOffscreen({
+      target: "offscreen",
+      type: "PRELOAD",
+      key: message.key,
+      audio_base64: message.audio_base64,
+    });
+    return;
   }
 
   // Resume is the one control that can legitimately find nothing to talk to:
