@@ -1,8 +1,12 @@
 name: Tests
 
 on:
+  # Only main on push. Matching every branch meant a push to a branch with an
+  # open PR ran the whole matrix twice — once for the push and once for the
+  # pull_request — since the two carry different refs and so never collide on
+  # the concurrency group below.
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
 
 # A second push to the same branch makes the first run irrelevant.
