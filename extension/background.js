@@ -181,6 +181,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           type: "PLAY",
           audio_base64: message.audio_base64,
           speed: message.speed,
+          startAt: message.startAt,
         }, sendResponse);
       })
       .catch((err) => {
@@ -189,9 +190,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // Resume is the one control that can legitimately find nothing to talk to:
+  // Chrome tears an AUDIO_PLAYBACK offscreen document down once it stops
+  // playing, so a pause of a couple of minutes leaves nothing to resume. Say so
+  // rather than dropping the message, and the content script replays instead.
+  if (message.type === "RESUME_AUDIO") {
+    hasOffscreen()
+      .then((exists) => {
+        if (!exists) {
+          sendResponse({ resumed: false, reason: "offscreen document is gone" });
+          return;
+        }
+        chrome.runtime.sendMessage(
+          { target: "offscreen", type: "RESUME" },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              sendResponse({ resumed: false, reason: chrome.runtime.lastError.message });
+            } else {
+              sendResponse(response || { resumed: false });
+            }
+          }
+        );
+      })
+      .catch((err) => sendResponse({ resumed: false, reason: err.message }));
+    return true;
+  }
+
   const CONTROL = {
     PAUSE_AUDIO: "PAUSE",
-    RESUME_AUDIO: "RESUME",
     STOP_AUDIO: "STOP",
     SET_AUDIO_SPEED: "SET_SPEED",
   };

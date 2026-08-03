@@ -34,20 +34,33 @@
   let state = {
     active: false,
     playing: false,
-    paragraphs: [],
-    currentParagraph: 0,
+    // Two different units. Chunks are what gets synthesized and played — capped
+    // so playback starts quickly and prefetch can stay ahead. Paragraphs are
+    // what the reader navigates by. A long paragraph spans several chunks.
+    chunks: [],            // [{ text, paragraph }]
+    paragraphStarts: [],   // chunk index each paragraph begins at
+    currentChunk: 0,
     timestamps: [],
     speed: 1.0,
     voice: "af_heart",
     serverUrl: "http://localhost:7860",
     useServer: true,       // false = Web Speech API fallback
+    serverHealthy: null,   // last observed health, independent of what is in use
     toolbar: null,
     utterance: null,       // for Web Speech API fallback
-    prefetchCache: {},     // paragraph index -> TTS response data
+    prefetchCache: {},     // chunk index -> TTS response data
     healthCheckTimer: null,
     animFrameId: null,
     textIndex: null,       // { text, nodes, offsets } — collapsed page text mapped to the DOM
   };
+
+  function paragraphCount() {
+    return state.paragraphStarts.length;
+  }
+
+  function currentParagraph() {
+    return state.chunks[state.currentChunk]?.paragraph ?? 0;
+  }
 
   // CSS Custom Highlight API registries
   let wordHighlight = null;
@@ -98,29 +111,49 @@
         .filter((p) => p.length > 20);
     }
 
-    // Split any paragraph over 500 chars into sentences
-    const result = [];
-    for (const para of paragraphs) {
-      if (para.length <= 500) {
-        result.push(para);
-      } else {
-        // Split on sentence boundaries
-        const sentences = para.match(/[^.!?]+[.!?]+[\s)]*/g) || [para];
-        let chunk = "";
-        for (const sent of sentences) {
-          if (chunk.length + sent.length > 500 && chunk.length > 0) {
-            result.push(chunk.trim());
-            chunk = "";
-          }
-          chunk += sent;
-        }
-        if (chunk.trim().length > 0) {
-          result.push(chunk.trim());
-        }
+    return paragraphs;
+  }
+
+  // Long paragraphs are cut at sentence boundaries so the first audio arrives
+  // quickly and prefetch has something to work ahead on. This is a synthesis
+  // detail — the reader still navigates whole paragraphs.
+  const MAX_CHUNK_CHARS = 500;
+
+  function splitParagraphIntoChunks(paragraph) {
+    if (paragraph.length <= MAX_CHUNK_CHARS) return [paragraph];
+
+    const sentences = paragraph.match(/[^.!?]+[.!?]+[\s)]*/g) || [paragraph];
+    const chunks = [];
+    let chunk = "";
+    for (const sentence of sentences) {
+      if (chunk.length + sentence.length > MAX_CHUNK_CHARS && chunk.length > 0) {
+        chunks.push(chunk.trim());
+        chunk = "";
+      }
+      chunk += sentence;
+    }
+    if (chunk.trim().length > 0) chunks.push(chunk.trim());
+    return chunks;
+  }
+
+  // Playback and prefetch both want a flat sequence they can walk with a single
+  // index, so chunks stay flat and each one just remembers which paragraph it
+  // came from. paragraphStarts is what prev/next jump between.
+  function buildChunks(paragraphs) {
+    const chunks = [];
+    const paragraphStarts = [];
+
+    for (const paragraph of paragraphs) {
+      const pieces = splitParagraphIntoChunks(paragraph);
+      if (!pieces.length) continue;
+      paragraphStarts.push(chunks.length);
+      const paragraphIndex = paragraphStarts.length - 1;
+      for (const text of pieces) {
+        chunks.push({ text, paragraph: paragraphIndex });
       }
     }
 
-    return result.length > 0 ? result : paragraphs;
+    return { chunks, paragraphStarts };
   }
 
   // ─── Text Index ───────────────────────────────────────────────────────────
@@ -431,18 +464,18 @@
     });
   }
 
-  async function prefetchParagraph(index) {
-    if (index >= state.paragraphs.length || state.prefetchCache[index]) return;
+  async function prefetchChunk(index) {
+    if (index >= state.chunks.length || state.prefetchCache[index]) return;
     try {
-      const data = await requestTTSWithTimestamps(state.paragraphs[index]);
+      const data = await requestTTSWithTimestamps(state.chunks[index].text);
       state.prefetchCache[index] = data;
     } catch (e) {
       // Silently fail prefetch
     }
   }
 
-  async function playParagraphWithServer(index) {
-    if (index >= state.paragraphs.length) {
+  async function playChunkWithServer(index) {
+    if (index >= state.chunks.length) {
       stopReadAloud();
       return;
     }
@@ -451,8 +484,8 @@
     speechSynthesis.cancel();
     state.utterance = null;
 
-    state.currentParagraph = index;
-    updateToolbarStatus(`Paragraph ${index + 1}/${state.paragraphs.length}`);
+    state.currentChunk = index;
+    updateToolbarStatus(`Paragraph ${currentParagraph() + 1}/${paragraphCount()}`);
 
     try {
       let data;
@@ -460,27 +493,30 @@
         data = state.prefetchCache[index];
         delete state.prefetchCache[index];
       } else {
-        data = await requestTTSWithTimestamps(state.paragraphs[index]);
+        data = await requestTTSWithTimestamps(state.chunks[index].text);
       }
 
       if (!state.active) return;
 
       state.timestamps = resolveWordSpans(data.timestamps || []);
-      state._paragraphOffset = findParagraphOffset(state.paragraphs[index]);
+      state._paragraphOffset = findParagraphOffset(state.chunks[index].text);
       lastHighlightedWord = -1;
+      // Kept so playback can be rebuilt if Chrome discards the offscreen
+      // document during a pause — see resumePlayback.
+      state._audioBase64 = data.audio_base64;
 
       state.playing = true;
       startHighlightLoop();
 
-      // Prefetch next paragraphs
+      // Prefetch the next chunks, which may run into the following paragraph
       for (let i = 1; i <= 2; i++) {
-        prefetchParagraph(index + i);
+        prefetchChunk(index + i);
       }
 
       const outcome = await playAudioFromBase64(data.audio_base64);
 
       // Stop/prev/next already tore down the highlight state and may have
-      // started a different paragraph — leave it alone.
+      // started somewhere else — leave it alone.
       if (outcome === "cancelled") return;
 
       stopHighlightLoop();
@@ -488,50 +524,50 @@
 
       if (state.active && state.playing) {
         state.playing = false;
-        playParagraphWithServer(index + 1);
+        playChunkWithServer(index + 1);
       }
     } catch (err) {
       console.error("Read Aloud: TTS playback error", err);
       // Only fall back if the server is actually down, not on transient audio errors
       const serverOk = await checkServerHealth();
       if (!state.active) return;
+      state.serverHealthy = serverOk;
       if (!serverOk) {
-        updateToolbarStatus(`Server down - falling back to browser TTS`);
         state.useServer = false;
+        updateEngineIndicator();
         // Re-check on the way in: stopping during the delay must not restart it.
-        setTimeout(() => state.active && playParagraphWithWebSpeech(index), 1000);
+        setTimeout(() => state.active && playChunkWithWebSpeech(index), 1000);
       } else {
-        // Transient error, retry the same paragraph
-        updateToolbarStatus(`Retrying paragraph ${index + 1}...`);
-        setTimeout(() => state.active && playParagraphWithServer(index), 500);
+        updateToolbarStatus(`Retrying paragraph ${currentParagraph() + 1}...`);
+        setTimeout(() => state.active && playChunkWithServer(index), 500);
       }
     }
   }
 
   // ─── Web Speech API Fallback ──────────────────────────────────────────────
-  function playParagraphWithWebSpeech(index) {
-    if (index >= state.paragraphs.length) {
+  function playChunkWithWebSpeech(index) {
+    if (index >= state.chunks.length) {
       stopReadAloud();
       return;
     }
 
-    state.currentParagraph = index;
-    updateToolbarStatus(`Paragraph ${index + 1}/${state.paragraphs.length} (Browser TTS)`);
+    state.currentChunk = index;
+    updateToolbarStatus(`Paragraph ${currentParagraph() + 1}/${paragraphCount()}`);
 
-    const utterance = new SpeechSynthesisUtterance(state.paragraphs[index]);
+    const chunkText = state.chunks[index].text;
+    const utterance = new SpeechSynthesisUtterance(chunkText);
     utterance.rate = state.speed;
     state.utterance = utterance;
 
     // Word boundary highlighting
-    const paragraphText = state.paragraphs[index];
-    state._paragraphOffset = findParagraphOffset(paragraphText);
+    state._paragraphOffset = findParagraphOffset(chunkText);
 
     utterance.onboundary = (event) => {
       if (event.name !== "word" || !state.textIndex || state._paragraphOffset == null) return;
       // charLength is optional in the spec and Chrome omits it, so measure the
       // word at charIndex ourselves when it is missing.
       const length =
-        event.charLength || (paragraphText.slice(event.charIndex).match(/^\S+/) || [""])[0].length;
+        event.charLength || (chunkText.slice(event.charIndex).match(/^\S+/) || [""])[0].length;
       if (!length) return;
 
       const charStart = state._paragraphOffset + event.charIndex;
@@ -546,7 +582,7 @@
     utterance.onend = () => {
       clearHighlights();
       if (state.active) {
-        playParagraphWithWebSpeech(index + 1);
+        playChunkWithWebSpeech(index + 1);
       }
     };
 
@@ -561,25 +597,33 @@
     speechSynthesis.speak(utterance);
   }
 
-  function playCurrentParagraph() {
+  function playCurrentChunk() {
     if (state.useServer) {
-      playParagraphWithServer(state.currentParagraph);
+      playChunkWithServer(state.currentChunk);
     } else {
-      playParagraphWithWebSpeech(state.currentParagraph);
+      playChunkWithWebSpeech(state.currentChunk);
     }
   }
 
   // ─── Health Check Timer ────────────────────────────────────────────────────
+  // Polls in both directions. Previously it only ran while already fallen back,
+  // so a server that died mid-article went unreported until the next chunk
+  // failed — the toolbar kept claiming Kokoro while nothing was wrong yet.
   function startHealthCheckTimer() {
     state.healthCheckTimer = setInterval(async () => {
-      if (!state.useServer) {
-        const healthy = await checkServerHealth();
-        if (healthy) {
-          state.useServer = true;
-          updateToolbarStatus("Server reconnected - using Kokoro TTS");
-        }
+      const healthy = await checkServerHealth();
+      if (!state.active || healthy === state.serverHealthy) return;
+      state.serverHealthy = healthy;
+
+      // Recovering is safe to act on immediately; going down is not. The
+      // current chunk may already be playing from cache, and one failed poll
+      // is not reason enough to drop to browser TTS — the playback error path
+      // handles that with better evidence.
+      if (healthy && !state.useServer) {
+        state.useServer = true;
       }
-    }, 30000);
+      updateEngineIndicator();
+    }, 15000);
   }
 
   function stopHealthCheckTimer() {
@@ -667,6 +711,25 @@
           font-size: 18px;
           padding: 2px 6px;
         }
+        .engine {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 12px;
+          color: #a6adc8;
+          white-space: nowrap;
+          cursor: default;
+        }
+        .engine::before {
+          content: "";
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #6c7086;
+        }
+        .engine.ok::before { background: #a6e3a1; }
+        .engine.warn::before { background: #f9e2af; }
+        .engine.fallback::before { background: #fab387; }
       </style>
       <div class="toolbar">
         <button id="btn-prev" title="Previous paragraph">&#9664;&#9664;</button>
@@ -678,6 +741,7 @@
           <input type="range" id="speed-slider" min="0.5" max="3" step="0.1" value="1.0" />
         </div>
         <span class="status" id="status">Starting...</span>
+        <span class="engine" id="engine">Connecting</span>
         <button class="close-btn" id="btn-close" title="Close">&times;</button>
       </div>
     `;
@@ -706,20 +770,24 @@
       }
     });
 
+    // Prev/next move a whole paragraph, however many chunks it was split into.
+    function jumpToParagraph(index) {
+      if (index < 0 || index >= paragraphCount()) return;
+      stopCurrentAudio();
+      state.currentChunk = state.paragraphStarts[index];
+      playCurrentChunk();
+    }
+
     btnPrev.addEventListener("click", () => {
-      if (state.currentParagraph > 0) {
-        stopCurrentAudio();
-        state.currentParagraph--;
-        playCurrentParagraph();
-      }
+      const here = currentParagraph();
+      // Part-way into a paragraph, Prev restarts it rather than skipping back,
+      // the way a track-skip does. At the start, it goes to the previous one.
+      const atStart = state.currentChunk === state.paragraphStarts[here];
+      jumpToParagraph(atStart ? here - 1 : here);
     });
 
     btnNext.addEventListener("click", () => {
-      if (state.currentParagraph < state.paragraphs.length - 1) {
-        stopCurrentAudio();
-        state.currentParagraph++;
-        playCurrentParagraph();
-      }
+      jumpToParagraph(currentParagraph() + 1);
     });
 
     btnStop.addEventListener("click", stopReadAloud);
@@ -743,6 +811,39 @@
     if (!state._shadow) return;
     const status = state._shadow.getElementById("status");
     if (status) status.textContent = text;
+  }
+
+  // Which engine is producing the audio is persistent state, so it gets its own
+  // persistent indicator rather than borrowing the status line — which is
+  // rewritten on every chunk and so lost any "(Browser TTS)" suffix almost
+  // immediately.
+  function updateEngineIndicator() {
+    if (!state._shadow) return;
+    const el = state._shadow.getElementById("engine");
+    if (!el) return;
+
+    let label, cls, title;
+    if (!state.useServer) {
+      label = "Browser TTS";
+      cls = "engine fallback";
+      title = "Kokoro server unavailable — using the browser's built-in speech";
+    } else if (state.serverHealthy === false) {
+      label = "Reconnecting";
+      cls = "engine warn";
+      title = "Kokoro server is not responding; will fall back if it stays down";
+    } else if (state.serverHealthy === null) {
+      label = "Connecting";
+      cls = "engine";
+      title = "Checking the Kokoro TTS server";
+    } else {
+      label = "Kokoro";
+      cls = "engine ok";
+      title = `Using the Kokoro TTS server at ${state.serverUrl}`;
+    }
+
+    el.textContent = label;
+    el.className = cls;
+    el.title = title;
   }
 
   function updatePlayButton(isPlaying) {
@@ -789,16 +890,54 @@
   }
 
   function resumePlayback() {
-    if (audioResolve) {
-      state.playing = true;
-      chrome.runtime.sendMessage({ type: "RESUME_AUDIO" });
-      startHighlightLoop();
-    } else if (state.utterance) {
+    if (state.utterance) {
       state.playing = true;
       speechSynthesis.resume();
-    } else {
-      playCurrentParagraph();
+      return;
     }
+    if (!audioResolve) {
+      playCurrentChunk();
+      return;
+    }
+
+    state.playing = true;
+    chrome.runtime.sendMessage({ type: "RESUME_AUDIO" }, (response) => {
+      if (chrome.runtime.lastError || !response?.resumed) {
+        // Chrome discards an AUDIO_PLAYBACK offscreen document once it stops
+        // playing, so a pause of more than a minute or two leaves nothing to
+        // resume. Rebuild it and pick up from where the audio had reached.
+        replayFromCurrentPosition();
+        return;
+      }
+      startHighlightLoop();
+    });
+  }
+
+  function replayFromCurrentPosition() {
+    if (!state._audioBase64) {
+      // Nothing cached to replay from — restart the chunk.
+      playCurrentChunk();
+      return;
+    }
+    chrome.runtime.sendMessage(
+      {
+        type: "PLAY_AUDIO",
+        audio_base64: state._audioBase64,
+        speed: state.speed,
+        startAt: state._currentTime || 0,
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          failAudio(new Error(chrome.runtime.lastError.message));
+        } else if (response && !response.ok) {
+          failAudio(new Error(response.error || "Audio replay failed"));
+        } else {
+          // The promise from the original play is still pending and will settle
+          // on AUDIO_ENDED as usual, so nothing else needs rewiring.
+          startHighlightLoop();
+        }
+      }
+    );
   }
 
   // ─── Main Toggle ──────────────────────────────────────────────────────────
@@ -823,29 +962,29 @@
       text = extractArticleText();
     }
 
-    state.paragraphs = splitIntoParagraphs(text);
+    const paragraphs = splitIntoParagraphs(text);
+    const built = buildChunks(paragraphs);
+    state.chunks = built.chunks;
+    state.paragraphStarts = built.paragraphStarts;
 
-    if (state.paragraphs.length === 0) {
+    if (state.chunks.length === 0) {
       updateToolbarStatus("No readable text found");
       setTimeout(stopReadAloud, 3000);
       return;
     }
 
-    updateToolbarStatus(`Found ${state.paragraphs.length} paragraphs. Checking server...`);
+    updateToolbarStatus(`Found ${paragraphCount()} paragraphs. Checking server...`);
+    updateEngineIndicator();
 
     // Check server health
     const serverOk = await checkServerHealth();
+    state.serverHealthy = serverOk;
     state.useServer = serverOk;
+    updateEngineIndicator();
 
-    if (serverOk) {
-      updateToolbarStatus("Connected to Kokoro TTS. Starting...");
-    } else {
-      updateToolbarStatus("Server unavailable. Using browser TTS...");
-    }
-
-    state.currentParagraph = 0;
+    state.currentChunk = 0;
     updatePlayButton(true);
-    playCurrentParagraph();
+    playCurrentChunk();
     startHealthCheckTimer();
   }
 
@@ -858,12 +997,15 @@
     chrome.runtime.sendMessage({ type: "STOP_AUDIO" });
     state.active = false;
     state.playing = false;
-    state.paragraphs = [];
+    state.chunks = [];
+    state.paragraphStarts = [];
+    state.currentChunk = 0;
     state.timestamps = [];
     state.prefetchCache = {};
     state.textIndex = null;
     state._paragraphOffset = null;
     state._currentTime = 0;
+    state._audioBase64 = null;
   }
 
   // ─── Message Listener ─────────────────────────────────────────────────────
