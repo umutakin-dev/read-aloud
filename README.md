@@ -102,18 +102,33 @@ slider applies instantly and does not invalidate already-fetched paragraphs.
 ## Architecture
 
 ```
-Chrome Extension (MV3)                    Local Python Server
-+----------------+   chrome.runtime    +---------------------+
-| Content Script |<------------------->| Service Worker (SW)  |
-|  - Toolbar     |   .sendMessage      |  - CORS relay        |
-|  - Highlighting|                     |  - Context menu      |
-|  - Audio play  |                     |  - Keyboard shortcut |
-+----------------+                     +----------+-----------+
-                                                  | fetch
-                                                  v
-                                       +---------------------+
-                                       | FastAPI (port 7860)  |
-                                       |  - Kokoro TTS (GPU)  |
-                                       |  - Word timestamps   |
-                                       +---------------------+
+Chrome Extension (MV3)                  Local Python Server
+
++----------------------+              +----------------------+
+| Content Script       |              | Service Worker       |
+|  injected on demand  |<------------>|  - CORS relay        |
+|  - Toolbar           | chrome.runtime  - Context menu      |
+|  - Text extraction   |  .sendMessage|  - Keyboard shortcut |
+|  - Highlighting      |              |  - Script injection  |
++----------------------+              +-----+----------+-----+
+                                             |          | fetch
+                     +-----------------------+          |
+                     v                                  v
+         +----------------------+        +----------------------+
+         | Offscreen Document   |        | FastAPI (port 7860)  |
+         |  - Audio playback    |        |  - Kokoro TTS (GPU)  |
+         +----------------------+        |  - Word timestamps   |
+                                         +----------------------+
 ```
+
+### Permissions
+
+The content script is injected when you invoke Read Aloud rather than declared
+for `<all_urls>`, so the extension does not ask for access to every site you
+visit and does not load 122KB into every page for a feature that is off until
+you press the shortcut. Page access comes from `activeTab`, which Chrome grants
+on the action click, the context menu item, and the keyboard shortcut.
+
+A side effect worth knowing during development: because injection happens on
+invocation, tabs that were already open when you reloaded the extension work
+without being reloaded themselves.

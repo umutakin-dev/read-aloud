@@ -9,15 +9,35 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// Pages with no content script — chrome:// URLs, the PDF viewer, the Web Store,
-// or any tab that was already open when the extension loaded — reject with
-// "Could not establish connection". Flag it on the badge instead of letting it
-// surface as an unhandled rejection with nothing shown to the user.
-function toggleReadAloud(tabId, selectedText) {
+// The content script is injected on invocation rather than declared for
+// <all_urls>, so 122KB does not load into every page for a feature that is off
+// until asked for — and so does not sit behind Chrome's broadest install
+// warning either. activeTab covers this: it is granted by all three entry
+// points below (action click, context menu item, commands shortcut).
+const CONTENT_SCRIPTS = ["lib/Readability.js", "content.js"];
+const CONTENT_STYLES = ["content.css"];
+
+async function toggleReadAloud(tabId, selectedText) {
   if (tabId === undefined) return;
-  chrome.tabs
-    .sendMessage(tabId, { type: "TOGGLE_READ_ALOUD", selectedText: selectedText || null })
-    .catch(() => showUnavailableBadge(tabId));
+  const message = { type: "TOGGLE_READ_ALOUD", selectedText: selectedText || null };
+
+  // Try messaging first. A live content script means this is the second
+  // invocation — i.e. toggle off — and must not become a second injection.
+  try {
+    await chrome.tabs.sendMessage(tabId, message);
+    return;
+  } catch {
+    // Nothing listening: never injected, or orphaned by an extension reload.
+  }
+
+  try {
+    await chrome.scripting.insertCSS({ target: { tabId }, files: CONTENT_STYLES });
+    await chrome.scripting.executeScript({ target: { tabId }, files: CONTENT_SCRIPTS });
+    await chrome.tabs.sendMessage(tabId, message);
+  } catch {
+    // Genuinely unscriptable: chrome:// URLs, the PDF viewer, the Web Store.
+    showUnavailableBadge(tabId);
+  }
 }
 
 function showUnavailableBadge(tabId) {

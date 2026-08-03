@@ -1,13 +1,27 @@
 (() => {
   "use strict";
 
+  // This file is injected on demand, so it can run twice in one isolated world:
+  // two invocations racing, or a copy orphaned by an extension reload whose
+  // context is dead but whose globals are still here. A plain "already loaded"
+  // flag would lock that tab out of a fresh injection — precisely the case
+  // on-demand injection exists to fix — so the previous copy is torn down and
+  // replaced instead.
+  if (typeof window.__readAloudTeardown === "function") {
+    try {
+      window.__readAloudTeardown();
+    } catch (e) {
+      // The previous copy's extension context is already invalidated, which
+      // makes its listeners inert anyway.
+    }
+  }
+
   // ─── State ──────────────────────────────────────────────────────────────────
   let state = {
     active: false,
     playing: false,
     paragraphs: [],
     currentParagraph: 0,
-    audio: null,
     timestamps: [],
     speed: 1.0,
     voice: "af_heart",
@@ -370,7 +384,7 @@
   }
 
   // Listen for audio events relayed from background
-  chrome.runtime.onMessage.addListener((msg) => {
+  function onAudioMessage(msg) {
     if (msg.type === "AUDIO_TIME" && state.playing) {
       state._currentTime = msg.currentTime;
     }
@@ -380,7 +394,9 @@
     if (msg.type === "AUDIO_ERROR") {
       failAudio(new Error(msg.message || "Audio playback error"));
     }
-  });
+  }
+
+  chrome.runtime.onMessage.addListener(onAudioMessage);
 
   function playAudioFromBase64(base64) {
     return new Promise((resolve, reject) => {
@@ -837,9 +853,28 @@
   }
 
   // ─── Message Listener ─────────────────────────────────────────────────────
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  function onToggleMessage(message) {
     if (message.type === "TOGGLE_READ_ALOUD") {
       toggleReadAloud(message.selectedText);
     }
-  });
+  }
+
+  chrome.runtime.onMessage.addListener(onToggleMessage);
+
+  // Published so a later injection can replace this copy cleanly. DOM and timer
+  // cleanup comes first: everything below it can throw once this copy's
+  // extension context has been invalidated, and a stranded toolbar or a live
+  // health-check interval is what the user would actually notice.
+  window.__readAloudTeardown = () => {
+    removeToolbar();
+    stopHighlightLoop();
+    stopHealthCheckTimer();
+    clearHighlights();
+    speechSynthesis.cancel();
+    state.active = false;
+    state.playing = false;
+    chrome.runtime.onMessage.removeListener(onAudioMessage);
+    chrome.runtime.onMessage.removeListener(onToggleMessage);
+    chrome.runtime.sendMessage({ type: "STOP_AUDIO" });
+  };
 })();
