@@ -1,7 +1,7 @@
 # Bare URLs are read out character by character
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -64,6 +64,16 @@ The `phonemizer` "words count mismatch" warnings in that log are espeak reportin
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** ce94ecf (fix: skip blocks that are nothing but a URL) and 842d884 (fix: split around URLs instead of only skipping bare ones)
+
+### 2026-08-03
+- **Progress:** Verified on the Hacker News comment that exposed it: the goodreads link mid-sentence is skipped, the text either side still reads, and the highlight still tracks — so splitting around the URL preserved the exact-substring property findParagraphOffset depends on.
 
 ### 2026-08-03
 

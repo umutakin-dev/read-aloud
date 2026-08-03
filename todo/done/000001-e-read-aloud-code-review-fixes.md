@@ -1,7 +1,7 @@
 # Read Aloud code review fixes
 
 **Type:** 👑 Epic
-**Status:** 📋 Backlog
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -41,7 +41,7 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 
 
 ## Progress
-██████████████████░░ 91% (20/22)
+████████████████████ 100% (22/22)
 
 - ✅ #000002 Playback speed is applied twice
 - ✅ #000003 Word highlighting never matches page DOM text
@@ -62,9 +62,9 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - ✅ #000018 Make browser TTS fallback opt-in, off by default
 - ✅ #000019 Paragraph detection collapses on pages without text newlines
 - ✅ #000020 Orphaned content script keeps running after extension reload
-- 🔨 #000021 Close the audio gap between chunks
+- ✅ #000021 Close the audio gap between chunks
 - ✅ #000022 Saved settings do not reach a session already running
-- 🔨 #000023 Bare URLs are read out character by character
+- ✅ #000023 Bare URLs are read out character by character
 
 ## Estimation
 
@@ -91,6 +91,13 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 22 commits on feat/1-read-aloud-extension, ac9bd50 through 842d884, each item verified in Chrome against a live Kokoro server
 
 ### 2026-08-03
 - **Note:** Added #000023 Bare URLs are read out character by character to Items
