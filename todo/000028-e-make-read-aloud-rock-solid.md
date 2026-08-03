@@ -15,6 +15,8 @@ Most of the subtle logic is pure and trivially testable: whitespace collapsing, 
 Alongside that, two real defects are visible in the merged code — a paragraph lookup that finds the wrong occurrence (#000031) and British voices being given American pronunciation (#000032) — plus four robustness gaps that a general audience will hit far sooner than a developer will: second tabs, single-page apps, reloads, and abandoned GPU work.
 
 
+## Items
+
 - #000029 🔧 Test suite for the logic that is easy to get subtly wrong
 - #000030 🔧 Run the test suite on push and pull request
 - #000031 🐛 Paragraph lookup matches the first occurrence, not the right one
@@ -23,6 +25,20 @@ Alongside that, two real defects are visible in the merged code — a paragraph 
 - #000034 🐛 Text index goes stale on single-page-app navigation
 - #000035 ✨ Remember reading position across a reload
 - #000036 🔧 Cancel in-flight synthesis when playback stops
+
+
+## Progress
+██████████░░░░░░░░░░ 50% (4/8)
+
+- ✅ #000029 Test suite for the logic that is easy to get subtly wrong
+- ✅ #000030 Run the test suite on push and pull request
+- ✅ #000031 Paragraph lookup matches the first occurrence, not the right one
+- ✅ #000032 British voices are pronounced with American phonemes
+- 📋 #000033 Reading in a second tab silently breaks the first
+- 📋 #000034 Text index goes stale on single-page-app navigation
+- 📋 #000035 Remember reading position across a reload
+- 📋 #000036 Cancel in-flight synthesis when playback stops
+
 ## Estimation
 
 - **Start:**
