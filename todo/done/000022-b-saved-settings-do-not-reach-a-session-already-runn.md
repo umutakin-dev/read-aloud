@@ -1,7 +1,7 @@
 # Saved settings do not reach a session already running
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -48,6 +48,16 @@ Speed already works, but only by accident of being adjustable from the toolbar a
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 127340c (fix: apply saved settings to a session already reading)
+
+### 2026-08-03
+- **Progress:** Verified: changing the voice from Alloy to Heart mid-session and saving switched smoothly, without stopping and restarting the session.
 
 ### 2026-08-03
 

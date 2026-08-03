@@ -1109,9 +1109,14 @@
       cls = "engine fallback";
       title = "Kokoro server unavailable — using the browser's built-in speech";
     } else if (state.serverHealthy === false) {
+      // Reached while buffered chunks are still playing — the poll notices the
+      // server before the prefetch runs out. What happens when it does depends
+      // on the fallback setting, so say which.
       label = "Reconnecting";
       cls = "engine warn";
-      title = "Kokoro server is not responding; will fall back if it stays down";
+      title = state.allowBrowserFallback
+        ? "Kokoro server is not responding; will switch to browser speech if it stays down"
+        : "Kokoro server is not responding; playing already-fetched audio until it returns";
     } else if (state.serverHealthy === null) {
       label = "Connecting";
       cls = "engine";

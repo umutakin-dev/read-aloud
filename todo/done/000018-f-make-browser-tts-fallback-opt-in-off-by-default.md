@@ -1,7 +1,7 @@
 # Make browser TTS fallback opt-in, off by default
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -50,6 +50,16 @@ Needs a distinct engine-indicator state — "waiting on a server that is down" i
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 0a30cf4 (feat: make browser speech fallback opt-in, off by default)
+
+### 2026-08-03
+- **Progress:** Verified end to end with the server killed mid-read: the indicator went amber Reconnecting while buffered audio drained, then red Server down with 'Waiting for the Kokoro server at http://localhost:7860', and no browser voice was ever substituted.
 
 ### 2026-08-03
 

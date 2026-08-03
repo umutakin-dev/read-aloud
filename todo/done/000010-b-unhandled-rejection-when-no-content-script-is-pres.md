@@ -1,7 +1,7 @@
 # Unhandled rejection when no content script is present
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟢 LOW
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -43,6 +43,16 @@ The relay at `background.js:58` already does this correctly with `.catch(() => {
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 86dd492 (fix: drop dead manifest entry, handle unscriptable tabs, keep saved voice) and 42369b4 (refactor: inject the content script on demand instead of on every page)
+
+### 2026-08-03
+- **Progress:** Verified: Ctrl+Shift+U on chrome://version flashes the badge instead of failing silently with an unhandled rejection.
 
 ### 2026-08-03
 - **Progress:** Shipped in 86dd492.
