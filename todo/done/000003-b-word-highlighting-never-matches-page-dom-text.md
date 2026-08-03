@@ -1,7 +1,7 @@
 # Word highlighting never matches page DOM text
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -46,6 +46,16 @@ Any paragraph whose source DOM contains a newline or run of spaces between inlin
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** ac9bd50 (fix: correct playback speed and word highlighting)
+
+### 2026-08-03
+- **Progress:** Verified in Chrome on plato.stanford.edu/entries/computational-mind — word and sentence highlights render on the correct text mid-paragraph, which never happened before the whitespace-collapsing fix. No 'paragraph not found in page DOM' warnings.
 
 ### 2026-08-03
 - **Progress:** Shipped in ac9bd50.

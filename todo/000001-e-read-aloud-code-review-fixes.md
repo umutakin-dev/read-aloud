@@ -33,11 +33,11 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 
 
 ## Progress
-███████░░░░░░░░░░░░░ 36% (5/14)
+██████████░░░░░░░░░░ 50% (7/14)
 
 - 🔨 #000002 Playback speed is applied twice
-- 🔨 #000003 Word highlighting never matches page DOM text
-- 🔨 #000004 Word highlight offsets drift within a paragraph
+- ✅ #000003 Word highlighting never matches page DOM text
+- ✅ #000004 Word highlight offsets drift within a paragraph
 - 🔨 #000005 Active tab ID lost when service worker is evicted
 - ✅ #000006 Server word-timestamp fallback mis-estimates timing
 - 🔨 #000007 host_permissions hardcoded to localhost:7860

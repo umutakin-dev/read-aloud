@@ -1,7 +1,7 @@
 # Word highlight offsets drift within a paragraph
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -46,6 +46,16 @@ The same flawed accumulator drives the sentence range at `content.js:215-222`.
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** ac9bd50 (fix: correct playback speed and word highlighting)
+
+### 2026-08-03
+- **Progress:** Verified in Chrome: server reported Token alignment 100% on all four paragraphs (77/77, 91/91, 45/45, 74/74), so no word position is being estimated, and the highlight sat on the correct word mid-paragraph rather than drifting ahead.
 
 ### 2026-08-03
 - **Progress:** Shipped in ac9bd50.
