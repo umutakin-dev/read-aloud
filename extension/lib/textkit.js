@@ -191,6 +191,37 @@ const ReadAloudText = (() => {
     return { text, nodes, offsets };
   }
 
+  // ─── Locating a chunk in the page ─────────────────────────────────────────
+  // Chunks are read in document order, so the occurrence being spoken is always
+  // at or after the previous one. Searching from the start of the document
+  // instead finds the *first* copy of a repeated phrase — a quoted comment, a
+  // pull quote, a repeated navigation label — and the highlight lands on the
+  // wrong one, dragging the viewport with it.
+  function findChunkOffset(pageText, chunkText, from = 0) {
+    const ahead = pageText.indexOf(chunkText, from);
+    if (ahead !== -1) return ahead;
+    // Nothing ahead: the page changed under us, or the hint was stale. Falling
+    // back to the whole document is still better than not highlighting.
+    return from > 0 ? pageText.indexOf(chunkText) : -1;
+  }
+
+  // Where to start looking for a given chunk: at the offset of the nearest
+  // chunk before it that has already been located. That handles jumping
+  // backwards as well as reading forwards, which a single advancing cursor
+  // would not — pressing Prev would search from a point past the target.
+  function searchStartFor(resolvedOffsets, chunkIndex) {
+    let nearest = -1;
+    let offset = 0;
+    for (const key of Object.keys(resolvedOffsets)) {
+      const index = Number(key);
+      if (index < chunkIndex && index > nearest) {
+        nearest = index;
+        offset = resolvedOffsets[key];
+      }
+    }
+    return offset;
+  }
+
   // ─── Word spans ───────────────────────────────────────────────────────────
   // Resolve a character span for every word once, up front. Server-aligned
   // spans are authoritative; a word the server could not align is placed
@@ -221,6 +252,8 @@ const ReadAloudText = (() => {
     splitParagraphIntoChunks,
     buildChunks,
     buildTextIndex,
+    findChunkOffset,
+    searchStartFor,
     resolveWordSpans,
   };
 })();

@@ -8,6 +8,8 @@ import soundfile as sf
 import torch
 
 from .alignment import align_timestamps_to_text, preview
+from .voices import language_for_voice, language_name
+from .voices import list_voices as _list_voices
 
 logger = logging.getLogger(__name__)
 
@@ -50,30 +52,6 @@ def select_device() -> str:
     return "cpu"
 
 
-VOICE_CATALOG = {
-    "af_alloy": {"name": "Alloy", "language": "en-us", "gender": "female"},
-    "af_aoede": {"name": "Aoede", "language": "en-us", "gender": "female"},
-    "af_bella": {"name": "Bella", "language": "en-us", "gender": "female"},
-    "af_heart": {"name": "Heart", "language": "en-us", "gender": "female"},
-    "af_jessica": {"name": "Jessica", "language": "en-us", "gender": "female"},
-    "af_kore": {"name": "Kore", "language": "en-us", "gender": "female"},
-    "af_nicole": {"name": "Nicole", "language": "en-us", "gender": "female"},
-    "af_nova": {"name": "Nova", "language": "en-us", "gender": "female"},
-    "af_river": {"name": "River", "language": "en-us", "gender": "female"},
-    "af_sarah": {"name": "Sarah", "language": "en-us", "gender": "female"},
-    "af_sky": {"name": "Sky", "language": "en-us", "gender": "female"},
-    "am_adam": {"name": "Adam", "language": "en-us", "gender": "male"},
-    "am_echo": {"name": "Echo", "language": "en-us", "gender": "male"},
-    "am_eric": {"name": "Eric", "language": "en-us", "gender": "male"},
-    "am_liam": {"name": "Liam", "language": "en-us", "gender": "male"},
-    "am_michael": {"name": "Michael", "language": "en-us", "gender": "male"},
-    "am_onyx": {"name": "Onyx", "language": "en-us", "gender": "male"},
-    "bf_emma": {"name": "Emma", "language": "en-gb", "gender": "female"},
-    "bf_isabella": {"name": "Isabella", "language": "en-gb", "gender": "female"},
-    "bm_george": {"name": "George", "language": "en-gb", "gender": "male"},
-    "bm_lewis": {"name": "Lewis", "language": "en-gb", "gender": "male"},
-}
-
 SAMPLE_RATE = 24000
 
 
@@ -85,19 +63,35 @@ class TTSEngine:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
-                cls._instance._initialized = False
+                cls._instance._pipelines = {}
+                cls._instance._device = None
             return cls._instance
 
-    def _ensure_initialized(self):
-        if self._initialized:
-            return
+    def _ensure_device(self) -> str:
+        if self._device is None:
+            self._device = select_device()
+        return self._device
+
+    def _pipeline_for(self, voice: str):
+        """The pipeline for this voice's language, created on first use.
+
+        One pipeline per language rather than one globally: lang_code selects
+        the grapheme-to-phoneme conversion, so a single American pipeline gave
+        the British voices American pronunciation. Built lazily so startup does
+        not pay for languages nobody selects.
+        """
+        language = language_for_voice(voice)
+        existing = self._pipelines.get(language)
+        if existing is not None:
+            return existing
+
         from kokoro import KPipeline
 
-        logger.info("Initializing Kokoro TTS pipeline...")
+        device = self._ensure_device()
+        logger.info("Initializing Kokoro pipeline for %s...", language_name(language))
         started = time.perf_counter()
-        device = select_device()
         try:
-            self._pipeline = KPipeline(lang_code="a", device=device)
+            pipeline = KPipeline(lang_code=language, device=device)
         except Exception:
             if device == "cpu":
                 raise
@@ -105,19 +99,20 @@ class TTSEngine:
             # after cuda.is_available() has already said yes. Degrade rather
             # than refusing to serve.
             logger.exception("Kokoro failed to initialize on GPU, falling back to CPU")
-            device = "cpu"
-            self._pipeline = KPipeline(lang_code="a", device=device)
-        self._device = device
-        self._initialized = True
+            self._device = device = "cpu"
+            pipeline = KPipeline(lang_code=language, device=device)
+
+        self._pipelines[language] = pipeline
         logger.info(
-            "Kokoro TTS pipeline initialized on %s in %.1fs",
-            device, time.perf_counter() - started,
+            "Kokoro pipeline for %s ready on %s in %.1fs",
+            language_name(language), device, time.perf_counter() - started,
         )
+        return pipeline
 
     def synthesize(self, text: str, voice: str = "af_heart", speed: float = 1.0) -> tuple[np.ndarray, int]:
-        self._ensure_initialized()
+        pipeline = self._pipeline_for(voice)
         audio_chunks = []
-        for result in self._pipeline(text, voice=voice, speed=speed):
+        for result in pipeline(text, voice=voice, speed=speed):
             if result.audio is not None:
                 audio_chunks.append(result.audio.cpu().numpy())
         if not audio_chunks:
@@ -128,7 +123,7 @@ class TTSEngine:
     def synthesize_with_timestamps(
         self, text: str, voice: str = "af_heart", speed: float = 1.0
     ) -> tuple[np.ndarray, int, list[dict]]:
-        self._ensure_initialized()
+        pipeline = self._pipeline_for(voice)
         audio_chunks = []
         all_timestamps = []
         cumulative_samples = 0
@@ -137,11 +132,12 @@ class TTSEngine:
         started = time.perf_counter()
 
         logger.info(
-            "Synthesizing %d chars | voice=%s speed=%.2f device=%s | %s",
-            len(text), voice, speed, self._device, preview(text),
+            "Synthesizing %d chars | voice=%s (%s) speed=%.2f device=%s | %s",
+            len(text), voice, language_name(language_for_voice(voice)),
+            speed, self._device, preview(text),
         )
 
-        for result in self._pipeline(text, voice=voice, speed=speed):
+        for result in pipeline(text, voice=voice, speed=speed):
             if result.audio is None:
                 logger.debug("Chunk produced no audio, skipping")
                 continue
@@ -217,7 +213,4 @@ class TTSEngine:
         return buf.read()
 
     def list_voices(self) -> list[dict]:
-        return [
-            {"id": vid, "name": info["name"], "language": info["language"], "gender": info["gender"]}
-            for vid, info in VOICE_CATALOG.items()
-        ]
+        return _list_voices()
