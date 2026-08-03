@@ -117,6 +117,9 @@ Measuring WebGPU is only worth doing under 2 or 3. Under 1 it is wasted work.
 ## Log
 
 ### 2026-08-03
+- **Progress:** Built a browser page under spikes/browser-kokoro/page to answer what Node could not: real WebGPU speed, and whether sentence-exact plus word-estimated highlighting is tolerable to read along with. Loads kokoro-js from jsDelivr via an import map, so no build step. Reports load time, time to first audio, and the realtime ratio including playback — the last being decisive, since synthesis must outrun reading or every sentence stalls.
+
+### 2026-08-03
 - **Decision:** Per-token timestamps do not survive the port to kokoro-js, and cannot be reconstructed: the ONNX graph emits only 'waveform', so the duration predictor output that Python Kokoro turns into start_ts/end_ts via join_timestamps is not exported at all. Verified by calling the model directly rather than through the wrapper. Browser-side synthesis therefore costs word-level highlighting — the feature the extension was built around — so the route is Umut's decision, not the spike's.
 
 ### 2026-08-03

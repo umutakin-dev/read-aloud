@@ -28,11 +28,42 @@ would need a different ONNX export.
 
 Secondary findings, and the full recommendation, are in the todo item.
 
-## What is still unmeasured
+## The browser page
 
-Synthesis ran at **1.2x realtime** on CPU under `onnxruntime-node`, against
-16–80x for the current GPU server. WebGPU in a real browser is unmeasured and
-could be substantially faster; WASM would be slower.
+Answers what Node cannot: real WebGPU speed, and whether sentence-level
+highlighting is tolerable to read along with.
 
-That measurement is only worth taking if word-level highlighting is being given
-up, so it waits on that decision.
+```bash
+cd page
+npx serve            # or: python -m http.server 8000
+```
+
+Then open it and press **Load model**. ES modules will not load over `file://`,
+so it has to be served. `kokoro-js` comes from jsDelivr via an import map, so
+there is nothing to build.
+
+The page reports model load time, time to first audio, and the realtime ratio
+including playback — the last being the one that matters, since synthesis has to
+outrun reading or every sentence stalls.
+
+It also demonstrates the highlighting this option would ship with. **Sentence
+highlights are exact**, from real audio boundaries. **Word highlights are
+estimated**, splitting each sentence's measured duration across its words by
+character length. Watching how far that drifts within a long sentence is the
+whole point.
+
+Weighting by phoneme count would track speech better than characters, but the
+phoneme string is not reliably one group per word — `1990` becomes two — so it
+needs an alignment step this page does not attempt.
+
+## Numbers so far
+
+| | |
+|---|---|
+| Node, CPU, q8 | **1.2x realtime** |
+| Current server, CUDA | 16–80x realtime |
+| Browser, WebGPU | *unmeasured — run the page* |
+
+At 1.2x, a 25-second paragraph takes ~20 seconds to synthesize and prefetch can
+never get ahead. WebGPU has to close most of that gap for this option to be
+viable at all.
