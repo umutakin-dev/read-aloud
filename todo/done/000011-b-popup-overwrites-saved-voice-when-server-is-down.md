@@ -1,7 +1,7 @@
 # Popup overwrites saved voice when server is down
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟢 LOW
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -43,6 +43,16 @@ When the server is down, that branch never runs, so the `<select>` keeps the sin
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 86dd492 (fix: drop dead manifest entry, handle unscriptable tabs, keep saved voice)
+
+### 2026-08-03
+- **Progress:** Verified in Chrome — popup opened with the server stopped still shows the saved voice af_alloy rather than resetting to the hardcoded af_heart default.
 
 ### 2026-08-03
 - **Progress:** Shipped in 86dd492.

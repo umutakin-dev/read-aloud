@@ -1,7 +1,7 @@
 # stopCurrentAudio orphans the pending audio promise
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟢 LOW
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -44,6 +44,16 @@ Harmless today because the `if (state.active && state.playing)` guard below the 
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 9f475b0 (fix: survive service worker eviction, settle cancelled audio promises) and 913e978 (fix: don't restart playback after a stop during error recovery)
+
+### 2026-08-03
+- **Progress:** Verified in Chrome — prev/next behave correctly with no stuck or restarting playback, so cancelled audio promises are settling rather than stranding the awaiting paragraph.
 
 ### 2026-08-03
 - **Progress:** Shipped in 9f475b0 and 913e978.

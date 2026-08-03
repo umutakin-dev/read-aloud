@@ -1,7 +1,7 @@
 # Playback speed is applied twice
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -49,6 +49,16 @@ Note that word timestamps stay valid under this fix: `audio.currentTime` is medi
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** ac9bd50 (fix: correct playback speed and word highlighting)
+
+### 2026-08-03
+- **Progress:** Verified in Chrome at 1.5x and 2.0x — both play at the correct rate, and highlighting stays in sync at 2.0x. Confirms synthesis is pinned to 1.0 with playbackRate as the only speed applied.
 
 ### 2026-08-03
 - **Progress:** Shipped in ac9bd50.

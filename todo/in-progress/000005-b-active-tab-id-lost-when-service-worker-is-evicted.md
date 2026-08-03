@@ -47,6 +47,9 @@ During playback the 50ms `AUDIO_TIME` ticks keep the worker alive, so it holds. 
 ## Log
 
 ### 2026-08-03
+- **Note:** Still reproduces after the storage.session fix. Short pauses resume fine; a pause of a couple of minutes leaves Play doing nothing. Persisting activeTabId was necessary but not sufficient — the offscreen document itself is the casualty. Chrome tears down an AUDIO_PLAYBACK offscreen document once it stops actually playing, so on resume hasOffscreen() is false and the RESUME message is silently dropped by the 'if (!exists) return' guard. Fix must recreate the document and replay from the saved position rather than assuming it survived.
+
+### 2026-08-03
 - **Progress:** Shipped in 9f475b0.
 
 ### 2026-08-03

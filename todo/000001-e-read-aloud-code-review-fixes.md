@@ -30,6 +30,8 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - #000013 🔧 Inject content script on demand instead of on every page
 - #000014 🔧 Install CUDA torch build with CPU fallback
 - #000015 🔧 Add verbose diagnostic logging to TTS server
+- #000016 ✨ Navigate by real paragraphs, not synthesis chunks
+- #000017 🐛 Toolbar does not reflect which TTS engine is in use
 
 
 ## Progress
@@ -75,6 +77,12 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-08-03
+- **Note:** Added #000017 Toolbar does not reflect which TTS engine is in use to Items
+
+### 2026-08-03
+- **Note:** Added #000016 Navigate by real paragraphs, not synthesis chunks to Items
 
 ### 2026-08-03
 - **Note:** Added #000015 Add verbose diagnostic logging to TTS server to Items
