@@ -242,7 +242,9 @@
   const SENTENCE_END = /[.!?;]$/;
 
   function highlightWord(timestamps, currentTime, index, paragraphOffset) {
-    if (!wordHighlight || !index || paragraphOffset === null) return;
+    // Loose check on purpose — the offset is undefined until the first
+    // paragraph resolves, and arithmetic on that would silently produce NaN.
+    if (!wordHighlight || !index || paragraphOffset == null) return;
 
     let current = -1;
     for (let i = 0; i < timestamps.length; i++) {
@@ -462,14 +464,16 @@
       console.error("Read Aloud: TTS playback error", err);
       // Only fall back if the server is actually down, not on transient audio errors
       const serverOk = await checkServerHealth();
+      if (!state.active) return;
       if (!serverOk) {
         updateToolbarStatus(`Server down - falling back to browser TTS`);
         state.useServer = false;
-        setTimeout(() => playParagraphWithWebSpeech(index), 1000);
+        // Re-check on the way in: stopping during the delay must not restart it.
+        setTimeout(() => state.active && playParagraphWithWebSpeech(index), 1000);
       } else {
         // Transient error, retry the same paragraph
         updateToolbarStatus(`Retrying paragraph ${index + 1}...`);
-        setTimeout(() => playParagraphWithServer(index), 500);
+        setTimeout(() => state.active && playParagraphWithServer(index), 500);
       }
     }
   }
@@ -493,7 +497,7 @@
     state._paragraphOffset = findParagraphOffset(paragraphText);
 
     utterance.onboundary = (event) => {
-      if (event.name !== "word" || !state.textIndex || state._paragraphOffset === null) return;
+      if (event.name !== "word" || !state.textIndex || state._paragraphOffset == null) return;
       // charLength is optional in the spec and Chrome omits it, so measure the
       // word at charIndex ourselves when it is missing.
       const length =
