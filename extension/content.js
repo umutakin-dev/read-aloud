@@ -90,33 +90,70 @@
   }
 
   // ─── Text Extraction ───────────────────────────────────────────────────────
-  function extractArticleText() {
-    try {
-      const clone = document.cloneNode(true);
-      const reader = new Readability(clone);
-      const article = reader.parse();
-      if (article && article.textContent && article.textContent.trim().length > 100) {
-        return article.textContent;
-      }
-    } catch (e) {
-      console.warn("Read Aloud: Readability failed, falling back to body text", e);
+  // Paragraphs come from block elements rather than from newlines in flattened
+  // text. Whether flattened text carries a newline where a paragraph ended is a
+  // property of the source markup, not of the document — on Hacker News it
+  // carries almost none, and a whole comment thread collapsed into two
+  // "paragraphs". The structure is in the DOM; flattening first throws it away.
+  const BLOCK_SELECTOR =
+    "p, li, blockquote, h1, h2, h3, h4, h5, h6, pre, dd, figcaption, td";
+
+  const MIN_PARAGRAPH_CHARS = 20;
+
+  function paragraphsFromRoot(root) {
+    const paragraphs = [];
+    for (const block of root.querySelectorAll(BLOCK_SELECTOR)) {
+      // A block containing another block is a wrapper — its text belongs to the
+      // children, and taking both would read it twice.
+      if (block.querySelector(BLOCK_SELECTOR)) continue;
+      const text = block.textContent.replace(/\s+/g, " ").trim();
+      if (text.length > MIN_PARAGRAPH_CHARS) paragraphs.push(text);
     }
-    return document.body.innerText;
+    return paragraphs;
   }
 
+  function extractParagraphs() {
+    try {
+      const clone = document.cloneNode(true);
+      const article = new Readability(clone).parse();
+
+      // article.content is the cleaned HTML, which still has the block
+      // structure. article.textContent is the same thing already flattened.
+      if (article && article.content) {
+        const doc = new DOMParser().parseFromString(article.content, "text/html");
+        const paragraphs = paragraphsFromRoot(doc.body);
+        if (paragraphs.length) return paragraphs;
+      }
+      if (article && article.textContent && article.textContent.trim().length > 100) {
+        return splitIntoParagraphs(article.textContent);
+      }
+    } catch (e) {
+      console.warn("Read Aloud: Readability failed, falling back to page structure", e);
+    }
+
+    // Readability declined — usually a page that is not article-shaped. The
+    // live document still has blocks worth reading.
+    const fromDom = paragraphsFromRoot(document.body);
+    if (fromDom.length) return fromDom;
+
+    return splitIntoParagraphs(document.body.innerText);
+  }
+
+  // Last resort, for plain text with no structure to read (a selection, or a
+  // document whose blocks all got filtered out).
   function splitIntoParagraphs(text) {
     // First try double newlines
     let paragraphs = text
       .split(/\n\s*\n/)
       .map((p) => p.replace(/\s+/g, " ").trim())
-      .filter((p) => p.length > 20);
+      .filter((p) => p.length > MIN_PARAGRAPH_CHARS);
 
     // If too few paragraphs, try single newlines
     if (paragraphs.length <= 1) {
       paragraphs = text
         .split(/\n/)
         .map((p) => p.replace(/\s+/g, " ").trim())
-        .filter((p) => p.length > 20);
+        .filter((p) => p.length > MIN_PARAGRAPH_CHARS);
     }
 
     return paragraphs;
@@ -493,15 +530,21 @@
     state.utterance = null;
 
     state.currentChunk = index;
-    updateToolbarStatus(`Paragraph ${currentParagraph() + 1}/${paragraphCount()}`);
+    const label = `Paragraph ${currentParagraph() + 1}/${paragraphCount()}`;
 
     try {
       let data;
       if (state.prefetchCache[index]) {
         data = state.prefetchCache[index];
         delete state.prefetchCache[index];
+        updateToolbarStatus(label);
       } else {
+        // Say so while waiting. A cold server has to load the model before it
+        // can synthesize anything, and jumping straight to the paragraph label
+        // makes that look like a hang.
+        updateToolbarStatus(`${label} — synthesizing...`);
         data = await requestTTSWithTimestamps(state.chunks[index].text);
+        updateToolbarStatus(label);
       }
 
       if (!state.active) return;
@@ -981,6 +1024,10 @@
     }
 
     state.playing = true;
+    // Force the next tick to repaint. highlightWord skips work when the current
+    // word has not changed, and after a pause that check would suppress the
+    // first frame — leaving whatever was on screen before the pause.
+    lastHighlightedWord = -1;
     chrome.runtime.sendMessage({ type: "RESUME_AUDIO" }, (response) => {
       if (chrome.runtime.lastError || !response?.resumed) {
         // Chrome discards an AUDIO_PLAYBACK offscreen document once it stops
@@ -1034,15 +1081,10 @@
     createToolbar();
     updateToolbarStatus("Extracting text...");
 
-    // Extract text
-    let text;
-    if (selectedText) {
-      text = selectedText;
-    } else {
-      text = extractArticleText();
-    }
-
-    const paragraphs = splitIntoParagraphs(text);
+    // A selection is plain text with no structure to read; the page has both.
+    const paragraphs = selectedText
+      ? splitIntoParagraphs(selectedText)
+      : extractParagraphs();
     const built = buildChunks(paragraphs);
     state.chunks = built.chunks;
     state.paragraphStarts = built.paragraphStarts;

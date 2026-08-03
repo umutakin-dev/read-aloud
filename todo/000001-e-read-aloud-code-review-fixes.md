@@ -33,6 +33,7 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - #000016 ✨ Navigate by real paragraphs, not synthesis chunks
 - #000017 🐛 Toolbar does not reflect which TTS engine is in use
 - #000018 ✨ Make browser TTS fallback opt-in, off by default
+- #000019 🐛 Paragraph detection collapses on pages without text newlines
 
 
 ## Progress
@@ -78,6 +79,9 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-08-03
+- **Note:** Added #000019 Paragraph detection collapses on pages without text newlines to Items
 
 ### 2026-08-03
 - **Note:** Added #000018 Make browser TTS fallback opt-in, off by default to Items
