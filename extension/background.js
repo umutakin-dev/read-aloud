@@ -46,37 +46,87 @@ chrome.commands.onCommand.addListener((command, tab) => {
 });
 
 // ─── Offscreen document for audio playback ────────────────────────────────
-let offscreenCreated = false;
+// The offscreen document outlives the service worker, so its existence has to
+// be queried rather than remembered in a module flag that resets on eviction.
+const OFFSCREEN_URL = "offscreen.html";
+
+async function hasOffscreen() {
+  const contexts = await chrome.runtime.getContexts({
+    contextTypes: ["OFFSCREEN_DOCUMENT"],
+    documentUrls: [chrome.runtime.getURL(OFFSCREEN_URL)],
+  });
+  return contexts.length > 0;
+}
+
+// Creating a second document throws, and two callers can race, so they share
+// whichever creation is already in flight.
+let creating = null;
 
 async function ensureOffscreen() {
-  if (offscreenCreated) return;
+  if (await hasOffscreen()) return;
+  if (!creating) {
+    creating = chrome.offscreen
+      .createDocument({
+        url: OFFSCREEN_URL,
+        reasons: ["AUDIO_PLAYBACK"],
+        justification: "Playing TTS audio for Read Aloud extension",
+      })
+      .finally(() => {
+        creating = null;
+      });
+  }
   try {
-    await chrome.offscreen.createDocument({
-      url: "offscreen.html",
-      reasons: ["AUDIO_PLAYBACK"],
-      justification: "Playing TTS audio for Read Aloud extension",
-    });
-    offscreenCreated = true;
+    await creating;
   } catch (e) {
-    // Already exists
-    if (e.message?.includes("Only a single offscreen")) {
-      offscreenCreated = true;
-    } else {
-      throw e;
-    }
+    // Lost the race to another caller — the document exists either way.
+    if (!e.message?.includes("Only a single offscreen")) throw e;
   }
 }
 
-// Track which tab is actively reading
+// ─── Active reading tab ───────────────────────────────────────────────────
+// Chrome evicts the service worker after ~30s idle. During playback the 50ms
+// AUDIO_TIME traffic keeps it alive, but pausing stops that, so a module
+// variable would be gone by the time playback resumes and every AUDIO_ENDED
+// relay would be dropped. Session storage survives; the module variable is
+// just a cache so the 50ms relay is not a storage read.
+const ACTIVE_TAB_KEY = "activeTabId";
 let activeTabId = null;
+
+async function setActiveTab(tabId) {
+  if (tabId === undefined) return;
+  activeTabId = tabId;
+  await chrome.storage.session.set({ [ACTIVE_TAB_KEY]: tabId });
+}
+
+async function getActiveTab() {
+  if (activeTabId !== null) return activeTabId;
+  const result = await chrome.storage.session.get(ACTIVE_TAB_KEY);
+  activeTabId = result[ACTIVE_TAB_KEY] ?? null;
+  return activeTabId;
+}
+
+async function clearActiveTab() {
+  activeTabId = null;
+  await chrome.storage.session.remove(ACTIVE_TAB_KEY);
+}
+
+// Reading tab closed mid-playback: stop the audio and tear the document down,
+// otherwise it keeps playing with nothing to highlight.
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  if ((await getActiveTab()) !== tabId) return;
+  await clearActiveTab();
+  if (await hasOffscreen()) {
+    await chrome.offscreen.closeDocument().catch(() => {});
+  }
+});
 
 // ─── Message handler ──────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Forward audio events from offscreen to the active content script tab
   if (message.type === "AUDIO_ENDED" || message.type === "AUDIO_ERROR" || message.type === "AUDIO_TIME") {
-    if (activeTabId) {
-      chrome.tabs.sendMessage(activeTabId, message).catch(() => {});
-    }
+    getActiveTab().then((tabId) => {
+      if (tabId !== null) chrome.tabs.sendMessage(tabId, message).catch(() => {});
+    });
     return;
   }
 
@@ -103,34 +153,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Audio control messages from content script → offscreen
   if (message.type === "PLAY_AUDIO") {
-    activeTabId = sender.tab?.id;
-    ensureOffscreen().then(() => {
-      chrome.runtime.sendMessage({
-        target: "offscreen",
-        type: "PLAY",
-        audio_base64: message.audio_base64,
-        speed: message.speed,
-      }, sendResponse);
-    }).catch((err) => {
-      sendResponse({ ok: false, error: err.message });
-    });
+    setActiveTab(sender.tab?.id)
+      .then(ensureOffscreen)
+      .then(() => {
+        chrome.runtime.sendMessage({
+          target: "offscreen",
+          type: "PLAY",
+          audio_base64: message.audio_base64,
+          speed: message.speed,
+        }, sendResponse);
+      })
+      .catch((err) => {
+        sendResponse({ ok: false, error: err.message });
+      });
     return true;
   }
 
-  if (message.type === "PAUSE_AUDIO" || message.type === "RESUME_AUDIO" || message.type === "STOP_AUDIO" || message.type === "SET_AUDIO_SPEED") {
-    const typeMap = {
-      PAUSE_AUDIO: "PAUSE",
-      RESUME_AUDIO: "RESUME",
-      STOP_AUDIO: "STOP",
-      SET_AUDIO_SPEED: "SET_SPEED",
-    };
-    if (offscreenCreated) {
-      chrome.runtime.sendMessage({
-        target: "offscreen",
-        type: typeMap[message.type],
-        speed: message.speed,
-      });
-    }
+  const CONTROL = {
+    PAUSE_AUDIO: "PAUSE",
+    RESUME_AUDIO: "RESUME",
+    STOP_AUDIO: "STOP",
+    SET_AUDIO_SPEED: "SET_SPEED",
+  };
+
+  if (CONTROL[message.type]) {
+    hasOffscreen().then((exists) => {
+      if (!exists) return;
+      chrome.runtime
+        .sendMessage({
+          target: "offscreen",
+          type: CONTROL[message.type],
+          speed: message.speed,
+        })
+        .catch(() => {});
+    });
     return;
   }
 });

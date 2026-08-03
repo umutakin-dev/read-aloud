@@ -344,8 +344,28 @@
   }
 
   // ─── Audio Playback (via offscreen document through background) ─────────
+  // Playback lives in the offscreen document, so "this paragraph finished" is
+  // a message rather than an event on an audio element. The promise for it must
+  // be settled on every exit path — including cancellation — or the awaiting
+  // call sits pending forever, holding its whole closure alive.
   let audioResolve = null;
   let audioReject = null;
+
+  function finishAudio(outcome) {
+    if (!audioResolve) return;
+    const resolve = audioResolve;
+    audioResolve = null;
+    audioReject = null;
+    resolve(outcome);
+  }
+
+  function failAudio(err) {
+    if (!audioReject) return;
+    const reject = audioReject;
+    audioResolve = null;
+    audioReject = null;
+    reject(err);
+  }
 
   // Listen for audio events relayed from background
   chrome.runtime.onMessage.addListener((msg) => {
@@ -353,10 +373,10 @@
       state._currentTime = msg.currentTime;
     }
     if (msg.type === "AUDIO_ENDED") {
-      if (audioResolve) { audioResolve(); audioResolve = null; audioReject = null; }
+      finishAudio("ended");
     }
     if (msg.type === "AUDIO_ERROR") {
-      if (audioReject) { audioReject(new Error(msg.message || "Audio playback error")); audioResolve = null; audioReject = null; }
+      failAudio(new Error(msg.message || "Audio playback error"));
     }
   });
 
@@ -369,10 +389,11 @@
         audio_base64: base64,
         speed: state.speed,
       }, (response) => {
-        if (response && !response.ok) {
-          audioResolve = null;
-          audioReject = null;
-          reject(new Error(response.error || "Audio play failed"));
+        // Reading lastError also stops Chrome logging it as unchecked.
+        if (chrome.runtime.lastError) {
+          failAudio(new Error(chrome.runtime.lastError.message));
+        } else if (response && !response.ok) {
+          failAudio(new Error(response.error || "Audio play failed"));
         }
       });
     });
@@ -424,7 +445,11 @@
         prefetchParagraph(index + i);
       }
 
-      await playAudioFromBase64(data.audio_base64);
+      const outcome = await playAudioFromBase64(data.audio_base64);
+
+      // Stop/prev/next already tore down the highlight state and may have
+      // started a different paragraph — leave it alone.
+      if (outcome === "cancelled") return;
 
       stopHighlightLoop();
       clearHighlights();
@@ -711,8 +736,9 @@
     state.playing = false;
     state._currentTime = 0;
     chrome.runtime.sendMessage({ type: "STOP_AUDIO" });
-    audioResolve = null;
-    audioReject = null;
+    // Settle rather than drop it — a pending promise here would strand the
+    // paragraph that is awaiting it.
+    finishAudio("cancelled");
     if (state.utterance) {
       speechSynthesis.cancel();
       state.utterance = null;
