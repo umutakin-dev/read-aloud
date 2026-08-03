@@ -1,18 +1,43 @@
 import base64
 import logging
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 from .models import TTSRequest, TTSWithTimestampsResponse, VoiceInfo, WordTimestamp
-from .tts_engine import TTSEngine
+from .tts_engine import TTSEngine, log_environment, preview
 
-logging.basicConfig(level=logging.INFO)
+# READ_ALOUD_LOG_LEVEL=DEBUG adds per-chunk timing detail and the full list of
+# tokens that could not be aligned to the request text.
+LOG_LEVEL = os.environ.get("READ_ALOUD_LOG_LEVEL", "INFO").upper()
+
+logging.basicConfig(
+    level=LOG_LEVEL,
+    format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",
+    datefmt="%H:%M:%S",
+    force=True,
+)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Read Aloud TTS Server", version="0.1.0")
+# Model downloads log every HTTP request they make, which buries everything else.
+if LOG_LEVEL != "DEBUG":
+    for noisy in ("httpx", "httpcore", "urllib3", "filelock"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Read Aloud TTS server starting (log level %s)", LOG_LEVEL)
+    # Reported up front so a CPU-only install is obvious before the first
+    # request rather than after a slow one.
+    log_environment()
+    yield
+
+
+app = FastAPI(title="Read Aloud TTS Server", version="0.1.0", lifespan=lifespan)
 
 # Only the extension should be able to drive this server. With `allow_origins=["*"]`
 # any site the user happened to be browsing could POST to it and occupy the GPU.
@@ -75,13 +100,17 @@ async def tts_with_timestamps(request: TTSRequest):
         )
         wav_bytes = engine.audio_to_wav_bytes(audio, sr)
         audio_b64 = base64.b64encode(wav_bytes).decode("ascii")
+        logger.info(
+            "Responding with %.1f KiB of WAV and %d timestamp(s)",
+            len(wav_bytes) / 1024, len(timestamps),
+        )
         return TTSWithTimestampsResponse(
             audio_base64=audio_b64,
             sample_rate=sr,
             timestamps=[WordTimestamp(**ts) for ts in timestamps],
         )
     except Exception as e:
-        logger.exception("TTS with timestamps failed")
+        logger.exception("TTS with timestamps failed for: %s", preview(request.text))
         raise HTTPException(status_code=500, detail=str(e))
 
 

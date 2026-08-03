@@ -14,9 +14,9 @@ Chrome extension that reads web pages aloud using a local Kokoro TTS server with
 
 ## Prerequisites
 
-- Python 3.10-3.12
+- Python 3.10+
 - [uv](https://docs.astral.sh/uv/) package manager
-- NVIDIA GPU with CUDA support (recommended) or CPU
+- NVIDIA GPU with CUDA support (recommended) — falls back to CPU automatically
 - [espeak-ng](https://github.com/espeak-ng/espeak-ng/releases) installed on system PATH
 - Chrome or Chromium-based browser
 
@@ -35,6 +35,50 @@ uv run uvicorn tts_server.main:app --port 7860
 ```
 
 The server will download the Kokoro model on first run (~350MB).
+
+#### GPU and CPU
+
+`uv sync` installs a CUDA build of torch on Windows and Linux (~2.6GB, pulled
+from PyTorch's own index — PyPI only carries the CPU-only wheel). macOS keeps
+resolving from PyPI.
+
+The same wheel covers both cases: with no usable GPU it simply reports
+`cuda.is_available() == False` and the engine runs on CPU. The device is chosen
+at startup and logged, distinguishing the two reasons you can end up on CPU:
+
+```
+Using device: cuda (NVIDIA GeForce RTX 4070 Ti SUPER)
+Using device: cpu — torch has CUDA 12.8 support but found no usable GPU.
+Using device: cpu — this torch is a CPU-only build (2.10.0+cpu), so any GPU
+                    on this machine is invisible to it.
+```
+
+That last line means the wrong wheel is installed, not that the machine lacks a
+GPU. Re-run `uv sync` in `server/`.
+
+For a deliberately CPU-only install:
+
+```bash
+uv sync --index pytorch-cpu=https://download.pytorch.org/whl/cpu
+```
+
+#### Logging
+
+`READ_ALOUD_LOG_LEVEL` controls verbosity (default `INFO`):
+
+```bash
+READ_ALOUD_LOG_LEVEL=DEBUG uv run uvicorn tts_server.main:app --port 7860
+```
+
+`INFO` logs one line per synthesis with device, timing and realtime factor, one
+per response, and a warning when fewer than 90% of Kokoro's tokens could be
+located in the request text — that rate is the best predictor of word
+highlighting drifting, since every unaligned token is a word the extension has
+to estimate a position for.
+
+`DEBUG` adds per-chunk timing, the full list of unaligned tokens, and the HTTP
+traffic from model downloads (suppressed at `INFO`, where it otherwise buries
+everything else).
 
 #### Allowed origins
 
