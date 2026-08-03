@@ -27,10 +27,11 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - #000010 🐛 Unhandled rejection when no content script is present
 - #000011 🐛 Popup overwrites saved voice when server is down
 - #000012 🔧 Restrict CORS origins on TTS server
+- #000013 🔧 Inject content script on demand instead of on every page
 
 
 ## Progress
-█████░░░░░░░░░░░░░░░ 27% (3/11)
+█████░░░░░░░░░░░░░░░ 25% (3/12)
 
 - 🔨 #000002 Playback speed is applied twice
 - 🔨 #000003 Word highlighting never matches page DOM text
@@ -43,6 +44,7 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - 🔨 #000010 Unhandled rejection when no content script is present
 - 🔨 #000011 Popup overwrites saved voice when server is down
 - ✅ #000012 Restrict CORS origins on TTS server
+- 🔨 #000013 Inject content script on demand instead of on every page
 
 ## Estimation
 
@@ -69,6 +71,9 @@ The rest are correctness and robustness cleanups: MV3 service-worker lifecycle a
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-08-03
+- **Note:** Added #000013 Inject content script on demand instead of on every page to Items
 
 ### 2026-08-03
 - **Note:** Added #000012 Restrict CORS origins on TTS server to Items
