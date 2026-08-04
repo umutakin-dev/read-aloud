@@ -29,10 +29,10 @@
         <label>
           Precision
           <select id="dtype">
-            <option value="fp32">fp32 — 310MB</option>
-            <option value="fp16">fp16 — 156MB</option>
+            <option value="fp32" selected>fp32 — 310MB, best on WebGPU</option>
+            <option value="fp16">fp16 — 156MB, WebGPU</option>
             <option value="q4f16">q4f16 — 147MB</option>
-            <option value="q8" selected>q8 — 88MB</option>
+            <option value="q8">q8 — 88MB, for WASM only</option>
           </select>
         </label>
 
@@ -101,6 +101,10 @@ In 1990 the world changed, quietly. It doesn't matter much now, but the quick br
           <tr>
             <th>Synthesis</th>
             <td id="m-rate">—</td>
+          </tr>
+          <tr>
+            <th>Wall clock</th>
+            <td id="m-wall">—</td>
           </tr>
           <tr>
             <th>Per sentence</th>

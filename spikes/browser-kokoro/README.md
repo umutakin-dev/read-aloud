@@ -88,10 +88,27 @@ apart, so the choice is not cosmetic.
 
 | | |
 |---|---|
-| Node, CPU, q8 | **1.2x realtime** |
-| Current server, CUDA | 16–80x realtime |
-| Browser, WebGPU | *unmeasured — run the page* |
+| Current server, CUDA | **16–80x** realtime |
+| Node, CPU, q8 | **1.2x** realtime |
+| Browser, WebGPU, **q8** | **~0.4x** realtime — and audibly wrong |
+| Browser, WebGPU, fp32 | *unmeasured* |
 
-At 1.2x, a 25-second paragraph takes ~20 seconds to synthesize and prefetch can
-never get ahead. WebGPU has to close most of that gap for this option to be
-viable at all.
+Prefetch needs synthesis to outrun playback. Below 1x it can never catch up and
+every sentence stalls; a comfortable margin is more like 3x.
+
+### q8 on WebGPU is not a fair test
+
+The first run used q8 because it is the smallest download. That was a bad
+default. Quantized weights on WebGPU dequantize constantly, which is slow, and
+int8 damages a TTS model enough that the output stopped sounding like English
+at all. Both symptoms have the same cause.
+
+fp32 or fp16 are the WebGPU choices; q8 belongs to WASM. The page now defaults
+to fp32 and warns if you pair a quantized weight set with WebGPU.
+
+### On the realtime figure
+
+The first version of this page reported synthesis and playback together, which
+made the ratio meaningless — playing N seconds of audio takes N seconds, so
+combining them caps the number at 1.0 however fast the model is. Synthesis is
+now timed separately, with wall clock reported alongside it.

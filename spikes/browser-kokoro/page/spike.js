@@ -28,6 +28,7 @@ const ui = {
   mFirst: el("m-first"),
   mRate: el("m-rate"),
   mSentences: el("m-sentences"),
+  mWall: el("m-wall"),
   mAlign: el("m-align"),
 };
 
@@ -62,6 +63,14 @@ ui.load.addEventListener("click", async () => {
   const dtype = ui.dtype.value;
   ui.log.textContent = "";
   log(`Loading ${MODEL}\n  device=${device} dtype=${dtype}`);
+  if (device === "webgpu" && dtype.startsWith("q")) {
+    log(
+      "\n  WARNING: quantized weights on WebGPU are usually both slow and\n" +
+        "  audibly degraded — dequantization runs constantly, and int8 damages\n" +
+        "  a TTS model enough that the voice can stop sounding like the language\n" +
+        "  it is reading. Prefer fp32 or fp16 here; q8 is a WASM choice.\n"
+    );
+  }
 
   const started = performance.now();
   try {
@@ -164,13 +173,20 @@ ui.speak.addEventListener("click", async () => {
   const estimator = ui.estimator.value;
 
   ui.reading.innerHTML = "";
+  ui.log.textContent = "";
   const startedAt = performance.now();
   let firstAudioAt = null;
-  let synthesisMs = 0;
   let audioSeconds = 0;
   let alignedSentences = 0;
   let totalSentences = 0;
   const perSentence = [];
+
+  // Synthesis has to be timed apart from playback. Measuring both together
+  // caps the ratio at 1.0 however fast the model is, since playback of N
+  // seconds of audio takes N seconds — which made the first version of this
+  // number meaningless.
+  let synthesisMs = 0;
+  let mark = startedAt;
 
   // Synthesis and playback are interleaved deliberately: it is the only way to
   // see whether generation keeps ahead of the reading, which is the question
@@ -180,9 +196,11 @@ ui.speak.addEventListener("click", async () => {
   splitter.close();
 
   for await (const chunk of tts.stream(splitter, { voice, speed })) {
+    // Everything since the last mark was spent producing this chunk.
+    const generatedAt = performance.now();
+    synthesisMs += generatedAt - mark;
     if (cancelled.value) break;
 
-    const generatedAt = performance.now();
     if (firstAudioAt === null) {
       firstAudioAt = generatedAt - startedAt;
       ui.mFirst.textContent = `${(firstAudioAt / 1000).toFixed(2)}s`;
@@ -221,13 +239,21 @@ ui.speak.addEventListener("click", async () => {
     await playSentence(samples, rate, sentenceEl, words, wordEls, cancelled);
     if (cancelled.value) break;
 
-    synthesisMs = performance.now() - startedAt;
+    // Restart the clock so the next iteration measures synthesis, not the
+    // playback that just finished.
+    mark = performance.now();
   }
 
-  if (!cancelled.value && audioSeconds > 0) {
-    const ratio = audioSeconds / (synthesisMs / 1000);
+  if (audioSeconds > 0) {
+    const wallSeconds = (performance.now() - startedAt) / 1000;
+    const synthSeconds = synthesisMs / 1000;
+    const ratio = audioSeconds / synthSeconds;
     ui.mRate.textContent =
-      `${audioSeconds.toFixed(1)}s of audio | ${ratio.toFixed(1)}x realtime including playback`;
+      `${audioSeconds.toFixed(1)}s of audio produced in ${synthSeconds.toFixed(1)}s — ` +
+      `${ratio.toFixed(1)}x realtime` +
+      (ratio < 1 ? " (slower than listening)" : "");
+    ui.mWall.textContent =
+      `${wallSeconds.toFixed(1)}s total, of which ${audioSeconds.toFixed(1)}s was playback`;
     ui.mSentences.textContent = perSentence.map((d) => `${d.toFixed(1)}s`).join(", ");
     ui.mAlign.textContent =
       estimator === "phonemes"

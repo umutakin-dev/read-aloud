@@ -116,6 +116,9 @@ Measuring WebGPU is only worth doing under 2 or 3. Under 1 it is wasted work.
 
 ## Log
 
+### 2026-08-04
+- **Note:** First browser run: WebGPU q8 gave ~0.4x realtime and audio that did not sound like English. Both symptoms trace to the same cause — q8 was a poor default on my part, since quantized weights dequantize constantly on WebGPU and int8 degrades a TTS model badly. Page now defaults to fp32 and warns on quantized+WebGPU. Also fixed the realtime metric, which reported synthesis and playback together and so could never exceed 1.0 regardless of model speed; synthesis is now timed separately with wall clock alongside. Phoneme fit was 2/4, and both predicted failure modes appeared: 1990 expanding a word into two groups, and 'that the' merging two into one.
+
 ### 2026-08-03
 - **Note:** Phoneme-weighted word estimates added alongside character weighting, switchable so the two can be compared on the same sentence. Measured the alignment first rather than assuming: over eight sentences the phoneme string matched one group per word on five, and the three failures were all normalization — 1990 expands to two groups, 3:45 to three, while 'that the' merges into one. So mismatches go both ways, which a naive split-only alignment would not handle. Weighting falls back to characters when counts disagree, and the page reports the hit rate. On a four-second sentence the estimators disagree by up to 0.26s, so the choice is not cosmetic. Also recorded that tts.stream() hangs on a bare string — it never closes the splitter it builds.
 
