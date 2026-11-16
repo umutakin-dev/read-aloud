@@ -40,6 +40,9 @@ Umut is on Firefox now, and the extension only loads in Chrome: it needs a servi
 
 ## Log
 
+### 2026-11-16 07:09 UTC
+- **Delivered:** PR #6 (feat: run the extension in Firefox from the same tree), merged at Umut's call with Firefox verified. The item stays open until the Chrome re-check is done; that check needs no code unless it finds something.
+
 ### 2026-11-16 07:08 UTC
 - **Progress:** ☑ Checked (Requirements): Playback survives a paragraph longer than 30s (event page not suspended mid-read)
 
