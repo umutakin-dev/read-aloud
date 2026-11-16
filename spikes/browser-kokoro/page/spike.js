@@ -41,6 +41,10 @@ let tts = null;
 let playback = null; // cancels an in-flight reading
 
 // ─── WebGPU availability ────────────────────────────────────────────────────
+// Recorded in full because the WebGPU failures are wrong output, not errors:
+// fp16 needs `shader-f16`, and a decoder buffer over a limit can corrupt
+// silently rather than throw.
+let adapterReport = "no WebGPU";
 if (!navigator.gpu) {
   ui.support.textContent = "WebGPU unavailable — WASM only";
   ui.support.classList.add("warn");
@@ -50,6 +54,41 @@ if (!navigator.gpu) {
   ui.support.textContent = adapter ? "WebGPU available" : "WebGPU present but no adapter";
   ui.support.classList.add(adapter ? "ok" : "warn");
   if (!adapter) ui.device.value = "wasm";
+  if (adapter) {
+    const info = adapter.info ?? {};
+    const mb = (n) => `${Math.round(n / 2 ** 20)}MB`;
+    adapterReport =
+      `adapter: ${info.vendor || "?"} ${info.architecture || ""} ${info.description || ""}`.trim() +
+      `\n  shader-f16: ${adapter.features.has("shader-f16")}` +
+      `  maxStorageBufferBindingSize: ${mb(adapter.limits.maxStorageBufferBindingSize)}` +
+      `  maxBufferSize: ${mb(adapter.limits.maxBufferSize)}`;
+  }
+}
+
+// What the waveform actually contains. Distinguishes the WebGPU failure modes
+// without anyone having to listen: NaN poisoning, silence (all ~0), and noise
+// (a peak pinned near 1 with an RMS far above speech's usual ~0.05–0.15).
+function waveformStats(samples) {
+  let nan = 0;
+  let peak = 0;
+  let sumSq = 0;
+  let finite = 0;
+  for (const s of samples) {
+    if (!Number.isFinite(s)) {
+      nan++;
+      continue;
+    }
+    finite++;
+    const a = Math.abs(s);
+    if (a > peak) peak = a;
+    sumSq += s * s;
+  }
+  const rms = finite ? Math.sqrt(sumSq / finite) : 0;
+  let verdict = "looks like speech";
+  if (nan > 0) verdict = "NaN in output";
+  else if (peak < 1e-4) verdict = "silence";
+  else if (rms > 0.3) verdict = "noise (RMS far above speech)";
+  return `nan=${nan} peak=${peak.toFixed(3)} rms=${rms.toFixed(3)} → ${verdict}`;
 }
 
 ui.speed.addEventListener("input", () => {
@@ -62,7 +101,8 @@ ui.load.addEventListener("click", async () => {
   const device = ui.device.value;
   const dtype = ui.dtype.value;
   ui.log.textContent = "";
-  log(`Loading ${MODEL}\n  device=${device} dtype=${dtype}`);
+  log(`Loading ${MODEL}\n  stack=${window.SPIKE_STACK} device=${device} dtype=${dtype}`);
+  log(`  ${adapterReport}`);
   // WASM is multi-threaded only on an isolated page; without it every WASM
   // number is a single-core number. Serve with serve.py, not http.server.
   log(
@@ -96,7 +136,7 @@ ui.load.addEventListener("click", async () => {
   }
 
   const seconds = (performance.now() - started) / 1000;
-  ui.mDevice.textContent = `${device}, ${dtype}`;
+  ui.mDevice.textContent = `${device}, ${dtype}, stack=${window.SPIKE_STACK}`;
   ui.mLoad.textContent = `${seconds.toFixed(1)}s`;
   log(`\nReady in ${seconds.toFixed(1)}s`);
 
@@ -180,7 +220,9 @@ ui.speak.addEventListener("click", async () => {
   const estimator = ui.estimator.value;
 
   ui.reading.innerHTML = "";
-  ui.log.textContent = "";
+  // The load log (stack, isolation, adapter) is kept above the reading log:
+  // clearing it here is how the first isolated run lost its own evidence.
+  log("\n── reading ──");
   const startedAt = performance.now();
   let firstAudioAt = null;
   let audioSeconds = 0;
@@ -228,6 +270,7 @@ ui.speak.addEventListener("click", async () => {
     if (aligned) alignedSentences++;
     const basis = aligned ? "phonemes" : "characters";
     log(`${duration.toFixed(2)}s | ${basis.padEnd(10)} | ${chunk.text.slice(0, 46)}`);
+    log(`         ${waveformStats(samples)}`);
     if (estimator === "phonemes" && !aligned) {
       const groups = chunk.phonemes?.match(/\S+/g) ?? [];
       log(`         ${words.length} words vs ${groups.length} phoneme groups — fell back`);

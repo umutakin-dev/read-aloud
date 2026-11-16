@@ -119,12 +119,39 @@ In 1990 the world changed, quietly. It doesn't matter much now, but the quick br
       <pre id="log" class="log"></pre>
     </section>
 
-    <script type="importmap">
-      {
-        "imports": {
-          "kokoro-js": "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js"
-        }
-      }
+    <script>
+      // Which library stack to load, chosen by ?stack= so two runs can be
+      // compared without editing anything:
+      //
+      //   bundle (default) — kokoro.web.js as published: transformers.js 3.5.1
+      //                      and onnxruntime-web 1.22.0-dev (April 2025),
+      //                      baked into the bundle
+      //   v4               — kokoro-js's unbundled build pointed at
+      //                      transformers.js 4.3.2, which brings
+      //                      onnxruntime-web 1.31.0-dev (September 2026) and
+      //                      its rewritten WebGPU backend
+      //
+      // An import map has to exist before the first module loads, so it is
+      // written here rather than declared statically.
+      const STACKS = {
+        bundle: {
+          "kokoro-js": "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js",
+        },
+        v4: {
+          "kokoro-js": "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.js",
+          "@huggingface/transformers": "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/+esm",
+          phonemizer: "https://cdn.jsdelivr.net/npm/phonemizer@1.2.1/+esm",
+          path: "./node-stub.js",
+          "fs/promises": "./node-stub.js",
+        },
+      };
+      window.SPIKE_STACK = new URLSearchParams(location.search).get("stack") in STACKS
+        ? new URLSearchParams(location.search).get("stack")
+        : "bundle";
+      const map = document.createElement("script");
+      map.type = "importmap";
+      map.textContent = JSON.stringify({ imports: STACKS[window.SPIKE_STACK] });
+      document.currentScript.after(map);
     </script>
     <script type="module" src="spike.js"></script>
   </body>
