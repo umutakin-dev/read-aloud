@@ -27,10 +27,10 @@ Umut is on Firefox now, and the extension only loads in Chrome: it needs a servi
 - [ ] Loads in Firefox without manifest errors
 - [ ] Reads a page aloud in Firefox with word highlighting
 - [ ] Playback survives a paragraph longer than 30s (event page not suspended mid-read)
-- [ ] Server accepts moz-extension origins
+- [x] Server accepts moz-extension origins
 - [ ] Chrome path untouched in code; re-verified in Chrome before close
-- [ ] README covers Firefox setup
-- [ ] Tests updated and passing
+- [x] README covers Firefox setup
+- [x] Tests updated and passing
 
 ## Checklist
 
@@ -39,6 +39,18 @@ Umut is on Firefox now, and the extension only loads in Chrome: it needs a servi
 - [ ] Verified
 
 ## Log
+
+### 2026-11-16 05:36 UTC
+- **Progress:** Port written and unit-tested (121 extension, 47 server). Not yet run in a real Firefox: installing web-ext was blocked by the auto-mode classifier, so loading and the mid-chunk suspension check are manual. Added a 20s keepalive from the content script during playback pre-emptively, since a 500-char chunk (~35s) outlasts Firefox's 30s event-page idle window.
+
+### 2026-11-16 05:36 UTC
+- **Progress:** ☑ Checked (Requirements): Tests updated and passing
+
+### 2026-11-16 05:36 UTC
+- **Progress:** ☑ Checked (Requirements): README covers Firefox setup
+
+### 2026-11-16 05:36 UTC
+- **Progress:** ☑ Checked (Requirements): Server accepts moz-extension origins
 
 ### 2026-11-16 05:31 UTC
 
