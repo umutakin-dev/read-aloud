@@ -101,7 +101,25 @@ whether threads were actually on. It does not change the answer: native,
 multi-threaded onnxruntime in Node is the ceiling WASM approaches, and that was
 1.2x.
 
-### Firefox, 2026-11-16
+### The fix: a newer ONNX Runtime
+
+| | |
+|---|---|
+| Firefox 160, WebGPU, fp32, **`?stack=v4`** | **correct speech, 1.7x overall, ~4x after warm-up** |
+
+The WebGPU failures were not Firefox's: they were onnxruntime-web
+1.22.0-dev (April 2025), which `kokoro.web.js` bundles. kokoro-js's unbundled
+build pointed at transformers.js 4.3.2 brings in onnxruntime-web 1.31.0-dev
+(September 2026), and fp32 on WebGPU then gives clean speech. The waveform
+check reads `nan=0`, peak 0.47–0.68 and RMS ~0.07 on every sentence, which is
+speech levels.
+
+1.7x is the whole run: 27.4s of audio in 15.7s of synthesis. The first sentence
+took 9.7s, most of it one-time shader compilation; the remaining 24.1s of
+audio took ~6s, which is **~4x steady state**. A warm-up synthesis at load
+would move that cost off the first sentence.
+
+### Firefox, 2026-11-16, the bundled stack
 
 WebGPU is not slow on Firefox, it is **wrong**: onnxruntime-web produces static
 at fp32 and nothing at fp16. WASM produces correct audio at 0.5–0.8x, so a

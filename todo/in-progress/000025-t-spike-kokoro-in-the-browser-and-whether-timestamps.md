@@ -116,6 +116,9 @@ Measuring WebGPU is only worth doing under 2 or 3. Under 1 it is wasted work.
 
 ## Log
 
+### 2026-11-16 08:34 UTC
+- **Decision:** WebGPU works on Firefox with a newer stack. The bundled kokoro.web.js pins onnxruntime-web 1.22.0-dev (Apr 2025), which caused the static/silence. kokoro-js's unbundled build + transformers.js 4.3.2 (onnxruntime-web 1.31.0-dev) gives clean speech on WebGPU fp32: 1.7x overall, ~4x after a one-time ~9.7s first-sentence warm-up. That clears the ~3x bar, so the browser route is back on the table; the trade is still sentence-exact, word-estimated highlighting.
+
 ### 2026-11-16 08:28 UTC
 - **Decision:** Firefox closes the browser route for now. WebGPU gives wrong output (static fp32, silence fp16); WASM q8 is correct but 0.8x isolated, 0.5x not, and Node's native 1.2x is its ceiling, against ~3x needed. Recommendation, pending Umut: route 1, keep the server and fix distribution (000026). Revisit if onnxruntime-web WebGPU becomes correct on Firefox, or an export with durations appears.
 
