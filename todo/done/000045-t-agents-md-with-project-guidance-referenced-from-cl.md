@@ -1,7 +1,7 @@
 # AGENTS.md with project guidance, referenced from CLAUDE.md
 
 **Type:** 🔧 Task
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-16 05:32 UTC
@@ -19,8 +19,8 @@ The repo has no agent-facing guide, so every session re-derives the layout, the 
 ## Actual
 
 - **Start:** 2026-11-16 05:32 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-16 07:08 UTC
+- **Effort:** ≥1h36
 
 ## Requirements
 
@@ -33,6 +33,13 @@ The repo has no agent-facing guide, so every session re-derives the layout, the 
 - [ ] Verified
 
 ## Log
+
+### 2026-11-16 07:08 UTC
+
+- **Progress:** Completed
+
+### 2026-11-16 07:08 UTC
+- **Delivered:** PR #5 (chore: add AGENTS.md and import it from CLAUDE.md)
 
 ### 2026-11-16 05:32 UTC
 
