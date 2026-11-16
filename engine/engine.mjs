@@ -46,8 +46,8 @@ let loading = null;
 // Loads once per document lifetime and shares the promise between callers, so
 // a prefetch and the chunk being played never start two downloads.
 //
-// onProgress receives { phase, percent } — "download" while model files come
-// in (only the first time; afterwards they come from Cache Storage), then
+// onProgress receives { phase, percent }: "download" while the model comes
+// from Hugging Face, or "load" when it is already in Cache Storage, then
 // "warmup". A failed load clears the promise so the next request retries.
 export function load(onProgress = () => {}) {
   if (!loading) {
@@ -59,7 +59,30 @@ export function load(onProgress = () => {}) {
   return loading;
 }
 
+// The fp32 weights, ~310MB of the download. transformers.js keys its cache by
+// the file's remote URL.
+const WEIGHTS_URL = `${env.remoteHost}${MODEL}/resolve/main/onnx/model.onnx`;
+
+// transformers.js reports "download" and "progress" for a file read from its
+// cache exactly as for one fetched, so its events cannot say which happened,
+// and every reload of the extension announced a download that was not
+// happening. Ask the cache directly instead. match() does not read the body.
+async function weightsCached() {
+  try {
+    if (!env.useBrowserCache || !globalThis.caches) return false;
+    const cache = await caches.open(env.cacheKey);
+    return (await cache.match(WEIGHTS_URL)) !== undefined;
+  } catch {
+    return false;
+  }
+}
+
 async function loadModel(onProgress) {
+  if (await weightsCached()) {
+    onProgress({ phase: "load", percent: 0 });
+    return finishLoading(onProgress, () => {});
+  }
+
   const files = new Map();
   let lastReported = -1;
   const report = () => {
@@ -76,15 +99,19 @@ async function loadModel(onProgress) {
     }
   };
 
+  return finishLoading(onProgress, (p) => {
+    if (p.status === "progress" && p.file && p.total) {
+      files.set(p.file, { loaded: p.loaded, total: p.total });
+      report();
+    }
+  });
+}
+
+async function finishLoading(onProgress, progress_callback) {
   const tts = await KokoroTTS.from_pretrained(MODEL, {
     device: DEVICE,
     dtype: DTYPE,
-    progress_callback: (p) => {
-      if (p.status === "progress" && p.file && p.total) {
-        files.set(p.file, { loaded: p.loaded, total: p.total });
-        report();
-      }
-    },
+    progress_callback,
   });
 
   // The first synthesis compiles every WebGPU shader the model needs. In the

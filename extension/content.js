@@ -473,11 +473,11 @@
     // shaders on every load. Both take long enough to look like a hang, so
     // say what is happening in place of "synthesizing...".
     if (msg.type === "ENGINE_PROGRESS" && state.active) {
-      updateToolbarStatus(
-        msg.phase === "download"
-          ? `Downloading the voice model, one time only: ${msg.percent}%`
-          : "Preparing the voice model..."
-      );
+      const status = {
+        download: `Downloading the voice model, one time only: ${msg.percent}%`,
+        load: "Loading the voice model...",
+      };
+      updateToolbarStatus(status[msg.phase] || "Preparing the voice model...");
     }
   }
 
