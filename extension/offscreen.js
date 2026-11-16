@@ -98,10 +98,71 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return handlePlayerMessage(msg, sendResponse);
 });
 
+// ─── In-browser engine (000046) ───────────────────────────────────────────
+// Kokoro on WebGPU, built by `npm run build` into engine/. It lives here, with
+// the player, because this is the one context in both browsers that has a DOM
+// and WebGPU: Chrome's offscreen document, Firefox's background page. Imported
+// on first use, so a reader on the server engine never loads 1.8MB of it.
+let enginePromise = null;
+
+function engine() {
+  if (!enginePromise) {
+    enginePromise = import(chrome.runtime.getURL("engine/engine.js"))
+      .then((mod) => {
+        mod.configure(chrome.runtime.getURL("engine/ort/"));
+        return mod;
+      })
+      .catch((e) => {
+        enginePromise = null;
+        throw new Error(
+          `browser engine is not built (run npm run build): ${e.message}`
+        );
+      });
+  }
+  return enginePromise;
+}
+
+function reportEngineProgress(progress) {
+  ReadAloudPlayer.emit({ type: "ENGINE_PROGRESS", ...progress });
+}
+
+function answer(sendResponse, work) {
+  work
+    .then((result) => sendResponse({ ok: true, ...result }))
+    .catch((e) => sendResponse({ ok: false, error: e.message }));
+  return true;
+}
+
 // Returns true when sendResponse will be called later, as a runtime listener
 // does. Messages that never answer (PRELOAD, PAUSE, STOP, SET_SPEED) return
 // undefined.
 function handlePlayerMessage(msg, sendResponse) {
+  if (msg.type === "ENGINE_SUPPORTED") {
+    return answer(
+      sendResponse,
+      engine().then(async (mod) => {
+        const support = await mod.supported();
+        return { supported: support.ok, reason: support.reason };
+      })
+    );
+  }
+
+  if (msg.type === "ENGINE_SYNTHESIZE") {
+    return answer(
+      sendResponse,
+      engine().then(async (mod) => ({
+        data: await mod.synthesize(msg.text, msg.voice || "af_heart", reportEngineProgress),
+      }))
+    );
+  }
+
+  if (msg.type === "ENGINE_VOICES") {
+    return answer(
+      sendResponse,
+      engine().then((mod) => ({ voices: mod.voices() }))
+    );
+  }
+
   if (msg.type === "PRELOAD") {
     releasePreloaded();
     const url = urlFromBase64(msg.audio_base64);

@@ -15,7 +15,14 @@ const SOURCE = fs.readFileSync(
 const NOT_FOUND = "Could not establish connection. Receiving end does not exist.";
 
 // `calls` records what crossed the extension boundary, in order.
-function load({ tabMessage, inject, offscreenExists = false, offscreenReply } = {}) {
+function load({
+  tabMessage,
+  inject,
+  offscreenExists = false,
+  offscreenReply,
+  settings = {},
+  serverUp = false,
+} = {}) {
   const calls = [];
   const listeners = {};
 
@@ -65,12 +72,30 @@ function load({ tabMessage, inject, offscreenExists = false, offscreenReply } = 
     },
     storage: {
       session: { get: async () => ({}), set: async () => {}, remove: async () => {} },
-      local: { get: async () => ({}) },
+      local: {
+        get: async (keys) => {
+          const wanted = typeof keys === "string" ? [keys] : keys ?? Object.keys(settings);
+          return Object.fromEntries(wanted.filter((k) => k in settings).map((k) => [k, settings[k]]));
+        },
+      },
     },
     offscreen: { createDocument: async () => {}, closeDocument: async () => {} },
   };
 
-  const sandbox = { chrome, console, setTimeout, clearTimeout, fetch: async () => {}, AbortController };
+  // The local server: up answers health and synthesis, down refuses.
+  const fetch = async (url) => {
+    calls.push(`fetch:${new URL(url).pathname}`);
+    if (!serverUp) throw new Error("connection refused");
+    return {
+      ok: true,
+      json: async () =>
+        url.endsWith("/api/health")
+          ? { status: "ok", engine: "kokoro" }
+          : { audio_base64: "SERVER", timestamps: [] },
+    };
+  };
+
+  const sandbox = { chrome, console, setTimeout, clearTimeout, fetch, AbortController };
   vm.createContext(sandbox);
   vm.runInContext(SOURCE, sandbox, { filename: "background.js" });
   return { calls, listeners, sandbox };
@@ -155,6 +180,94 @@ test("invoking Read Aloud on a tab", async (t) => {
     await listeners.contextMenu({ menuItemId: "read-aloud" }, { id: 7 });
     await settle();
     assert.deepEqual(calls, ["tab:TOGGLE_READ_ALOUD"]);
+  });
+});
+
+test("choosing an engine", async (t) => {
+  const ask = (listeners, message) =>
+    new Promise((resolve) => listeners.message(message, { tab: { id: 7 } }, resolve));
+
+  // The browser engine lives with the player; it answers ENGINE_* messages.
+  const player = (msg) => {
+    if (msg.type === "ENGINE_SYNTHESIZE") return { ok: true, data: { audio_base64: "BROWSER" } };
+    if (msg.type === "ENGINE_SUPPORTED") return { ok: true, supported: true };
+    return { ok: true };
+  };
+
+  await t.test("auto uses the server when it answers", async () => {
+    const { listeners } = load({ serverUp: true, offscreenReply: player });
+    const response = await ask(listeners, { type: "TTS_REQUEST", text: "Hi." });
+    assert.equal(response.engine, "server");
+    assert.equal(response.data.audio_base64, "SERVER");
+  });
+
+  await t.test("auto falls back to the browser engine when the server is down", async () => {
+    const { listeners, calls } = load({ serverUp: false, offscreenReply: player });
+    const response = await ask(listeners, { type: "TTS_REQUEST", text: "Hi." });
+    assert.equal(response.engine, "browser");
+    assert.equal(response.data.audio_base64, "BROWSER");
+    assert.ok(calls.includes("offscreen:ENGINE_SYNTHESIZE"), calls.join(" "));
+  });
+
+  await t.test("browser never asks the server", async () => {
+    const { listeners, calls } = load({
+      settings: { engine: "browser" },
+      serverUp: true,
+      offscreenReply: player,
+    });
+    const response = await ask(listeners, { type: "TTS_REQUEST", text: "Hi." });
+    assert.equal(response.engine, "browser");
+    assert.ok(!calls.some((c) => c.startsWith("fetch:")), calls.join(" "));
+  });
+
+  await t.test("server never falls back to the browser engine", async () => {
+    const { listeners, calls } = load({
+      settings: { engine: "server" },
+      serverUp: false,
+      offscreenReply: player,
+    });
+    const response = await ask(listeners, { type: "TTS_REQUEST", text: "Hi." });
+    assert.equal(response.ok, false);
+    assert.ok(!calls.includes("offscreen:ENGINE_SYNTHESIZE"), calls.join(" "));
+  });
+
+  await t.test("health in auto mode is ok on the browser engine alone", async () => {
+    const { listeners } = load({ serverUp: false, offscreenReply: player });
+    const health = await ask(listeners, { type: "HEALTH_CHECK" });
+    assert.deepEqual([health.ok, health.engine], [true, "browser"]);
+  });
+
+  await t.test("health says why when nothing can speak", async () => {
+    // No server, and a browser without WebGPU: the toolbar waits, and says so.
+    const { listeners } = load({
+      serverUp: false,
+      offscreenReply: (msg) =>
+        msg.type === "ENGINE_SUPPORTED"
+          ? { ok: true, supported: false, reason: "WebGPU is not available in this browser" }
+          : { ok: true },
+    });
+    const health = await ask(listeners, { type: "HEALTH_CHECK" });
+    assert.equal(health.ok, false);
+    assert.match(health.reason, /WebGPU/);
+  });
+
+  await t.test("voices come from the browser engine without asking the server", async () => {
+    const { listeners, calls } = load({
+      settings: { engine: "browser" },
+      offscreenReply: (msg) =>
+        msg.type === "ENGINE_VOICES" ? { ok: true, voices: [{ id: "af_heart" }] } : { ok: true },
+    });
+    const response = await ask(listeners, { type: "GET_VOICES" });
+    assert.deepEqual(response.voices, [{ id: "af_heart" }]);
+    assert.ok(!calls.some((c) => c.startsWith("fetch:")), calls.join(" "));
+  });
+
+  await t.test("engine progress is relayed to the reading tab", async () => {
+    const { listeners, calls } = load({ serverUp: false, offscreenReply: player });
+    await ask(listeners, { type: "TTS_REQUEST", text: "Hi." });
+    listeners.message({ type: "ENGINE_PROGRESS", phase: "download", percent: 40 }, {}, () => {});
+    await settle();
+    assert.ok(calls.includes("tab:ENGINE_PROGRESS"), calls.join(" "));
   });
 });
 

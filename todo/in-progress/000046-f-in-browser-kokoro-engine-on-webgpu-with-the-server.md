@@ -1,7 +1,7 @@
 # In-browser Kokoro engine on WebGPU, with the server as an optional upgrade
 
 **Type:** ✨ Feature
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🔴 HIGH
 **Roadmap:** 🎯 NOW 1
 **Tracked In:** local
@@ -23,7 +23,7 @@ Spike 000025 showed Kokoro runs correctly in Firefox on WebGPU fp32 at ~4x realt
 
 ## Actual
 
-- **Start:**
+- **Start:** 2026-11-16 09:24 UTC
 - **End:**
 - **Effort:**
 
@@ -46,6 +46,10 @@ Spike 000025 showed Kokoro runs correctly in Firefox on WebGPU fp32 at ~4x realt
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-16 09:24 UTC
+
+- **Progress:** Started work
 
 ### 2026-11-16 08:43 UTC
 - **Decision:** Roadmap: (unscheduled) → 🎯 NOW 1 — Umut's chosen route out of spike 000025
