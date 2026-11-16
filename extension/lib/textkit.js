@@ -23,13 +23,58 @@ const ReadAloudText = (() => {
 
   const MIN_PARAGRAPH_CHARS = 20;
 
-  function paragraphsFromRoot(root) {
+  // ─── Citation markers ─────────────────────────────────────────────────────
+  // Wikipedia's "[7]" and "[citation needed]", and a blog's footnote "¹" link,
+  // are spoken mid-sentence as "seven" and break it in two (000047). They are
+  // recognised by shape, not class names: Readability strips classes, and the
+  // live page and its Readability copy have to agree on every node dropped.
+  //
+  // Dropping one is safe for highlighting only because it is dropped on both
+  // sides — from the paragraph text here and from the text index below — so
+  // a chunk is still an exact run of the indexed page text.
+  const BRACKETED = /^\[[^[\]]{1,40}\]$/;
+  const MAX_FOOTNOTE_LABEL = 4;
+
+  function isCitationMarker(element) {
+    if (element.tagName !== "SUP") return false;
+    const text = element.textContent.replace(/\s+/g, " ").trim();
+    if (!text) return false;
+    if (BRACKETED.test(text)) return true;
+    // An unbracketed footnote is a short superscript made only of links into
+    // the page itself. A bare "2" with no link is an exponent and is read.
+    const links = element.querySelectorAll("a");
+    return (
+      links.length > 0 &&
+      text.length <= MAX_FOOTNOTE_LABEL &&
+      [...links].every((a) => (a.getAttribute("href") || "").startsWith("#"))
+    );
+  }
+
+  function insideCitationMarker(element) {
+    for (let el = element; el; el = el.parentElement) {
+      if (el.tagName === "SUP" && isCitationMarker(el)) return true;
+    }
+    return false;
+  }
+
+  function blockText(block, skipCitations) {
+    let source = block;
+    if (skipCitations && block.querySelector("sup")) {
+      source = block.cloneNode(true);
+      for (const sup of source.querySelectorAll("sup")) {
+        if (isCitationMarker(sup)) sup.remove();
+      }
+    }
+    return source.textContent.replace(/\s+/g, " ").trim();
+  }
+
+  function paragraphsFromRoot(root, { skipCitations = false } = {}) {
     const paragraphs = [];
     for (const block of root.querySelectorAll(BLOCK_SELECTOR)) {
       // A block containing another block is a wrapper — its text belongs to the
       // children, and taking both would read it twice.
       if (block.querySelector(BLOCK_SELECTOR)) continue;
-      const text = block.textContent.replace(/\s+/g, " ").trim();
+      const text = blockText(block, skipCitations);
       if (text.length <= MIN_PARAGRAPH_CHARS) continue;
       paragraphs.push(text);
     }
@@ -150,14 +195,17 @@ const ReadAloudText = (() => {
     return true;
   }
 
-  function buildTextIndex(root) {
+  function buildTextIndex(root, { skipCitations = false } = {}) {
     const doc = root.ownerDocument || root;
     const walker = doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */, {
       acceptNode(node) {
         // Whitespace-only nodes are kept, not rejected: the space between
         // `<span>foo</span> <span>bar</span>` lives in one, and dropping it
         // would splice the two words into "foobar".
-        return isRenderedText(node) ? 1 /* ACCEPT */ : 2 /* REJECT */;
+        if (!isRenderedText(node)) return 2 /* REJECT */;
+        // Mirrors blockText(), or chunks would no longer match the page.
+        if (skipCitations && insideCitationMarker(node.parentElement)) return 2;
+        return 1 /* ACCEPT */;
       },
     });
 
@@ -246,6 +294,7 @@ const ReadAloudText = (() => {
     BLOCK_SELECTOR,
     MIN_PARAGRAPH_CHARS,
     MAX_CHUNK_CHARS,
+    isCitationMarker,
     paragraphsFromRoot,
     splitIntoParagraphs,
     splitAroundUrls,

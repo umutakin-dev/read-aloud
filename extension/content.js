@@ -51,6 +51,7 @@
     engine: null,
     unavailableReason: null, // why neither engine can speak, from HEALTH_CHECK
     allowBrowserFallback: false,  // opt-in; otherwise we wait for Kokoro
+    readCitations: false,  // speak "[7]"-style markers (000047); skipped by default
     waitingForServer: false,
     toolbar: null,
     utterance: null,       // for Web Speech API fallback
@@ -87,7 +88,11 @@
       "speed",
       "serverUrl",
       "allowBrowserFallback",
+      "readCitations",
     ]);
+    // Skipped unless asked for; read once per session, since the chunks are
+    // cut from the extraction it shapes.
+    state.readCitations = result.readCitations === true;
     if (result.voice) state.voice = result.voice;
     if (result.speed) state.speed = result.speed;
     if (result.serverUrl) state.serverUrl = result.serverUrl;
@@ -145,6 +150,13 @@
     resolveWordSpans,
   } = ReadAloudText;
 
+  // Extraction and the text index must be built with the same options: a
+  // marker dropped from one and not the other leaves every chunk after it
+  // unmatchable, and its highlighting gone (000047).
+  function textOptions() {
+    return { skipCitations: !state.readCitations };
+  }
+
   function extractParagraphs() {
     try {
       const clone = document.cloneNode(true);
@@ -154,7 +166,7 @@
       // structure. article.textContent is the same thing already flattened.
       if (article && article.content) {
         const doc = new DOMParser().parseFromString(article.content, "text/html");
-        const paragraphs = paragraphsFromRoot(doc.body);
+        const paragraphs = paragraphsFromRoot(doc.body, textOptions());
         if (paragraphs.length) return paragraphs;
       }
       if (article && article.textContent && article.textContent.trim().length > 100) {
@@ -166,14 +178,14 @@
 
     // Readability declined — usually a page that is not article-shaped. The
     // live document still has blocks worth reading.
-    const fromDom = paragraphsFromRoot(document.body);
+    const fromDom = paragraphsFromRoot(document.body, textOptions());
     if (fromDom.length) return fromDom;
 
     return splitIntoParagraphs(document.body.innerText);
   }
 
   function findParagraphOffset(paragraphText, chunkIndex) {
-    if (!state.textIndex) state.textIndex = buildTextIndex(document.body);
+    if (!state.textIndex) state.textIndex = buildTextIndex(document.body, textOptions());
 
     // Search forward from the nearest chunk already located, so a phrase that
     // appears more than once on the page resolves to the copy being read
@@ -186,7 +198,7 @@
       // images, expanding sections, ads settling. Rebuild once before giving up.
       // Every remembered offset pointed into the old index, so they go with it,
       // and this search starts from the beginning rather than a stale hint.
-      state.textIndex = buildTextIndex(document.body);
+      state.textIndex = buildTextIndex(document.body, textOptions());
       state._chunkOffsets = {};
       idx = findChunkOffset(state.textIndex.text, paragraphText, 0);
     }

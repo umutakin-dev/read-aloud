@@ -24,7 +24,7 @@
 | [000046](in-progress/000046-f-in-browser-kokoro-engine-on-webgpu-with-the-server.md) | ✨ | 🔴 | In-browser Kokoro engine on WebGPU, with the server as an optional upgrade |
 | [000044](in-progress/000044-t-run-the-extension-in-firefox-from-the-same-tree-as.md) | 🔧 | 🔴 | Run the extension in Firefox from the same tree as Chrome |
 
-## 📋 Backlog (15)
+## 📋 Backlog (16)
 
 *Now and Next are listed under Roadmap above.*
 
@@ -34,6 +34,7 @@
 | [000038](000038-f-keyboard-controls-and-screen-reader-support-for-th.md) | ✨ | 🔴 | Keyboard controls and screen reader support for the toolbar |
 | [000028](000028-e-make-read-aloud-rock-solid.md) | 👑 | 🔴 | Make Read Aloud rock solid |
 | [000024](000024-e-ship-read-aloud-without-a-local-server.md) | 👑 | 🔴 | Ship Read Aloud without a local server |
+| [000047](000047-f-skip-citation-markers-like-7-when-reading.md) | ✨ | 🟡 | Skip citation markers like [7] when reading |
 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
 | [000037](000037-e-make-read-aloud-pleasant-to-use.md) | 👑 | 🟡 | Make Read Aloud pleasant to use |
 | [000034](000034-b-text-index-goes-stale-on-single-page-app-navigatio.md) | 🐛 | 🟡 | Text index goes stale on single-page-app navigation |
