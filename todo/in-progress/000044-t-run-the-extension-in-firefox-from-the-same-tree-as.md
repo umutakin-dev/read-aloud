@@ -26,7 +26,7 @@ Umut is on Firefox now, and the extension only loads in Chrome: it needs a servi
 
 - [x] Loads in Firefox without manifest errors
 - [x] Reads a page aloud in Firefox with word highlighting
-- [ ] Playback survives a paragraph longer than 30s (event page not suspended mid-read)
+- [x] Playback survives a paragraph longer than 30s (event page not suspended mid-read)
 - [x] Server accepts moz-extension origins
 - [ ] Chrome path untouched in code; re-verified in Chrome before close
 - [x] README covers Firefox setup
@@ -39,6 +39,9 @@ Umut is on Firefox now, and the extension only loads in Chrome: it needs a servi
 - [ ] Verified
 
 ## Log
+
+### 2026-11-16 07:08 UTC
+- **Progress:** ☑ Checked (Requirements): Playback survives a paragraph longer than 30s (event page not suspended mid-read)
 
 ### 2026-11-16 06:20 UTC
 - **Progress:** Umut ran it in Firefox 160 as a temporary add-on and read a full article: background page Running, highlighting works. One warning on load: Firefox does not know the 'offscreen' permission. Harmless — Firefox ignores it — and Chrome requires it, and one manifest cannot list permissions per browser, so it stays.
