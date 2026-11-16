@@ -1,7 +1,7 @@
 # Highlight jumps ahead at the start of each paragraph
 
 **Type:** 🐛 Bug
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-11-16 11:21 UTC
@@ -20,7 +20,7 @@ When a paragraph ends by itself, the next one starts with the previous paragraph
 
 ## Actual
 
-- **Start:**
+- **Start:** 2026-11-16 12:56 UTC
 - **End:**
 - **Effort:**
 
@@ -37,6 +37,13 @@ When a paragraph ends by itself, the next one starts with the previous paragraph
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-16 12:56 UTC
+- **Progress:** Fixed by resetting state._currentTime when a chunk's timestamps are set. User verified in Firefox on the combined test branch.
+
+### 2026-11-16 12:56 UTC
+
+- **Progress:** Started work
 
 ### 2026-11-16 11:21 UTC
 
