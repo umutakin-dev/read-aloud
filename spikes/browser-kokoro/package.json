@@ -1,0 +1,13 @@
+{
+  "name": "browser-kokoro-spike",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Spike for #000025 — can Kokoro run in the browser, and do per-token timestamps survive?",
+  "scripts": {
+    "spike": "node spike.js"
+  },
+  "dependencies": {
+    "kokoro-js": "^1.2.1"
+  }
+}

@@ -17,12 +17,15 @@ The rest — progress and scrubbing (#000040), voice preview (#000041), server-s
 Note that #000042 assumes a server still exists; if #000025 moves synthesis into the browser, caching becomes a different problem (or none at all).
 
 
+## Items
+
 - #000038 ✨ Keyboard controls and screen reader support for the toolbar
 - #000039 ✨ Click a paragraph to start reading from there
 - #000040 ✨ Show progress through the document and allow scrubbing
 - #000041 ✨ Preview a voice before choosing it
 - #000042 🔧 Cache synthesized audio so a re-read is instant
 - #000043 ✨ Support languages other than American English
+
 ## Estimation
 
 - **Start:**

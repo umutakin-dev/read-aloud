@@ -1,7 +1,7 @@
 # British voices are pronounced with American phonemes
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -53,6 +53,13 @@ This overlaps with #000043; doing it properly here makes that mostly a matter of
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 134367e (fix: locate the chunk being read, and give British voices British phonemes, PR #4)
 
 ### 2026-08-03
 - **Progress:** Language is derived from the voice id prefix and a pipeline is held per language, created on first use. Verified against the real engine: the British pipeline is built lazily when bm_george is first requested, and the same sentence renders 4.25s as af_heart against 4.90s as bm_george — the phonemes genuinely differ rather than the voice being relabelled. Catalogue moved to voices.py so it can be tested without torch; a test asserts the catalogue's language agrees with the prefix, since the popup shows one and synthesis follows the other.

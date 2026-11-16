@@ -1,7 +1,7 @@
 # Paragraph lookup matches the first occurrence, not the right one
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -49,6 +49,13 @@ This is also a strictly cheaper search, since it scans less of the document each
 - [ ] Regression tested
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 134367e (fix: locate the chunk being read, and give British voices British phonemes, PR #4)
 
 ### 2026-08-03
 - **Progress:** findParagraphOffset now searches forward from the nearest chunk already located, rather than from position zero. The hint comes from a per-chunk offset map so jumping backwards works too — a single advancing cursor would search past the target on Prev. Offsets are dropped when the index is rebuilt, since they pointed into the old one. findChunkOffset and searchStartFor are pure and live in textkit, covered by 11 tests including a page where the same sentence appears twice.

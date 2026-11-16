@@ -15,9 +15,13 @@ Every other improvement is downstream of solving this. It is also the one that c
 So the sequence is: find out whether the browser can do it (#000025), and only if it cannot, make installing the server somebody else's problem (#000026). Store paperwork (#000027) is needed either way and can proceed in parallel.
 
 
+## Items
+
 - #000025 🔧 Spike Kokoro in the browser and whether timestamps survive
 - #000026 🔧 Package the server so it installs and runs itself
 - #000027 🔧 Chrome Web Store listing, privacy policy and permission justification
+- #000046 ✨ In-browser Kokoro engine on WebGPU, with the server as an optional upgrade
+
 ## Estimation
 
 - **Start:**
@@ -43,6 +47,9 @@ So the sequence is: find out whether the browser can do it (#000025), and only i
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-16 08:43 UTC
+- **Note:** Added #000046 In-browser Kokoro engine on WebGPU, with the server as an optional upgrade to Items
 
 ### 2026-08-03
 - **Note:** Added #000027 Chrome Web Store listing, privacy policy and permission justification to Items

@@ -1,7 +1,7 @@
 # Test suite for the logic that is easy to get subtly wrong
 
 **Type:** 🔧 Task
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -53,6 +53,13 @@ What this cannot cover is the integration: injection, offscreen playback, servic
 - [ ] Verified
 
 ## Log
+
+### 2026-08-03
+
+- **Progress:** Completed
+
+### 2026-08-03
+- **Delivered:** 7da70b0 (test: add the test suite, CI, and a roadmap toward release, PR #3)
 
 ### 2026-08-03
 - **Note:** Extracting alignment.py surfaced a latent shadowing bug: the prune left a second definition of align_timestamps_to_text in tts_engine.py that overrode the import. Caught by the failing test rather than by inspection, which is the point of the exercise.
