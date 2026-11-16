@@ -25,6 +25,7 @@ DEFAULT_ORIGIN_REGEX = re.search(
 ).group(1)
 
 EXTENSION_ORIGIN = "chrome-extension://" + "a" * 32
+FIREFOX_ORIGIN = "moz-extension://3f2b8c1e-9a4d-4e7b-b0c5-6d1e2f3a4b5c"
 
 
 def client(allowed_origins=()):
@@ -51,6 +52,7 @@ def allowed(origin, allowed_origins=()):
     [
         EXTENSION_ORIGIN,
         "chrome-extension://" + "abcdefghijklmnop" * 2,
+        FIREFOX_ORIGIN,
     ],
 )
 def test_extension_origins_are_allowed(origin):
@@ -65,6 +67,10 @@ def test_extension_origins_are_allowed(origin):
         "https://evil.example/" + EXTENSION_ORIGIN,
         "chrome-extension://" + "a" * 31,  # wrong length
         "chrome-extension://" + "z" * 32,  # outside a-p
+        "moz-extension://not-a-uuid",
+        "moz-extension://" + "3f2b8c1e9a4d4e7bb0c56d1e2f3a4b5c",  # no hyphens
+        FIREFOX_ORIGIN + ".evil.example",
+        "https://evil.example/" + FIREFOX_ORIGIN,
     ],
 )
 def test_everything_else_is_blocked(origin):

@@ -1,3 +1,21 @@
+// The audio player. Where it runs depends on the browser:
+//
+// - Chrome loads it into the offscreen document (offscreen.html), and it talks
+//   to the service worker by runtime messages.
+// - Firefox has no offscreen API, but its background is a page with a DOM, so
+//   the manifest loads this file there, ahead of background.js. In that page
+//   runtime.sendMessage never reaches the listeners of the page that sent it,
+//   so background.js calls ReadAloudPlayer.handle directly and swaps `emit`
+//   for its own relay to the reading tab.
+//
+// The runtime listener at the bottom is registered in both places. In the
+// background page it is inert: nothing there sends a message targeted at
+// "offscreen".
+const ReadAloudPlayer = (globalThis.ReadAloudPlayer = {
+  emit: (message) => chrome.runtime.sendMessage(message),
+  handle: handlePlayerMessage,
+});
+
 let audio = null;
 let objectUrl = null;
 let timeInterval = null;
@@ -20,7 +38,7 @@ function startTimeReporting() {
   clearInterval(timeInterval);
   timeInterval = setInterval(() => {
     if (audio && !audio.paused) {
-      chrome.runtime.sendMessage({ type: "AUDIO_TIME", currentTime: audio.currentTime });
+      ReadAloudPlayer.emit({ type: "AUDIO_TIME", currentTime: audio.currentTime });
     }
   }, 50);
 }
@@ -64,11 +82,11 @@ function attach(element, url, startAt) {
 
   audio.onended = () => {
     clearInterval(timeInterval);
-    chrome.runtime.sendMessage({ type: "AUDIO_ENDED" });
+    ReadAloudPlayer.emit({ type: "AUDIO_ENDED" });
   };
   audio.onerror = () => {
     clearInterval(timeInterval);
-    chrome.runtime.sendMessage({
+    ReadAloudPlayer.emit({
       type: "AUDIO_ERROR",
       message: audio?.error?.message || "unknown",
     });
@@ -77,7 +95,13 @@ function attach(element, url, startAt) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.target !== "offscreen") return;
+  return handlePlayerMessage(msg, sendResponse);
+});
 
+// Returns true when sendResponse will be called later, as a runtime listener
+// does. Messages that never answer (PRELOAD, PAUSE, STOP, SET_SPEED) return
+// undefined.
+function handlePlayerMessage(msg, sendResponse) {
   if (msg.type === "PRELOAD") {
     releasePreloaded();
     const url = urlFromBase64(msg.audio_base64);
@@ -169,4 +193,4 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     return;
   }
-});
+}
