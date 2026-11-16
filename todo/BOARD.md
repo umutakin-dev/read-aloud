@@ -40,10 +40,11 @@
 
 *(none)*
 
-## ✅ Done (23)
+## ✅ Done (24)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000045](done/000045-t-agents-md-with-project-guidance-referenced-from-cl.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;16 | AGENTS.md with project guidance, referenced from CLAUDE.md |
 | [000023](done/000023-b-bare-urls-are-read-out-character-by-character.md) | 🐛 | 🟡 | — | Bare URLs are read out character by character |
 | [000022](done/000022-b-saved-settings-do-not-reach-a-session-already-runn.md) | 🐛 | 🔴 | — | Saved settings do not reach a session already running |
 | [000021](done/000021-f-close-the-audio-gap-between-chunks.md) | ✨ | 🟡 | — | Close the audio gap between chunks |
