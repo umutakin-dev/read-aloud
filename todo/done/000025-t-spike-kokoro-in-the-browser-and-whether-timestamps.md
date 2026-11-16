@@ -1,7 +1,7 @@
 # Spike Kokoro in the browser and whether timestamps survive
 
 **Type:** 🔧 Task
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -26,9 +26,9 @@ Timebox this. The output is an answer and a recommendation, not working code.
 
 ## Actual
 
-- **Start:**
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-16 07:08 UTC
+- **End:** 2026-11-16 08:43 UTC
+- **Effort:** 1h35
 
 ## Findings
 
@@ -115,6 +115,16 @@ Measuring WebGPU is only worth doing under 2 or 3. Under 1 it is wasted work.
 - [ ] Verified
 
 ## Log
+
+### 2026-11-16 08:43 UTC
+
+- **Progress:** Completed
+
+### 2026-11-16 08:43 UTC
+- **Delivered:** Spike branch chore/25-spike-browser-kokoro (Node spike, browser page, serve.py, findings in spikes/browser-kokoro/README.md); PR opened next
+
+### 2026-11-16 08:43 UTC
+- **Decision:** Umut chose the hybrid route: browser engine (WebGPU fp32) as the zero-install default, server as an optional upgrade for exact word highlighting, speed and machines without WebGPU. Built under 000046. 000026 (server packaging) stays in the backlog for the upgrade path.
 
 ### 2026-11-16 08:41 UTC
 - **Note:** v4 stack, Firefox 160: WebGPU fp16 loads then hangs on the first sentence; WASM q8 is still 0.8x (correct speech). fp32 on WebGPU is the only viable browser configuration, and there is no CPU fallback fast enough.
