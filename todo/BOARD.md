@@ -17,12 +17,13 @@
 
 *(none)*
 
-## 🔨 In Progress (2)
+## 🔨 In Progress (3)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000046](in-progress/000046-f-in-browser-kokoro-engine-on-webgpu-with-the-server.md) | ✨ | 🔴 | In-browser Kokoro engine on WebGPU, with the server as an optional upgrade |
 | [000044](in-progress/000044-t-run-the-extension-in-firefox-from-the-same-tree-as.md) | 🔧 | 🔴 | Run the extension in Firefox from the same tree as Chrome |
+| [000047](in-progress/000047-f-skip-citation-markers-like-7-when-reading.md) | ✨ | 🟡 | Skip citation markers like [7] when reading |
 
 ## 📋 Backlog (15)
 

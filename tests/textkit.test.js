@@ -430,3 +430,48 @@ test("resolveWordSpans", async (t) => {
     assert.deepEqual(kit.resolveWordSpans([]), []);
   });
 });
+
+// ─── Citation markers (000047) ──────────────────────────────────────────────
+// Wikipedia's "[7]" was read aloud as "seven", mid-sentence. The marker has to
+// go from the paragraph text AND from the text index, or the chunk stops being
+// an exact run of the page text and its highlighting is lost.
+test("citation markers", async (t) => {
+  const WIKI =
+    '<p>Individuals weighted new information ("cold cognition").' +
+    '<sup class="reference"><a href="#cite_note-7"><span>[</span>7<span>]</span></a></sup>' +
+    ' More recent theories were motivational<sup><a href="#cite_note-2">[2]</a></sup> or affective.' +
+    '<sup><i><a href="/wiki/Citation_needed">[citation needed]</a></i></sup></p>';
+  const SPOKEN =
+    'Individuals weighted new information ("cold cognition"). More recent theories were motivational or affective.';
+
+  await t.test("are skipped from paragraph text when asked", () => {
+    assert.deepEqual(kit.paragraphsFromRoot(bodyOf(WIKI), { skipCitations: true }), [SPOKEN]);
+  });
+
+  await t.test("are kept by default", () => {
+    const [text] = kit.paragraphsFromRoot(bodyOf(WIKI));
+    assert.match(text, /\[7\]/);
+  });
+
+  await t.test("the skipped paragraph is still found in the skipped index", () => {
+    const body = bodyOf(WIKI);
+    const [paragraph] = kit.paragraphsFromRoot(body, { skipCitations: true });
+    const index = kit.buildTextIndex(body, { skipCitations: true });
+    assert.notEqual(index.text.indexOf(paragraph), -1, index.text);
+  });
+
+  await t.test("a footnote superscript that links into the page is a marker", () => {
+    const body = bodyOf('<p>As shown before<sup><a href="#fn1">1</a></sup>, it holds.</p>');
+    assert.ok(kit.isCitationMarker(body.querySelector("sup")));
+  });
+
+  await t.test("an exponent is not", () => {
+    const body = bodyOf("<p>E = mc<sup>2</sup> and x<sup>n+1</sup></p>");
+    for (const sup of body.querySelectorAll("sup")) assert.ok(!kit.isCitationMarker(sup));
+  });
+
+  await t.test("a superscript linking off the page is not", () => {
+    const body = bodyOf('<p>Trademark<sup><a href="https://example.com">TM</a></sup></p>');
+    assert.ok(!kit.isCitationMarker(body.querySelector("sup")));
+  });
+});
