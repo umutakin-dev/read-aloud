@@ -46,6 +46,10 @@
     serverUrl: "http://localhost:7860",
     useServer: true,       // false = Web Speech API fallback
     serverHealthy: null,   // last observed health, independent of what is in use
+    // Which Kokoro is speaking: "server" or "browser" (000046). "Server" in
+    // the names around here means "a Kokoro engine", either one.
+    engine: null,
+    unavailableReason: null, // why neither engine can speak, from HEALTH_CHECK
     allowBrowserFallback: false,  // opt-in; otherwise we wait for Kokoro
     waitingForServer: false,
     toolbar: null,
@@ -372,11 +376,16 @@
   }
 
   // ─── Server Communication (via background service worker) ────────────────
+  // True when some Kokoro engine can speak: the server, or the browser engine.
+  // The background decides which, by the engine setting (000046).
   async function checkServerHealth() {
     const response = await sendMessage({
       type: "HEALTH_CHECK",
       serverUrl: state.serverUrl,
     });
+    if (response?.engine) state.engine = response.engine;
+    state.engineSetting = response?.setting || state.engineSetting;
+    state.unavailableReason = response?.ok ? null : response?.reason || null;
     return Boolean(response && response.ok);
   }
 
@@ -397,6 +406,10 @@
           if (chrome.runtime.lastError) {
             reject(new Error(chrome.runtime.lastError.message));
           } else if (response && response.ok) {
+            if (response.engine && response.engine !== state.engine) {
+              state.engine = response.engine;
+              updateEngineIndicator();
+            }
             resolve(response.data);
           } else {
             reject(new Error(response?.error || "TTS request failed"));
@@ -455,6 +468,16 @@
     }
     if (msg.type === "AUDIO_ERROR") {
       failAudio(new Error(msg.message || "Audio playback error"));
+    }
+    // The browser engine downloads ~310MB the first time and compiles its GPU
+    // shaders on every load. Both take long enough to look like a hang, so
+    // say what is happening in place of "synthesizing...".
+    if (msg.type === "ENGINE_PROGRESS" && state.active) {
+      const status = {
+        download: `Downloading the voice model, one time only: ${msg.percent}%`,
+        load: "Loading the voice model...",
+      };
+      updateToolbarStatus(status[msg.phase] || "Preparing the voice model...");
     }
   }
 
@@ -630,7 +653,11 @@
     stopHighlightLoop();
     clearHighlights();
     updatePlayButton(false);
-    updateToolbarStatus(`Waiting for the Kokoro server at ${state.serverUrl}`);
+    updateToolbarStatus(
+      state.engine === "browser" && state.unavailableReason
+        ? `Can't read here: ${state.unavailableReason}`
+        : `Waiting for the Kokoro server at ${state.serverUrl}`
+    );
     updateEngineIndicator();
   }
 
@@ -963,7 +990,15 @@
     if (!el) return;
 
     let label, cls, title;
-    if (state.waitingForServer) {
+    if (state.waitingForServer && state.engine === "browser") {
+      // Neither engine can speak: no server, and this browser cannot run the
+      // in-browser one. Waiting is still right — the server may be started.
+      label = "No engine";
+      cls = "engine down";
+      title =
+        `Can't read in this browser (${state.unavailableReason || "unknown reason"}). ` +
+        `Start the Kokoro server at ${state.serverUrl}, or enable browser speech in the popup.`;
+    } else if (state.waitingForServer) {
       label = "Server down";
       cls = "engine down";
       title =
@@ -986,8 +1021,14 @@
       label = "Connecting";
       cls = "engine";
       title = "Checking the Kokoro TTS server";
+    } else if (state.engine === "browser") {
+      label = "Kokoro · browser";
+      cls = "engine ok";
+      title =
+        "Kokoro running in this browser on the GPU. Sentences are highlighted exactly; " +
+        "word positions within a sentence are estimated. Start the local server for exact words.";
     } else {
-      label = "Kokoro";
+      label = "Kokoro · server";
       cls = "engine ok";
       title = `Using the Kokoro TTS server at ${state.serverUrl}`;
     }

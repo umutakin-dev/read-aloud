@@ -11,16 +11,17 @@
 
 | # | ID | Type | Priority | Title |
 |---|----|------|----------|-------|
-| 1 | [000046](000046-f-in-browser-kokoro-engine-on-webgpu-with-the-server.md) | ✨ | 🔴 | In-browser Kokoro engine on WebGPU, with the server as an optional upgrade |
+| 1 | [000046](in-progress/000046-f-in-browser-kokoro-engine-on-webgpu-with-the-server.md) | ✨ | 🔴 | 🔨 In-browser Kokoro engine on WebGPU, with the server as an optional upgrade |
 
 ### 🔜 Next (0)
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
+| [000046](in-progress/000046-f-in-browser-kokoro-engine-on-webgpu-with-the-server.md) | ✨ | 🔴 | In-browser Kokoro engine on WebGPU, with the server as an optional upgrade |
 | [000044](in-progress/000044-t-run-the-extension-in-firefox-from-the-same-tree-as.md) | 🔧 | 🔴 | Run the extension in Firefox from the same tree as Chrome |
 
 ## 📋 Backlog (15)

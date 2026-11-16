@@ -185,28 +185,33 @@ function relayAudioEvent(message) {
 
 // ─── Message handler ──────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "AUDIO_ENDED" || message.type === "AUDIO_ERROR" || message.type === "AUDIO_TIME") {
+  if (
+    message.type === "AUDIO_ENDED" ||
+    message.type === "AUDIO_ERROR" ||
+    message.type === "AUDIO_TIME" ||
+    message.type === "ENGINE_PROGRESS"
+  ) {
     relayAudioEvent(message);
     return;
   }
 
   if (message.type === "TTS_REQUEST") {
-    handleTTSRequest(message).then(sendResponse).catch((err) => {
-      sendResponse({ error: err.message });
+    handleSpeechRequest(message, sender).then(sendResponse).catch((err) => {
+      sendResponse({ ok: false, error: err.message });
     });
     return true;
   }
 
   if (message.type === "HEALTH_CHECK") {
-    handleHealthCheck(message.serverUrl).then(sendResponse).catch((err) => {
-      sendResponse({ error: err.message });
+    handleEngineHealth(message.serverUrl).then(sendResponse).catch((err) => {
+      sendResponse({ ok: false, error: err.message });
     });
     return true;
   }
 
   if (message.type === "GET_VOICES") {
-    handleGetVoices(message.serverUrl).then(sendResponse).catch((err) => {
-      sendResponse({ error: err.message });
+    handleVoices(message.serverUrl).then(sendResponse).catch((err) => {
+      sendResponse({ ok: false, error: err.message });
     });
     return true;
   }
@@ -293,6 +298,112 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
 });
+
+// ─── Choosing an engine (000046) ──────────────────────────────────────────
+// Two engines produce the same response: the local server (exact word timings,
+// 16–80x realtime) and Kokoro in the browser on WebGPU (sentence-exact, words
+// estimated, ~4x). The `engine` setting picks one:
+//
+//   auto     the server when it answers, otherwise the browser (the default,
+//            so installing nothing works and starting the server upgrades)
+//   server   only the server; when it is down, reading waits for it
+//   browser  only the browser engine
+const DEFAULT_ENGINE = "auto";
+
+async function getEngineSetting() {
+  const { engine } = await chrome.storage.local.get("engine");
+  return engine === "server" || engine === "browser" ? engine : DEFAULT_ENGINE;
+}
+
+// In auto mode every request asks "is the server up?". A refused localhost
+// connection is fast, but a few seconds of memory saves a round trip per
+// chunk. Module state is fine here: losing it on eviction costs one check.
+const SERVER_MEMORY_MS = 10000;
+let serverSeen = null; // { url, ok, at }
+
+async function serverReachable(serverUrl) {
+  const url = serverUrl || (await getServerUrl());
+  if (serverSeen && serverSeen.url === url && Date.now() - serverSeen.at < SERVER_MEMORY_MS) {
+    return serverSeen.ok;
+  }
+  const { ok } = await handleHealthCheck(url);
+  serverSeen = { url, ok, at: Date.now() };
+  return ok;
+}
+
+// Whether this browser can run the engine never changes within a session.
+let browserSupport = null;
+
+async function browserEngineSupport() {
+  if (!browserSupport) {
+    browserSupport = ensureOffscreen()
+      .then(() => sendToOffscreen({ target: "offscreen", type: "ENGINE_SUPPORTED" }))
+      .then((r) =>
+        r?.ok ? { ok: r.supported, reason: r.reason } : { ok: false, reason: r?.error || "no player" }
+      );
+    // A failure to even ask (engine not built, player missing) is worth
+    // asking again after the developer fixes it.
+    browserSupport.then((s) => {
+      if (!s.ok && !/WebGPU/.test(s.reason || "")) browserSupport = null;
+    });
+  }
+  return browserSupport;
+}
+
+async function chooseEngine(serverUrl) {
+  const setting = await getEngineSetting();
+  if (setting !== "auto") return setting;
+  return (await serverReachable(serverUrl)) ? "server" : "browser";
+}
+
+// "Can anything speak right now, and which engine would?" — what the toolbar
+// polls and the popup shows. ok:false is what puts the toolbar into waiting.
+async function handleEngineHealth(serverUrl) {
+  const setting = await getEngineSetting();
+  if (setting !== "browser" && (await serverReachable(serverUrl))) {
+    return { ok: true, engine: "server", setting };
+  }
+  if (setting === "server") {
+    return { ok: false, engine: "server", setting, reason: "server unreachable" };
+  }
+  const support = await browserEngineSupport();
+  return support.ok
+    ? { ok: true, engine: "browser", setting }
+    : { ok: false, engine: "browser", setting, reason: support.reason };
+}
+
+async function handleSpeechRequest(message, sender) {
+  const engine = await chooseEngine(message.serverUrl);
+  if (engine === "server") {
+    const response = await handleTTSRequest(message);
+    // A failure here may be the server having just gone away; forget the
+    // last answer so auto mode re-checks instead of trusting it for 10s.
+    if (!response.ok) serverSeen = null;
+    return { ...response, engine };
+  }
+
+  // Download progress goes to the tab that asked, and the first request can
+  // arrive before any audio has made it the active tab.
+  await setActiveTab(sender?.tab?.id);
+  await ensureOffscreen();
+  const response = await sendToOffscreen({
+    target: "offscreen",
+    type: "ENGINE_SYNTHESIZE",
+    text: message.text,
+    voice: message.voice || "af_heart",
+  });
+  return response
+    ? { ok: response.ok, data: response.data, error: response.error, engine }
+    : { ok: false, error: "the audio player did not respond", engine };
+}
+
+async function handleVoices(serverUrl) {
+  const engine = await chooseEngine(serverUrl);
+  if (engine === "server") return { ...(await handleGetVoices(serverUrl)), engine };
+  await ensureOffscreen();
+  const response = await sendToOffscreen({ target: "offscreen", type: "ENGINE_VOICES" });
+  return { ok: Boolean(response?.ok), voices: response?.voices || [], error: response?.error, engine };
+}
 
 async function getServerUrl() {
   const result = await chrome.storage.local.get("serverUrl");

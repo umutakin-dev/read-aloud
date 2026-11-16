@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const speedValue = document.getElementById("speed-value");
   const serverUrlInput = document.getElementById("server-url");
   const allowFallback = document.getElementById("allow-fallback");
+  const engineSelect = document.getElementById("engine-select");
   const btnSave = document.getElementById("btn-save");
 
   // Load saved settings
@@ -14,7 +15,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     "speed",
     "serverUrl",
     "allowBrowserFallback",
+    "engine",
   ]);
+  engineSelect.value = settings.engine || "auto";
+
+  // Saved on change rather than on Save: the status line below reports what
+  // the background would actually use, and it reads the stored setting.
+  engineSelect.addEventListener("change", async () => {
+    await chrome.storage.local.set({ engine: engineSelect.value });
+    settings.engine = engineSelect.value;
+    checkServer();
+  });
   // Off unless explicitly turned on — swapping in a noticeably worse voice
   // without being asked is not a graceful degradation.
   allowFallback.checked = settings.allowBrowserFallback === true;
@@ -48,11 +59,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // The offline message depends on this, so refresh it without waiting for Save.
   allowFallback.addEventListener("change", () => {
-    if (statusDot.classList.contains("disconnected")) {
-      statusText.textContent = allowFallback.checked
-        ? "Server unavailable (will use browser speech)"
-        : "Server unavailable (Read Aloud will wait for it)";
-    }
+    if (statusDot.classList.contains("disconnected")) checkServer();
   });
 
   // Check server health and load voices
@@ -70,7 +77,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (healthResponse && healthResponse.ok) {
       statusDot.classList.add("connected");
-      statusText.textContent = `Connected (${healthResponse.data.engine})`;
+      statusText.textContent =
+        healthResponse.engine === "browser"
+          ? "Ready: Kokoro in this browser"
+          : "Connected: Kokoro server";
 
       // Load voices
       const voicesResponse = await new Promise((resolve) => {
@@ -94,9 +104,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     } else {
       statusDot.classList.add("disconnected");
+      const what =
+        healthResponse?.engine === "browser"
+          ? `Can't run in this browser: ${healthResponse.reason || "unknown reason"}`
+          : "Server unavailable";
       statusText.textContent = allowFallback.checked
-        ? "Server unavailable (will use browser speech)"
-        : "Server unavailable (Read Aloud will wait for it)";
+        ? `${what} (will use browser speech)`
+        : `${what} (Read Aloud will wait)`;
     }
   }
 
@@ -152,6 +166,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       speed: parseFloat(speedInput.value),
       serverUrl,
       allowBrowserFallback: allowFallback.checked,
+      engine: engineSelect.value,
     };
     await chrome.storage.local.set(newSettings);
     // Keep the snapshot current — checkServer() below re-applies settings.voice.
