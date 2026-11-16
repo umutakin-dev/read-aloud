@@ -1,6 +1,6 @@
 # Read Aloud
 
-Chrome extension that reads web pages aloud using a local Kokoro TTS server with word-level highlighting.
+Browser extension for Firefox and Chrome that reads web pages aloud using a local Kokoro TTS server with word-level highlighting.
 
 ## Features
 
@@ -18,7 +18,7 @@ Chrome extension that reads web pages aloud using a local Kokoro TTS server with
 - [uv](https://docs.astral.sh/uv/) package manager
 - NVIDIA GPU with CUDA support (recommended) — falls back to CPU automatically
 - [espeak-ng](https://github.com/espeak-ng/espeak-ng/releases) installed on system PATH
-- Chrome or Chromium-based browser
+- Firefox 140+, or Chrome / a Chromium-based browser
 
 ### Installing espeak-ng (Windows)
 
@@ -84,7 +84,8 @@ headers per file and buries the output you turned `DEBUG` on to read. Set
 
 #### Allowed origins
 
-The server only accepts cross-origin requests from Chrome extension origins, so
+The server only accepts cross-origin requests from extension origins
+(`chrome-extension://` and Firefox's `moz-extension://`), so
 an arbitrary website you happen to be browsing cannot drive your GPU. The
 extension's own requests are unaffected — a host it holds a permission for is
 not a cross-origin request at all.
@@ -94,7 +95,23 @@ To point another client at it:
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `READ_ALOUD_ALLOWED_ORIGINS` | *(empty)* | Comma-separated list of exact origins to allow |
-| `READ_ALOUD_ALLOWED_ORIGIN_REGEX` | `^chrome-extension://[a-p]{32}$` | Origin pattern to allow |
+| `READ_ALOUD_ALLOWED_ORIGIN_REGEX` | any Chrome extension ID or Firefox extension UUID | Origin pattern to allow |
+
+### Firefox Extension
+
+1. Open `about:debugging#/runtime/this-firefox`
+2. Click "Load Temporary Add-on…"
+3. Select `extension/manifest.json`
+4. Open `about:addons`, choose Read Aloud > **Permissions**, and make sure
+   access to `localhost:7860` is allowed
+
+A temporary add-on is removed when Firefox closes. Release Firefox only keeps
+add-ons that Mozilla has signed, so a permanent install needs either a signed
+build or Firefox Developer Edition / Nightly with
+`xpinstall.signatures.required` set to `false`.
+
+In Firefox the shortcut can be changed under `about:addons` > gear menu >
+**Manage Extension Shortcuts**.
 
 ### Chrome Extension
 
@@ -188,6 +205,19 @@ automated yet.
 | `/api/voices` | GET | List available voices |
 
 ## Architecture
+
+One `extension/` folder serves both browsers. They differ only in where the
+background code and the audio player run:
+
+| | Chrome | Firefox |
+|---|---|---|
+| Background | service worker (`background.service_worker`) | event page (`background.scripts`) |
+| Audio player | offscreen document (`offscreen.html`) | the background page itself, since Firefox has no offscreen API |
+
+Each browser ignores the other's manifest key. In Firefox `offscreen.js` is
+loaded into the background page ahead of `background.js`, which then calls the
+player directly: in that page `runtime.sendMessage` would never reach the
+page's own listeners. The diagram shows Chrome.
 
 ```
 Chrome Extension (MV3)                  Local Python Server
