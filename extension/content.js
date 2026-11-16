@@ -430,10 +430,25 @@
     reject(err);
   }
 
+  // Firefox plays the audio in its background page, and suspends that page
+  // after ~30s without an incoming event; the player's AUDIO_TIME traffic is
+  // outgoing, so it does not count. A 500-character chunk runs ~35s at 1x, with
+  // no message from here between its PLAY and the next one, so it could be cut
+  // off near the end. A ping well inside the window keeps the page alive for
+  // exactly as long as audio is moving. In Chrome it is a no-op the service
+  // worker ignores.
+  const KEEPALIVE_MS = 20000;
+  let lastKeepalive = 0;
+
   // Listen for audio events relayed from background
   function onAudioMessage(msg) {
     if (msg.type === "AUDIO_TIME" && state.playing) {
       state._currentTime = msg.currentTime;
+      const now = Date.now();
+      if (now - lastKeepalive > KEEPALIVE_MS) {
+        lastKeepalive = now;
+        postMessage({ type: "KEEPALIVE" });
+      }
     }
     if (msg.type === "AUDIO_ENDED") {
       finishAudio("ended");

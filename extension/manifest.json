@@ -18,7 +18,17 @@
     "http://127.0.0.1/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": ["offscreen.js", "background.js"]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "read-aloud@umutakin-dev",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
   },
   "commands": {
     "toggle-read-aloud": {

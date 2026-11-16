@@ -6,14 +6,16 @@ decision someone already made on purpose.
 
 ## What this is
 
-A browser extension that reads web pages aloud with word-level highlighting,
-backed by a local Python server running Kokoro TTS.
+A browser extension for Firefox and Chrome that reads web pages aloud with
+word-level highlighting, backed by a local Python server running Kokoro TTS.
 
 ```
-extension/            MV3 extension, plain JS, no build step
-  background.js       service worker: injection, TTS relay, offscreen control
+extension/            MV3 extension, plain JS, no build step, one tree for both browsers
+  background.js       injection, TTS relay, player control
+                      (Chrome: service worker; Firefox: event page)
   content.js          toolbar, extraction, highlighting, playback state
-  offscreen.js/.html  audio player (Chrome offscreen document)
+  offscreen.js/.html  audio player (Chrome: offscreen document;
+                      Firefox: loaded into the background page itself)
   popup.*             settings
   lib/textkit.js      pure text logic: paragraphs, chunks, text index, spans
   lib/Readability.js  vendored Mozilla Readability, do not edit
@@ -59,6 +61,18 @@ Each of these was a fix. Reverting one brings the bug back.
 - **`alignment.py` must not import torch, numpy or soundfile.** The cheap
   server test run depends on it.
 - **Browser speech fallback is opt-in, off by default** (000018).
+- **One manifest serves both browsers** (000044). `background` carries both
+  `service_worker` (Chrome) and `scripts` (Firefox), and each browser ignores
+  the other's key. Firefox loads `offscreen.js` ahead of `background.js` in one
+  page, where `runtime.sendMessage` never reaches that page's own listeners, so
+  the two talk by direct call (`ReadAloudPlayer`). Never route player traffic
+  back through runtime messages. `tests/firefox-background.test.js` loads both
+  files together to catch it.
+- **The content script pings `KEEPALIVE` every 20s while audio plays.** Firefox
+  suspends an event page after about 30s without an incoming event, and one
+  chunk can run about 35s.
+- **Firefox 140 is the floor**, because the highlighting needs the CSS Custom
+  Highlight API.
 
 ## Code conventions
 

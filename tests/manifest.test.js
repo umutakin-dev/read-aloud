@@ -19,6 +19,7 @@ test("manifest", async (t) => {
   await t.test("every file it names exists", () => {
     const referenced = [
       manifest.background?.service_worker,
+      ...(manifest.background?.scripts ?? []),
       manifest.action?.default_popup,
       ...Object.values(manifest.action?.default_icon ?? {}),
       ...Object.values(manifest.icons ?? {}),
@@ -61,6 +62,23 @@ test("manifest", async (t) => {
     for (const [, href] of html.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)) {
       assert.ok(exists(href), `popup.html loads ${href}, which does not exist`);
     }
+  });
+
+  await t.test("carries a background for each browser", () => {
+    // Chrome runs service_worker and ignores scripts; Firefox (121+) runs
+    // scripts as an event page and ignores service_worker. Dropping either
+    // key breaks one browser without a word from the other.
+    assert.equal(manifest.background.service_worker, "background.js");
+    assert.equal(manifest.background.scripts.at(-1), "background.js");
+  });
+
+  await t.test("pins a Firefox add-on id and a floor with the Highlight API", () => {
+    // Without a fixed id, storage and permissions do not survive a reinstall.
+    // 140 is the first Firefox with the CSS Custom Highlight API, which the
+    // word highlighting depends on.
+    const gecko = manifest.browser_specific_settings?.gecko;
+    assert.ok(gecko?.id, "browser_specific_settings.gecko.id is missing");
+    assert.ok(parseFloat(gecko.strict_min_version) >= 140, gecko.strict_min_version);
   });
 
   await t.test("does not declare a content script for every page", () => {

@@ -66,12 +66,24 @@ chrome.commands.onCommand.addListener((command, tab) => {
   }
 });
 
-// ─── Offscreen document for audio playback ────────────────────────────────
+// ─── Audio player ─────────────────────────────────────────────────────────
+// Firefox: the manifest loads offscreen.js into this same background page, so
+// the player is right here and is called directly. Chrome: this is a service
+// worker with no DOM, and the player lives in an offscreen document.
+const inlinePlayer = globalThis.ReadAloudPlayer ?? null;
+
+if (inlinePlayer) {
+  // AUDIO_* events would otherwise go out by runtime.sendMessage, which never
+  // reaches this page's own listener.
+  inlinePlayer.emit = relayAudioEvent;
+}
+
 // The offscreen document outlives the service worker, so its existence has to
 // be queried rather than remembered in a module flag that resets on eviction.
 const OFFSCREEN_URL = "offscreen.html";
 
 async function hasOffscreen() {
+  if (inlinePlayer) return true;
   const contexts = await chrome.runtime.getContexts({
     contextTypes: ["OFFSCREEN_DOCUMENT"],
     documentUrls: [chrome.runtime.getURL(OFFSCREEN_URL)],
@@ -84,7 +96,7 @@ async function hasOffscreen() {
 let creating = null;
 
 async function ensureOffscreen() {
-  if (await hasOffscreen()) return;
+  if (inlinePlayer || (await hasOffscreen())) return;
   if (!creating) {
     creating = chrome.offscreen
       .createDocument({
@@ -108,6 +120,16 @@ async function ensureOffscreen() {
 // whether that is worth creating the document for.
 function sendToOffscreen(message) {
   return new Promise((resolve) => {
+    if (inlinePlayer) {
+      let answered = false;
+      const respond = (response) => {
+        answered = true;
+        resolve(response ?? null);
+      };
+      const later = inlinePlayer.handle(message, respond);
+      if (later !== true && !answered) resolve(null);
+      return;
+    }
     chrome.runtime.sendMessage(message, (response) => {
       void chrome.runtime.lastError;
       resolve(response ?? null);
@@ -147,18 +169,24 @@ async function clearActiveTab() {
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   if ((await getActiveTab()) !== tabId) return;
   await clearActiveTab();
-  if (await hasOffscreen()) {
+  if (inlinePlayer) {
+    await sendToOffscreen({ target: "offscreen", type: "STOP" });
+  } else if (await hasOffscreen()) {
     await chrome.offscreen.closeDocument().catch(() => {});
   }
 });
 
+// Audio events from the player go to the tab that is reading.
+function relayAudioEvent(message) {
+  getActiveTab().then((tabId) => {
+    if (tabId !== null) chrome.tabs.sendMessage(tabId, message).catch(() => {});
+  });
+}
+
 // ─── Message handler ──────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Forward audio events from offscreen to the active content script tab
   if (message.type === "AUDIO_ENDED" || message.type === "AUDIO_ERROR" || message.type === "AUDIO_TIME") {
-    getActiveTab().then((tabId) => {
-      if (tabId !== null) chrome.tabs.sendMessage(tabId, message).catch(() => {});
-    });
+    relayAudioEvent(message);
     return;
   }
 
@@ -239,15 +267,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ resumed: false, reason: "offscreen document is gone" });
           return;
         }
-        chrome.runtime.sendMessage(
-          { target: "offscreen", type: "RESUME" },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              sendResponse({ resumed: false, reason: chrome.runtime.lastError.message });
-            } else {
-              sendResponse(response || { resumed: false });
-            }
-          }
+        return sendToOffscreen({ target: "offscreen", type: "RESUME" }).then((response) =>
+          sendResponse(response || { resumed: false, reason: "player did not respond" })
         );
       })
       .catch((err) => sendResponse({ resumed: false, reason: err.message }));
@@ -263,13 +284,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (CONTROL[message.type]) {
     hasOffscreen().then((exists) => {
       if (!exists) return;
-      chrome.runtime
-        .sendMessage({
-          target: "offscreen",
-          type: CONTROL[message.type],
-          speed: message.speed,
-        })
-        .catch(() => {});
+      sendToOffscreen({
+        target: "offscreen",
+        type: CONTROL[message.type],
+        speed: message.speed,
+      });
     });
     return;
   }

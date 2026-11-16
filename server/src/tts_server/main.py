@@ -47,15 +47,17 @@ app = FastAPI(title="Read Aloud TTS Server", version="0.1.0", lifespan=lifespan)
 # any site the user happened to be browsing could POST to it and occupy the GPU.
 #
 # Chrome extension IDs are 32 characters from a-p, and an unpacked extension gets
-# a different one on every machine, so the default matches the shape rather than a
-# specific ID. Override either setting for a different client:
+# a different one on every machine. Firefox's moz-extension origin is a UUID
+# generated per profile, not the add-on ID, so it cannot be pinned either. The
+# default matches both shapes rather than a specific ID. Override either setting
+# for a different client:
 #
 #     READ_ALOUD_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 #     READ_ALOUD_ALLOWED_ORIGIN_REGEX=^chrome-extension://abcdef...$
 #
 # Note that the extension's own requests to a host it holds a permission for are
 # not CORS requests at all, so this policy does not affect them.
-DEFAULT_ORIGIN_REGEX = r"^chrome-extension://[a-p]{32}$"
+DEFAULT_ORIGIN_REGEX = r"^(chrome-extension://[a-p]{32}|moz-extension://[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
 
 allowed_origin_regex = os.environ.get(
     "READ_ALOUD_ALLOWED_ORIGIN_REGEX", DEFAULT_ORIGIN_REGEX
