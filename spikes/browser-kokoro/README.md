@@ -106,6 +106,12 @@ multi-threaded onnxruntime in Node is the ceiling WASM approaches, and that was
 | | |
 |---|---|
 | Firefox 160, WebGPU, fp32, **`?stack=v4`** | **correct speech, 1.7x overall, ~4x after warm-up** |
+| Firefox 160, WebGPU, fp16, `?stack=v4` | loads, then hangs on the first sentence |
+| Firefox 160, WASM, q8, `?stack=v4` | 0.8x — the newer runtime did not move WASM |
+
+So fp32 is the one working browser configuration, and it needs WebGPU. There
+is no usable CPU fallback: a machine without WebGPU would still need the
+server.
 
 The WebGPU failures were not Firefox's: they were onnxruntime-web
 1.22.0-dev (April 2025), which `kokoro.web.js` bundles. kokoro-js's unbundled
