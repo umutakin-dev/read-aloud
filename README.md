@@ -105,6 +105,10 @@ To point another client at it:
 4. Open `about:addons`, choose Read Aloud > **Permissions**, and make sure
    access to `localhost:7860` is allowed
 
+Loading shows one warning, that `"offscreen"` is not a known permission. It is
+harmless: Chrome needs that permission, Firefox ignores it, and a single
+manifest cannot list permissions per browser.
+
 A temporary add-on is removed when Firefox closes. Release Firefox only keeps
 add-ons that Mozilla has signed, so a permanent install needs either a signed
 build or Firefox Developer Edition / Nightly with
