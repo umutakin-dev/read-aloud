@@ -28,10 +28,10 @@ Wikipedia-style reference markers ([7], [citation needed]) are spoken aloud and 
 
 ## Requirements
 
-- [ ] Bracketed superscripts ([7], [a], [citation needed]) and fragment-link footnote superscripts are not spoken
-- [ ] Paragraph extraction and the text index drop the same nodes, so highlighting still lines up
-- [ ] Popup setting to read them, on skip by default
-- [ ] Tests cover both sides
+- [x] Bracketed superscripts ([7], [a], [citation needed]) and fragment-link footnote superscripts are not spoken
+- [x] Paragraph extraction and the text index drop the same nodes, so highlighting still lines up
+- [x] Popup setting to read them, on skip by default
+- [x] Tests cover both sides
 
 ## Checklist
 
@@ -42,6 +42,21 @@ Wikipedia-style reference markers ([7], [citation needed]) are spoken aloud and 
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-16 12:57 UTC
+- **Progress:** User verified in Firefox on Wikipedia: markers skipped, highlighting lines up. Tests added in textkit.test.js. PR opened, based on the 000046 branch.
+
+### 2026-11-16 12:57 UTC
+- **Progress:** ☑ Checked (Requirements): Tests cover both sides
+
+### 2026-11-16 12:57 UTC
+- **Progress:** ☑ Checked (Requirements): Popup setting to read them, on skip by default
+
+### 2026-11-16 12:57 UTC
+- **Progress:** ☑ Checked (Requirements): Paragraph extraction and the text index drop the same nodes, so highlighting still lines up
+
+### 2026-11-16 12:57 UTC
+- **Progress:** ☑ Checked (Requirements): Bracketed superscripts ([7], [a], [citation needed]) and fragment-link footnote superscripts are not spoken
 
 ### 2026-11-16 10:51 UTC
 
