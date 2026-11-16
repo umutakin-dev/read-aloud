@@ -23,12 +23,13 @@
 |----|------|----------|-------|
 | [000044](in-progress/000044-t-run-the-extension-in-firefox-from-the-same-tree-as.md) | 🔧 | 🔴 | Run the extension in Firefox from the same tree as Chrome |
 
-## 📋 Backlog (15)
+## 📋 Backlog (16)
 
 *Now and Next are listed under Roadmap above.*
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
+| [000048](000048-b-highlight-jumps-ahead-at-the-start-of-each-paragra.md) | 🐛 | 🔴 | Highlight jumps ahead at the start of each paragraph |
 | [000039](000039-f-click-a-paragraph-to-start-reading-from-there.md) | ✨ | 🔴 | Click a paragraph to start reading from there |
 | [000038](000038-f-keyboard-controls-and-screen-reader-support-for-th.md) | ✨ | 🔴 | Keyboard controls and screen reader support for the toolbar |
 | [000028](000028-e-make-read-aloud-rock-solid.md) | 👑 | 🔴 | Make Read Aloud rock solid |
