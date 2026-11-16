@@ -1,7 +1,7 @@
 # Skip citation markers like [7] when reading
 
 **Type:** ✨ Feature
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-16 10:49 UTC
@@ -22,7 +22,7 @@ Wikipedia-style reference markers ([7], [citation needed]) are spoken aloud and 
 
 ## Actual
 
-- **Start:**
+- **Start:** 2026-11-16 10:51 UTC
 - **End:**
 - **Effort:**
 
@@ -42,6 +42,10 @@ Wikipedia-style reference markers ([7], [citation needed]) are spoken aloud and 
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-16 10:51 UTC
+
+- **Progress:** Started work
 
 ### 2026-11-16 10:49 UTC
 
