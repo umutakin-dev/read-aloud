@@ -91,7 +91,25 @@ apart, so the choice is not cosmetic.
 | Current server, CUDA | **16–80x** realtime |
 | Node, CPU, q8 | **1.2x** realtime |
 | Browser, WebGPU, **q8** | **~0.4x** realtime — and audibly wrong |
-| Browser, WebGPU, fp32 | *unmeasured* |
+| Firefox 160, WebGPU, fp32 | **static** — wrong output, not a speed problem |
+| Firefox 160, WebGPU, fp16 | **silence** |
+| Firefox 160, WASM, q8, plain `http.server` | **0.5x** — single-threaded, no isolation |
+| Firefox 160, WASM, q8, `serve.py` (COOP/COEP) | **0.8x** — load 1.0s cached, first audio 4.4s |
+
+The isolated run's own log was cleared by pressing Read, so it is unconfirmed
+whether threads were actually on. It does not change the answer: native,
+multi-threaded onnxruntime in Node is the ceiling WASM approaches, and that was
+1.2x.
+
+### Firefox, 2026-11-16
+
+WebGPU is not slow on Firefox, it is **wrong**: onnxruntime-web produces static
+at fp32 and nothing at fp16. WASM produces correct audio at 0.5–0.8x, so a
+27.5s passage took 62–85s of wall clock. Synthesis falls behind listening on
+every sentence, and no amount of prefetch fixes a rate below 1x.
+
+Serve with `python serve.py` rather than `http.server`. Without COOP/COEP the
+page is not cross-origin isolated and WASM silently runs on one thread.
 
 Prefetch needs synthesis to outrun playback. Below 1x it can never catch up and
 every sentence stalls; a comfortable margin is more like 3x.

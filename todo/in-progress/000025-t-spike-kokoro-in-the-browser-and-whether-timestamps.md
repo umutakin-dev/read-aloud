@@ -116,6 +116,15 @@ Measuring WebGPU is only worth doing under 2 or 3. Under 1 it is wasted work.
 
 ## Log
 
+### 2026-11-16 08:28 UTC
+- **Decision:** Firefox closes the browser route for now. WebGPU gives wrong output (static fp32, silence fp16); WASM q8 is correct but 0.8x isolated, 0.5x not, and Node's native 1.2x is its ceiling, against ~3x needed. Recommendation, pending Umut: route 1, keep the server and fix distribution (000026). Revisit if onnxruntime-web WebGPU becomes correct on Firefox, or an export with durations appears.
+
+### 2026-11-16 08:25 UTC
+- **Note:** Firefox 160 runs (Umut): WebGPU fp32 = static, fp16 = silence — wrong output, not slow, so onnxruntime-web WebGPU is unusable on Firefox today. WASM q8 = load 19.8s, first audio 6.96s, 0.5x realtime (27.5s audio in 56.9s synth, 84.5s wall). That WASM run was single-threaded: http.server sends no COOP/COEP, so no SharedArrayBuffer. Re-running cross-origin isolated before calling the floor.
+
+### 2026-11-16 07:21 UTC
+- **Note:** Resumed for Firefox 160 (WebGPU on by default on Windows since 141). Same page, now served on localhost:8000; measuring WebGPU fp32/fp16 and WASM q8 in Firefox to fill the unmeasured row.
+
 ### 2026-08-04
 - **Note:** First browser run: WebGPU q8 gave ~0.4x realtime and audio that did not sound like English. Both symptoms trace to the same cause — q8 was a poor default on my part, since quantized weights dequantize constantly on WebGPU and int8 degrades a TTS model badly. Page now defaults to fp32 and warns on quantized+WebGPU. Also fixed the realtime metric, which reported synthesis and playback together and so could never exceed 1.0 regardless of model speed; synthesis is now timed separately with wall clock alongside. Phoneme fit was 2/4, and both predicted failure modes appeared: 1990 expanding a word into two groups, and 'that the' merging two into one.
 

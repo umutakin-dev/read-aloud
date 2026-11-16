@@ -63,6 +63,13 @@ ui.load.addEventListener("click", async () => {
   const dtype = ui.dtype.value;
   ui.log.textContent = "";
   log(`Loading ${MODEL}\n  device=${device} dtype=${dtype}`);
+  // WASM is multi-threaded only on an isolated page; without it every WASM
+  // number is a single-core number. Serve with serve.py, not http.server.
+  log(
+    `  crossOriginIsolated=${self.crossOriginIsolated} ` +
+      `cores=${navigator.hardwareConcurrency}` +
+      (self.crossOriginIsolated ? "" : "  <- WASM will run on ONE thread")
+  );
   if (device === "webgpu" && dtype.startsWith("q")) {
     log(
       "\n  WARNING: quantized weights on WebGPU are usually both slow and\n" +
