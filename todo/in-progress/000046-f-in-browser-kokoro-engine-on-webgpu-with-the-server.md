@@ -47,6 +47,9 @@ Spike 000025 showed Kokoro runs correctly in Firefox on WebGPU fp32 at ~4x realt
 
 ## Log
 
+### 2026-11-16 09:34 UTC
+- **Progress:** First cut built and unit-tested (151 extension tests). Engine bundled from engine/ against onnxruntime-web 1.31 (build refuses older); runs in the player context in both browsers, lazily. Routing by engine setting auto/browser/server. Firefox event page stays alive through download and pauses because the toolbar's 15s HEALTH_CHECK poll is incoming traffic — which also means 000044's KEEPALIVE was redundant. Untested in a real browser yet.
+
 ### 2026-11-16 09:24 UTC
 
 - **Progress:** Started work
