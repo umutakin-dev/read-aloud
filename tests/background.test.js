@@ -128,12 +128,12 @@ test("invoking Read Aloud on a tab", async (t) => {
     assert.deepEqual(calls, [
       "tab:TOGGLE_READ_ALOUD",
       "insertCSS:content.css",
-      "executeScript:lib/Readability.js,lib/textkit.js,content.js",
+      "executeScript:lib/Readability.js,lib/textkit.js,lib/record.js,content.js",
       "tab:TOGGLE_READ_ALOUD",
     ]);
   });
 
-  await t.test("injects textkit before content.js", async () => {
+  await t.test("injects textkit and the record before content.js", async () => {
     let attempt = 0;
     const { calls, listeners } = load({
       tabMessage: async () => {
@@ -147,6 +147,10 @@ test("invoking Read Aloud on a tab", async (t) => {
     assert.ok(
       executed.indexOf("lib/textkit.js") < executed.indexOf("content.js"),
       `content.js reads ReadAloudText at load: ${executed.join(", ")}`
+    );
+    assert.ok(
+      executed.indexOf("lib/record.js") < executed.indexOf("content.js"),
+      `content.js reads ReadAloudRecord at load: ${executed.join(", ")}`
     );
   });
 
