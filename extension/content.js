@@ -579,6 +579,11 @@
       state.timestamps = resolveWordSpans(data.timestamps || []);
       state._paragraphOffset = findParagraphOffset(state.chunks[index].text, index);
       lastHighlightedWord = -1;
+      // The previous chunk's time is still here when it ended by itself (only
+      // Stop/Prev/Next reset it). Left alone, the highlight loop would read
+      // the new timestamps at the old chunk's end time and light a word
+      // seconds into this chunk until the first AUDIO_TIME corrected it (000048).
+      state._currentTime = 0;
       // Kept so playback can be rebuilt if Chrome discards the offscreen
       // document during a pause — see resumePlayback.
       state._audioBase64 = data.audio_base64;

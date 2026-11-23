@@ -29,6 +29,7 @@ engine/               source of the browser engine (ES modules)
 scripts/build-engine.mjs  bundles engine/ into extension/engine/
 server/               FastAPI + Kokoro, managed with uv
   src/tts_server/alignment.py   token → character spans, kept free of torch
+  src/tts_server/device.py      cuda → mps → cpu choice, kept free of torch
 tests/                node:test suites for the extension
 spikes/               timeboxed experiments, not shipped
 todo/                 work items (see Workflow)
@@ -44,7 +45,7 @@ npm test                         # extension suite (no build needed)
 uv run --directory server --no-project --with pytest --with httpx --with starlette pytest
                                  # server suite without installing torch
 
-uv sync --directory server       # full server install (CUDA torch, ~2.6GB)
+uv sync --directory server       # full server install (CUDA torch ~2.6GB; PyPI torch with MPS on macOS)
 uv run --directory server uvicorn tts_server.main:app --port 7860
 ```
 
@@ -67,7 +68,8 @@ Each of these was a fix. Reverting one brings the bug back.
   variables, because Chrome evicts the worker after about 30s idle (000005).
 - **The offscreen document's existence is queried** with `getContexts`, never
   remembered in a flag.
-- **`alignment.py` must not import torch, numpy or soundfile.** The cheap
+- **`alignment.py` and `device.py` must not import torch, numpy or soundfile.**
+  `device.py` takes torch as an argument (000049). The cheap
   server test run depends on it.
 - **Browser speech fallback is opt-in, off by default** (000018).
 - **One manifest serves both browsers** (000044). `background` carries both
