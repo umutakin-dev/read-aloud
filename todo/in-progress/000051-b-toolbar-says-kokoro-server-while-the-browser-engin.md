@@ -1,7 +1,7 @@
 # Toolbar says Kokoro · server while the browser engine downloads its model
 
 **Type:** 🐛 Bug
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🟢 LOW
 **Tracked In:** local
 **Created:** 2026-11-23 12:26 UTC
@@ -20,14 +20,14 @@ Switching Engine to this browser in the popup leaves an open tab with the engine
 
 ## Actual
 
-- **Start:**
+- **Start:** 2026-11-23 12:27 UTC
 - **End:**
 - **Effort:**
 
 ## Requirements
 
-- [ ] The label reads Kokoro · browser as soon as the model starts downloading or loading
-- [ ] A test drives content.js through it with a stubbed chrome
+- [x] The label reads Kokoro · browser as soon as the model starts downloading or loading
+- [x] A test drives content.js through it with a stubbed chrome
 
 ## Checklist
 
@@ -38,6 +38,16 @@ Switching Engine to this browser in the popup leaves an open tab with the engine
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-23 12:28 UTC
+- **Progress:** ☑ Checked (Requirements): A test drives content.js through it with a stubbed chrome
+
+### 2026-11-23 12:28 UTC
+- **Progress:** ☑ Checked (Requirements): The label reads Kokoro · browser as soon as the model starts downloading or loading
+
+### 2026-11-23 12:27 UTC
+
+- **Progress:** Started work
 
 ### 2026-11-23 12:26 UTC
 - **Note:** Dedup: top matches were the 000026 and 000024 epics and 000038 (keyboard controls); none covers the engine label. Follow-up from 000046's Chrome verification.
