@@ -1,7 +1,7 @@
 # Server runs Kokoro on the Apple GPU (MPS) on macOS
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-23 10:51 UTC
@@ -21,8 +21,8 @@ select_device() only checks CUDA, so on an Apple Silicon Mac Kokoro falls back t
 ## Actual
 
 - **Start:** 2026-11-23 10:51 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-23 11:19 UTC
+- **Effort:** 1m
 
 ## Requirements
 
@@ -40,6 +40,16 @@ select_device() only checks CUDA, so on an Apple Silicon Mac Kokoro falls back t
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-23 11:19 UTC
+
+- **Progress:** Completed
+
+### 2026-11-23 11:19 UTC
+- **Note:** Not run on the desktop's CUDA path. Its logic only moved into device.py, and the warm-up runs on MPS only.
+
+### 2026-11-23 11:19 UTC
+- **Delivered:** PR #11 (fix: run Kokoro on the Apple GPU (MPS) on macOS)
 
 ### 2026-11-23 10:56 UTC
 - **Decision:** MPS is the default despite the per-length compile cost: it is never slower in total, gets faster with use, and keeps the CPU free for the browser. A one-word warm-up on pipeline build pays the first-install compile (7s chunk to 0.9s) and routes any MPS op failure into the existing CPU fallback.
