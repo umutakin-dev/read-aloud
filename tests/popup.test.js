@@ -38,14 +38,19 @@ async function openPopup({ platform = "MacIntel", shortcut = "Ctrl+Shift+U", com
 }
 
 test("the popup's shortcut hint (000050)", async (t) => {
-  await t.test("names Command on a Mac, where Firefox reports Ctrl", async () => {
+  await t.test("shows Firefox's Ctrl as Command, in Chrome's symbols, on a Mac", async () => {
     const hint = await openPopup({ platform: "MacIntel", shortcut: "Ctrl+Shift+U" });
-    assert.equal(hint.querySelector("kbd").textContent, "Command+Shift+U");
+    assert.equal(hint.querySelector("kbd").textContent, "⇧⌘U");
   });
 
-  await t.test("names Control for Firefox's MacCtrl on a Mac", async () => {
-    const hint = await openPopup({ platform: "MacIntel", shortcut: "MacCtrl+Shift+U" });
-    assert.equal(hint.querySelector("kbd").textContent, "Control+Shift+U");
+  await t.test("shows Firefox's MacCtrl as Control, in macOS order", async () => {
+    const hint = await openPopup({ platform: "MacIntel", shortcut: "Shift+MacCtrl+U" });
+    assert.equal(hint.querySelector("kbd").textContent, "⌃⇧U");
+  });
+
+  await t.test("shows Alt as Option on a Mac", async () => {
+    const hint = await openPopup({ platform: "MacIntel", shortcut: "Alt+Ctrl+R" });
+    assert.equal(hint.querySelector("kbd").textContent, "⌥⌘R");
   });
 
   await t.test("shows Chrome's Mac symbols as they come", async () => {
