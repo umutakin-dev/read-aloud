@@ -196,6 +196,8 @@ Click the extension icon to access:
 - **Voice**: Select from available Kokoro voices
 - **Speed**: Default playback speed
 - **Server URL**: TTS server address (default: `http://localhost:7860`)
+- **Read citation markers**: Off by default, so Wikipedia-style `[7]` and
+  `[citation needed]`, and footnote links like `¹`, are skipped
 - **Fall back to browser speech**: Off by default
 
 "Browser speech" here is the browser's built-in voice (the Web Speech API), not

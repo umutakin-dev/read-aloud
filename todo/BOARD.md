@@ -35,12 +35,13 @@
 
 *(none)*
 
-## ✅ Done (32)
+## ✅ Done (33)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
 | [000049](done/000049-b-server-runs-kokoro-on-the-apple-gpu-mps-on-macos.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;23 | Server runs Kokoro on the Apple GPU (MPS) on macOS |
 | [000048](done/000048-b-highlight-jumps-ahead-at-the-start-of-each-paragra.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;23 | Highlight jumps ahead at the start of each paragraph |
+| [000047](done/000047-f-skip-citation-markers-like-7-when-reading.md) | ✨ | 🟡 | 2026&#8209;11&#8209;23 | Skip citation markers like [7] when reading |
 | [000046](done/000046-f-in-browser-kokoro-engine-on-webgpu-with-the-server.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | In-browser Kokoro engine on WebGPU, with the server as an optional upgrade |
 | [000045](done/000045-t-agents-md-with-project-guidance-referenced-from-cl.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;16 | AGENTS.md with project guidance, referenced from CLAUDE.md |
 | [000025](done/000025-t-spike-kokoro-in-the-browser-and-whether-timestamps.md) | 🔧 | 🔴 | 2026&#8209;11&#8209;16 | Spike Kokoro in the browser and whether timestamps survive |
