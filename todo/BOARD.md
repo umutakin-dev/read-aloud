@@ -11,7 +11,7 @@
 
 | # | ID | Type | Priority | Title |
 |---|----|------|----------|-------|
-| 1 | [000053](000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | Per-page sentence record, synthesized whole page ahead of the reader |
+| 1 | [000053](in-progress/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | 🔨 Per-page sentence record, synthesized whole page ahead of the reader |
 | 2 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | Read from the selected text |
 | 3 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
 
@@ -19,9 +19,11 @@
 
 *(none)*
 
-## 🔨 In Progress (0)
+## 🔨 In Progress (1)
 
-*(none)*
+| ID | Type | Priority | Title |
+|----|------|----------|-------|
+| [000053](in-progress/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | Per-page sentence record, synthesized whole page ahead of the reader |
 
 ## 📋 Backlog (14)
 

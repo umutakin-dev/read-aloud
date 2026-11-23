@@ -1,7 +1,7 @@
 # Per-page sentence record, synthesized whole page ahead of the reader
 
 **Type:** ✨ Feature
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🔴 HIGH
 **Roadmap:** 🎯 NOW 1
 **Tracked In:** local
@@ -29,7 +29,7 @@ Playback starts once the first sentence is ready. This is the foundation for jum
 
 ## Actual
 
-- **Start:**
+- **Start:** 2026-11-23 21:00 UTC
 - **End:**
 - **Effort:**
 
@@ -54,6 +54,10 @@ Playback starts once the first sentence is ready. This is the foundation for jum
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 21:00 UTC
+
+- **Progress:** Started work
 
 ### 2026-11-23 20:46 UTC
 - **Decision:** Roadmap: 🎯 NOW 3 → 🎯 NOW 2
