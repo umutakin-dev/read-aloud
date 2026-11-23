@@ -26,7 +26,7 @@ Without WebGPU, the browser engine is not offered: its CPU fallback runs at
 - Toolbar with play/pause, prev/next paragraph, speed control
 - Optional Web Speech API fallback when the server is unavailable (off by default)
 - Auto-reconnect when server comes back online
-- Right-click context menu and keyboard shortcut (Ctrl+Shift+U)
+- Right-click context menu and keyboard shortcut (Ctrl+Shift+U, or ⌘⇧U on a Mac)
 
 ## Prerequisites
 
@@ -171,7 +171,7 @@ In Firefox the shortcut can be changed under `about:addons` > gear menu >
 
 1. Optionally, start the TTS server
 2. Navigate to any article or web page
-3. Press **Ctrl+Shift+U** or right-click > "Read Aloud"
+3. Press **Ctrl+Shift+U** (**⌘⇧U** on a Mac) or right-click > "Read Aloud"
 4. The toolbar appears at the top with playback controls
 5. Words highlight as they are spoken
 
@@ -183,7 +183,7 @@ few seconds of GPU warm-up.
 
 | Control | Action |
 |---------|--------|
-| Ctrl+Shift+U | Toggle Read Aloud |
+| Ctrl+Shift+U (⌘⇧U on a Mac) | Toggle Read Aloud; the popup shows the shortcut actually bound |
 | Play/Pause button | Pause or resume playback |
 | Prev/Next buttons | Jump between paragraphs |
 | Speed slider | Adjust playback speed (0.5x - 3.0x) |

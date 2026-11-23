@@ -40,6 +40,39 @@ document.addEventListener("DOMContentLoaded", async () => {
     serverUrlInput.value = settings.serverUrl;
   }
 
+  // The toggle's real shortcut, not a hard-coded one. On a Mac both browsers
+  // bind the manifest's "Ctrl+Shift+U" as Command+Shift+U, and the user can
+  // rebind it, so a fixed hint named a key that did nothing (000050).
+  // Chrome reports the binding as the platform shows it ("⇧⌘U"); Firefox
+  // reports manifest syntax, where Ctrl means Command on macOS and MacCtrl
+  // means Control.
+  async function showShortcut() {
+    const hint = document.getElementById("shortcut-hint");
+    let shortcut = "";
+    try {
+      const commands = await chrome.commands.getAll();
+      shortcut = commands.find((c) => c.name === "toggle-read-aloud")?.shortcut || "";
+    } catch (e) {
+      // No commands API: say nothing rather than guess.
+      return;
+    }
+    const isMac = /mac/i.test(navigator.userAgentData?.platform || navigator.platform || "");
+    if (isMac) {
+      shortcut = shortcut.replace(/\bMacCtrl\b/g, "Control").replace(/\bCtrl\b/g, "Command");
+    }
+    hint.textContent = "";
+    if (!shortcut) {
+      hint.textContent =
+        "No keyboard shortcut is set. Choose one in the browser's extension shortcut settings.";
+      return;
+    }
+    const key = document.createElement("kbd");
+    key.textContent = shortcut;
+    hint.append("Press ", key, " to toggle Read Aloud on any page");
+  }
+
+  showShortcut();
+
   // Show the saved voice straight away. Without this the select holds only the
   // hardcoded default until the voice list arrives, and saving while the server
   // is unreachable would silently overwrite the user's choice.
