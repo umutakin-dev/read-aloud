@@ -3,7 +3,7 @@
 **Type:** ✨ Feature
 **Status:** 📋 Backlog
 **Priority:** 🟡 MEDIUM
-**Roadmap:** 🎯 NOW 5
+**Roadmap:** 🎯 NOW 4
 **Tracked In:** local
 **Created:** 2026-08-03
 
@@ -25,8 +25,8 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 
 ## Estimation
 
-- **Start:** 2026-11-28
-- **End:** 2026-11-29
+- **Start:** 2026-11-27
+- **End:** 2026-11-28
 - **Effort:** ~5h (p75 5h)
 
 ## Actual

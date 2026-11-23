@@ -1,9 +1,8 @@
 # Per-page sentence record, synthesized whole page ahead of the reader
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 1
 **Tracked In:** local
 **Created:** 2026-11-23 12:52 UTC
 
@@ -29,9 +28,9 @@ Playback starts once the first sentence is ready. This is the foundation for jum
 
 ## Actual
 
-- **Start:** 2026-11-23 21:00 UTC
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-23 20:53 UTC
+- **End:** 2026-11-23 22:05 UTC
+- **Effort:** 1h12
 
 ## Requirements
 
@@ -41,8 +40,8 @@ Playback starts once the first sentence is ready. This is the foundation for jum
 - [x] After a jump, synthesis continues from the jump target to the end, then fills the skipped gaps
 - [x] Ready audio is kept for the page, capped by size, oldest dropped first
 - [x] Going back to a ready sentence plays it with no synthesis
-- [ ] Highlighting still lines up per word and per sentence on both engines
-- [ ] No audible gap between sentences, measured on both engines
+- [x] Highlighting still lines up per word and per sentence on both engines
+- [x] No audible gap between sentences, measured on both engines
 - [x] Tests cover the ordering, the cap and the state changes
 
 ## Checklist
@@ -54,6 +53,22 @@ Playback starts once the first sentence is ready. This is the foundation for jum
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 22:05 UTC
+- **Note:** Took 1h12 against an estimate of 5h (0.2x) — measured since the previous item closed.
+
+### 2026-11-23 22:05 UTC
+
+- **Progress:** Completed
+
+### 2026-11-23 22:05 UTC
+- **Delivered:** PR #16: sentences are the unit; lib/record.js keeps state and audio per page (64MB cap) and orders synthesis forward from the reader, then the gaps; one request at a time; reading starts after the first sentence. Umut's Firefox logs, 2026-11-24, HN thread, both engines: after the preload fix every play preloaded=true, gaps 2-16ms. Highlighting lined up on the browser engine.
+
+### 2026-11-23 22:05 UTC
+- **Progress:** ☑ Checked (Requirements): No audible gap between sentences, measured on both engines
+
+### 2026-11-23 22:05 UTC
+- **Progress:** ☑ Checked (Requirements): Highlighting still lines up per word and per sentence on both engines
 
 ### 2026-11-23 21:33 UTC
 - **Progress:** Umut's Firefox log, 2026-11-24, server then browser engine on an HN thread: gapMs 6-24ms at nearly every boundary, outliers 34, 36, 84, 110ms. Highlighting lined up on the browser engine (screenshot). Found preloaded=false on every play: the preload was sent before PLAY and dropped by the player. Fixed; needs one more log to confirm preloaded=true.

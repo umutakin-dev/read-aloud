@@ -7,25 +7,22 @@
 
 *What is being built and in what order. Everything under Backlog is the implicit Later.*
 
-### 🎯 Now (5)
+### 🎯 Now (4)
 
 | # | ID | Type | Priority | Title |
 |---|----|------|----------|-------|
-| 1 | [000053](in-progress/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | 🔨 Per-page sentence record, synthesized whole page ahead of the reader |
-| 2 | [000056](000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | Audio keeps playing after the reading page reloads or navigates away |
-| 3 | [000057](000057-b-hacker-news-each-comment-s-first-paragraph-and-sho.md) | 🐛 | 🔴 | Hacker News: each comment's first paragraph and short comments are not read |
-| 4 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | Read from the selected text |
-| 5 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
+| 1 | [000056](000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | Audio keeps playing after the reading page reloads or navigates away |
+| 2 | [000057](000057-b-hacker-news-each-comment-s-first-paragraph-and-sho.md) | 🐛 | 🔴 | Hacker News: each comment's first paragraph and short comments are not read |
+| 3 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | Read from the selected text |
+| 4 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
 
 ### 🔜 Next (0)
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (0)
 
-| ID | Type | Priority | Title |
-|----|------|----------|-------|
-| [000053](in-progress/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | Per-page sentence record, synthesized whole page ahead of the reader |
+*(none)*
 
 ## 📋 Backlog (14)
 
@@ -54,11 +51,12 @@
 
 *(none)*
 
-## ✅ Done (38)
+## ✅ Done (39)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
 | [000055](done/000055-t-build-a-chrome-and-a-firefox-package-from-the-one-.md) | 🔧 | 🔴 | 2026&#8209;11&#8209;23 | Build a Chrome and a Firefox package from the one extension tree |
+| [000053](done/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | Per-page sentence record, synthesized whole page ahead of the reader |
 | [000052](done/000052-f-debug-log-the-extension-records-and-the-popup-down.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | Debug log the extension records and the popup downloads |
 | [000051](done/000051-b-toolbar-says-kokoro-server-while-the-browser-engin.md) | 🐛 | 🟢 | 2026&#8209;11&#8209;23 | Toolbar says Kokoro · server while the browser engine downloads its model |
 | [000050](done/000050-b-shortcut-hint-says-ctrl-shift-u-on-a-mac-where-the.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;23 | Shortcut hint says Ctrl+Shift+U on a Mac, where the shortcut is Command+Shift+U |

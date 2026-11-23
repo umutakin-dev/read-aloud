@@ -3,7 +3,7 @@
 **Type:** 🐛 Bug
 **Status:** 📋 Backlog
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 3
+**Roadmap:** 🎯 NOW 2
 **Tracked In:** local
 **Created:** 2026-11-23 21:24 UTC
 
@@ -20,8 +20,8 @@ The first is ours to fix in textkit: text sitting directly inside a wrapper, bef
 
 ## Estimation
 
-- **Start:** 2026-11-25
-- **End:** 2026-11-27
+- **Start:** 2026-11-24
+- **End:** 2026-11-25
 - **Effort:** ~5h (p75 5h)
 
 ## Actual
