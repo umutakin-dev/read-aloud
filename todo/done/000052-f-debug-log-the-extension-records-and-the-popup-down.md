@@ -1,9 +1,8 @@
 # Debug log the extension records and the popup downloads
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 1
 **Tracked In:** local
 **Created:** 2026-11-23 12:52 UTC
 
@@ -24,8 +23,8 @@ Umut asked for the extension to record its own log instead of asking him to open
 ## Actual
 
 - **Start:** 2026-11-23 12:53 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-23 20:45 UTC
+- **Effort:** 2m
 
 ## Requirements
 
@@ -45,6 +44,16 @@ Umut asked for the extension to record its own log instead of asking him to open
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 20:45 UTC
+- **Note:** Took 2m against an estimate of 5h (0.0x) — measured since the previous item closed.
+
+### 2026-11-23 20:45 UTC
+
+- **Progress:** Completed
+
+### 2026-11-23 20:45 UTC
+- **Delivered:** PR #14: every part of the extension records a debug log (host only, 40-character text previews), the popup downloads it as a .txt and clears it. Download checked by Umut in Firefox, 2026-11-23. Also fixed the popup scrolling sideways in Firefox once it passed the 600px cap; checked by Umut.
 
 ### 2026-11-23 12:59 UTC
 - **Progress:** Built and tested (190 extension tests). The Firefox test caught offscreen.js and background.js sharing one global scope: the player's log helper was silently replaced by the background's, so it is playerLog. Not yet seen in a real browser: the download from the popup in both browsers.
