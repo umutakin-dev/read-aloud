@@ -35,15 +35,15 @@ Playback starts once the first sentence is ready. This is the foundation for jum
 
 ## Requirements
 
-- [ ] Sentences are the unit of synthesis and playback, each with a state for the page
-- [ ] Playback starts as soon as the first sentence is ready
-- [ ] The whole page is synthesized in the background, one request at a time
-- [ ] After a jump, synthesis continues from the jump target to the end, then fills the skipped gaps
-- [ ] Ready audio is kept for the page, capped by size, oldest dropped first
-- [ ] Going back to a ready sentence plays it with no synthesis
+- [x] Sentences are the unit of synthesis and playback, each with a state for the page
+- [x] Playback starts as soon as the first sentence is ready
+- [x] The whole page is synthesized in the background, one request at a time
+- [x] After a jump, synthesis continues from the jump target to the end, then fills the skipped gaps
+- [x] Ready audio is kept for the page, capped by size, oldest dropped first
+- [x] Going back to a ready sentence plays it with no synthesis
 - [ ] Highlighting still lines up per word and per sentence on both engines
 - [ ] No audible gap between sentences, measured on both engines
-- [ ] Tests cover the ordering, the cap and the state changes
+- [x] Tests cover the ordering, the cap and the state changes
 
 ## Checklist
 
@@ -54,6 +54,30 @@ Playback starts once the first sentence is ready. This is the foundation for jum
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 21:07 UTC
+- **Progress:** Built: lib/record.js (state, order, 64MB cap), sentence chunks from our own splitter, one-request synthesis loop in content.js, gapMs in the player's audio.play log. 259 extension tests pass. Waiting on a real-browser read in Chrome and Firefox, on both engines: highlighting, and gapMs in the debug log.
+
+### 2026-11-23 21:07 UTC
+- **Progress:** ☑ Checked (Requirements): Tests cover the ordering, the cap and the state changes
+
+### 2026-11-23 21:07 UTC
+- **Progress:** ☑ Checked (Requirements): Going back to a ready sentence plays it with no synthesis
+
+### 2026-11-23 21:07 UTC
+- **Progress:** ☑ Checked (Requirements): Ready audio is kept for the page, capped by size, oldest dropped first
+
+### 2026-11-23 21:07 UTC
+- **Progress:** ☑ Checked (Requirements): After a jump, synthesis continues from the jump target to the end, then fills the skipped gaps
+
+### 2026-11-23 21:07 UTC
+- **Progress:** ☑ Checked (Requirements): The whole page is synthesized in the background, one request at a time
+
+### 2026-11-23 21:07 UTC
+- **Progress:** ☑ Checked (Requirements): Playback starts as soon as the first sentence is ready
+
+### 2026-11-23 21:07 UTC
+- **Progress:** ☑ Checked (Requirements): Sentences are the unit of synthesis and playback, each with a state for the page
 
 ### 2026-11-23 21:00 UTC
 
