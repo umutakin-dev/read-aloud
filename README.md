@@ -133,23 +133,33 @@ CDN. Build it once, and again after pulling engine changes:
 
 ```bash
 npm install
-npm run build        # → extension/engine/ (engine.js 1.8MB, onnxruntime wasm 25.6MB)
+npm run build        # → extension/engine/, then dist/chrome/ and dist/firefox/
+npm run package      # the same, plus dist/read-aloud-{chrome,firefox}-<version>.zip
 ```
 
-Without it the extension still loads and the server engine still works; the
-browser engine reports that it is not built.
+`extension/manifest.json` serves both browsers, so `extension/` loads unpacked
+in either while you work on it, with one warning each: Firefox does not know
+the `"offscreen"` permission, and Chrome does not know Firefox's keys. The
+build writes a copy per browser into `dist/` with only that browser's keys, and
+that copy is what the store gets. Load it to test a release; it needs
+`npm run build` again after every change.
+
+The zips are what you upload to the Chrome Web Store and addons.mozilla.org.
+The Firefox one bundles minified code (the engine), so Mozilla also asks for
+the source: a zip of this repository and the build steps above.
+
+Without `extension/engine/` the extension still loads and the server engine
+still works; the browser engine reports that it is not built. The `dist/`
+build refuses to run without it.
 
 ### Firefox Extension
 
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click "Load Temporary Add-on…"
-3. Select `extension/manifest.json`
+3. Select `manifest.json` in `dist/firefox/` (or in `extension/` while
+   developing)
 4. Open `about:addons`, choose Read Aloud > **Permissions**, and make sure
    access to `localhost:7860` is allowed
-
-Loading shows one warning, that `"offscreen"` is not a known permission. It is
-harmless: Chrome needs that permission, Firefox ignores it, and a single
-manifest cannot list permissions per browser.
 
 A temporary add-on is removed when Firefox closes. Release Firefox only keeps
 add-ons that Mozilla has signed, so a permanent install needs either a signed
@@ -164,7 +174,7 @@ In Firefox the shortcut can be changed under `about:addons` > gear menu >
 1. Open `chrome://extensions` in Chrome
 2. Enable "Developer mode" (top right)
 3. Click "Load unpacked"
-4. Select the `extension/` directory
+4. Select the `dist/chrome/` directory (or `extension/` while developing)
 5. The extension icon should appear in the toolbar
 
 ## Usage
