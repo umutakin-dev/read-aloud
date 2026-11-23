@@ -34,5 +34,8 @@ env/
 .DS_Store
 Thumbs.db
 
-# Node (if any)
+# Node
 node_modules/
+
+# The in-browser engine, built by `npm run build` (scripts/build-engine.mjs)
+extension/engine/

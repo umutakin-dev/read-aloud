@@ -1,10 +1,26 @@
 # Read Aloud
 
-Browser extension for Firefox and Chrome that reads web pages aloud using a local Kokoro TTS server with word-level highlighting.
+Browser extension for Firefox and Chrome that reads web pages aloud with Kokoro TTS, highlighting as it goes.
+
+## Two engines
+
+| | In the browser | Local server |
+|---|---|---|
+| Install | nothing; a ~310MB model downloads once, on first use | Python, uv, espeak-ng, CUDA torch |
+| Needs | WebGPU | the server running |
+| Speed | ~4x realtime after a few seconds of warm-up | 16–80x realtime |
+| Highlighting | exact per sentence; words estimated within it | exact per word |
+
+By default Read Aloud uses the server when it is running and the browser
+otherwise, so it works with nothing installed and gets better when the server
+is started. The popup's **Engine** setting can pin either one.
+
+Without WebGPU, the browser engine is not offered: its CPU fallback runs at
+0.5–0.8x realtime, slower than listening (measured in `spikes/browser-kokoro`).
 
 ## Features
 
-- High-quality text-to-speech via local Kokoro TTS (GPU-accelerated)
+- High-quality text-to-speech via Kokoro, in the browser on the GPU or on a local server
 - Word and sentence-level highlighting using CSS Custom Highlight API
 - Automatic text extraction via Mozilla Readability.js
 - Toolbar with play/pause, prev/next paragraph, speed control
@@ -14,11 +30,17 @@ Browser extension for Firefox and Chrome that reads web pages aloud using a loca
 
 ## Prerequisites
 
+For the extension:
+
+- Node.js 22+, to build the browser engine (`npm install`, `npm run build`)
+- Firefox 140+, or Chrome / a Chromium-based browser
+
+For the optional server:
+
 - Python 3.10+
 - [uv](https://docs.astral.sh/uv/) package manager
 - An NVIDIA GPU with CUDA, or an Apple Silicon Mac (recommended) — falls back to CPU automatically
 - [espeak-ng](https://github.com/espeak-ng/espeak-ng/releases) installed on system PATH
-- Firefox 140+, or Chrome / a Chromium-based browser
 
 ### Installing espeak-ng (Windows)
 
@@ -104,6 +126,19 @@ To point another client at it:
 | `READ_ALOUD_ALLOWED_ORIGINS` | *(empty)* | Comma-separated list of exact origins to allow |
 | `READ_ALOUD_ALLOWED_ORIGIN_REGEX` | any Chrome extension ID or Firefox extension UUID | Origin pattern to allow |
 
+### Building the extension
+
+The browser engine is bundled, since MV3 extensions may not load code from a
+CDN. Build it once, and again after pulling engine changes:
+
+```bash
+npm install
+npm run build        # → extension/engine/ (engine.js 1.8MB, onnxruntime wasm 25.6MB)
+```
+
+Without it the extension still loads and the server engine still works; the
+browser engine reports that it is not built.
+
 ### Firefox Extension
 
 1. Open `about:debugging#/runtime/this-firefox`
@@ -134,11 +169,15 @@ In Firefox the shortcut can be changed under `about:addons` > gear menu >
 
 ## Usage
 
-1. Start the TTS server
+1. Optionally, start the TTS server
 2. Navigate to any article or web page
 3. Press **Ctrl+Shift+U** or right-click > "Read Aloud"
 4. The toolbar appears at the top with playback controls
 5. Words highlight as they are spoken
+
+The first read on the browser engine downloads the model (~310MB) and says so
+in the toolbar. Every later load comes from the browser's cache, followed by a
+few seconds of GPU warm-up.
 
 ### Controls
 
@@ -153,13 +192,16 @@ In Firefox the shortcut can be changed under `about:addons` > gear menu >
 ### Settings (Popup)
 
 Click the extension icon to access:
+- **Engine**: Automatic (default), this browser, or the local server only
 - **Voice**: Select from available Kokoro voices
 - **Speed**: Default playback speed
 - **Server URL**: TTS server address (default: `http://localhost:7860`)
 - **Fall back to browser speech**: Off by default
 
-With fallback off, an unreachable server never produces browser speech. The
-toolbar shows a red **Server down** indicator and waits, resuming from the
+"Browser speech" here is the browser's built-in voice (the Web Speech API), not
+the browser Kokoro engine. With fallback off, an unreachable engine never
+produces browser speech. The toolbar shows a red **Server down** indicator
+(or **No engine**, when the browser cannot run Kokoro either) and waits, resuming from the
 paragraph it stopped at as soon as the server answers — pressing Play retries
 immediately rather than waiting for the next poll. Turn it on if you would
 rather hear the browser's built-in voice than nothing.

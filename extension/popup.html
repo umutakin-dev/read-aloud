@@ -14,6 +14,15 @@
     </div>
 
     <div class="section">
+      <label for="engine-select">Engine</label>
+      <select id="engine-select">
+        <option value="auto">Automatic: the server if it's running, else this browser</option>
+        <option value="browser">This browser (GPU, no install)</option>
+        <option value="server">Local server only (exact word highlighting)</option>
+      </select>
+    </div>
+
+    <div class="section">
       <label for="voice-select">Voice</label>
       <select id="voice-select">
         <option value="af_heart">Heart (Female)</option>
@@ -38,8 +47,8 @@
         <input type="checkbox" id="allow-fallback">
         <span>
           Fall back to browser speech
-          <small>Read with the browser's built-in voice when the Kokoro server
-          is unavailable. Off means Read Aloud waits for the server instead.</small>
+          <small>Read with the browser's built-in voice when no Kokoro engine
+          is available. Off means Read Aloud waits instead.</small>
         </span>
       </label>
     </div>
