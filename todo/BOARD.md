@@ -7,24 +7,21 @@
 
 *What is being built and in what order. Everything under Backlog is the implicit Later.*
 
-### 🎯 Now (4)
+### 🎯 Now (3)
 
 | # | ID | Type | Priority | Title |
 |---|----|------|----------|-------|
-| 1 | [000055](in-progress/000055-t-build-a-chrome-and-a-firefox-package-from-the-one-.md) | 🔧 | 🔴 | 🔨 Build a Chrome and a Firefox package from the one extension tree |
-| 2 | [000053](000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | Per-page sentence record, synthesized whole page ahead of the reader |
-| 3 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | Read from the selected text |
-| 4 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
+| 1 | [000053](000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | Per-page sentence record, synthesized whole page ahead of the reader |
+| 2 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | Read from the selected text |
+| 3 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
 
 ### 🔜 Next (0)
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (0)
 
-| ID | Type | Priority | Title |
-|----|------|----------|-------|
-| [000055](in-progress/000055-t-build-a-chrome-and-a-firefox-package-from-the-one-.md) | 🔧 | 🔴 | Build a Chrome and a Firefox package from the one extension tree |
+*(none)*
 
 ## 📋 Backlog (14)
 
@@ -53,10 +50,11 @@
 
 *(none)*
 
-## ✅ Done (37)
+## ✅ Done (38)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000055](done/000055-t-build-a-chrome-and-a-firefox-package-from-the-one-.md) | 🔧 | 🔴 | 2026&#8209;11&#8209;23 | Build a Chrome and a Firefox package from the one extension tree |
 | [000052](done/000052-f-debug-log-the-extension-records-and-the-popup-down.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | Debug log the extension records and the popup downloads |
 | [000051](done/000051-b-toolbar-says-kokoro-server-while-the-browser-engin.md) | 🐛 | 🟢 | 2026&#8209;11&#8209;23 | Toolbar says Kokoro · server while the browser engine downloads its model |
 | [000050](done/000050-b-shortcut-hint-says-ctrl-shift-u-on-a-mac-where-the.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;23 | Shortcut hint says Ctrl+Shift+U on a Mac, where the shortcut is Command+Shift+U |

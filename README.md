@@ -138,8 +138,9 @@ npm run package      # the same, plus dist/read-aloud-{chrome,firefox}-<version>
 ```
 
 `extension/manifest.json` serves both browsers, so `extension/` loads unpacked
-in either while you work on it, with one warning each: Firefox does not know
-the `"offscreen"` permission, and Chrome does not know Firefox's keys. The
+in either while you work on it, with one harmless warning each: Firefox does
+not know the `"offscreen"` permission, and Chrome lists "'background.scripts'
+requires manifest version of 2 or lower" under the extension's Errors. The
 build writes a copy per browser into `dist/` with only that browser's keys, and
 that copy is what the store gets. Load it to test a release; it needs
 `npm run build` again after every change.

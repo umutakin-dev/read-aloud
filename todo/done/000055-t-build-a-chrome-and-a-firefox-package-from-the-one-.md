@@ -1,9 +1,8 @@
 # Build a Chrome and a Firefox package from the one extension tree
 
 **Type:** 🔧 Task
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 1
 **Tracked In:** local
 **Created:** 2026-11-23 20:32 UTC
 
@@ -29,14 +28,14 @@ Supersedes the 000044 note that one manifest "stays" because it cannot list perm
 ## Actual
 
 - **Start:** 2026-11-23 20:32 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-23 20:53 UTC
+- **Effort:** 8m
 
 ## Requirements
 
 - [x] npm run build writes dist/chrome and dist/firefox, each loadable unpacked
-- [ ] The Firefox manifest has no offscreen permission, service_worker or offscreen page; Firefox loads it without a warning
-- [ ] The Chrome manifest has no background.scripts or browser_specific_settings; Chrome loads it without a warning
+- [x] The Firefox manifest has no offscreen permission, service_worker or offscreen page; Firefox loads it without a warning
+- [x] The Chrome manifest has no background.scripts or browser_specific_settings; Chrome loads it without a warning
 - [x] npm run package writes one zip per browser, named with the version, ready to upload
 - [x] Tests check both derived manifests against the source
 - [x] README and AGENTS say which folder to load and which zip to upload
@@ -48,6 +47,22 @@ Supersedes the 000044 note that one manifest "stays" because it cannot list perm
 - [ ] Verified
 
 ## Log
+
+### 2026-11-23 20:53 UTC
+- **Note:** Took 8m against an estimate of 5h (0.0x) — measured since the previous item closed.
+
+### 2026-11-23 20:53 UTC
+
+- **Progress:** Completed
+
+### 2026-11-23 20:53 UTC
+- **Delivered:** PR #15: npm run build writes dist/chrome and dist/firefox, npm run package zips them. Umut loaded both on a Mac, 2026-11-23: Firefox with no offscreen warning, Chrome with no errors. The extension/ load had shown Chrome's "'background.scripts' requires manifest version of 2 or lower" error all along; the Chrome copy drops that key.
+
+### 2026-11-23 20:53 UTC
+- **Progress:** ☑ Checked (Requirements): The Chrome manifest has no background.scripts or browser_specific_settings; Chrome loads it without a warning
+
+### 2026-11-23 20:53 UTC
+- **Progress:** ☑ Checked (Requirements): The Firefox manifest has no offscreen permission, service_worker or offscreen page; Firefox loads it without a warning
 
 ### 2026-11-23 20:46 UTC
 - **Decision:** Roadmap: 🎯 NOW 2 → 🎯 NOW 1

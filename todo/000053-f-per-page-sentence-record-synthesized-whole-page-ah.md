@@ -3,7 +3,7 @@
 **Type:** ✨ Feature
 **Status:** 📋 Backlog
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 2
+**Roadmap:** 🎯 NOW 1
 **Tracked In:** local
 **Created:** 2026-11-23 12:52 UTC
 
@@ -23,8 +23,8 @@ Playback starts once the first sentence is ready. This is the foundation for jum
 
 ## Estimation
 
-- **Start:** 2026-11-24
-- **End:** 2026-11-25
+- **Start:** 2026-11-23
+- **End:** 2026-11-24
 - **Effort:** ~5h (p75 5h)
 
 ## Actual
