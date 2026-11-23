@@ -45,7 +45,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   // rebind it, so a fixed hint named a key that did nothing (000050).
   // Chrome reports the binding as the platform shows it ("⇧⌘U"); Firefox
   // reports manifest syntax, where Ctrl means Command on macOS and MacCtrl
-  // means Control.
+  // means Control. On a Mac, Firefox's form is turned into the same symbols,
+  // so both browsers show the shortcut the way macOS menus do.
+  const MAC_SYMBOLS = { MacCtrl: "⌃", Alt: "⌥", Option: "⌥", Shift: "⇧", Ctrl: "⌘", Command: "⌘" };
+  // macOS always lists modifiers in this order, whatever order they were typed.
+  const MAC_ORDER = ["⌃", "⌥", "⇧", "⌘"];
+
+  function macShortcut(shortcut) {
+    const parts = shortcut.split("+");
+    if (parts.length < 2) return shortcut; // Chrome's symbols, already right
+    const key = parts.pop();
+    const mods = parts.map((p) => MAC_SYMBOLS[p] || p);
+    mods.sort((a, b) => MAC_ORDER.indexOf(a) - MAC_ORDER.indexOf(b));
+    return mods.join("") + key;
+  }
+
   async function showShortcut() {
     const hint = document.getElementById("shortcut-hint");
     let shortcut = "";
@@ -58,7 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     const isMac = /mac/i.test(navigator.userAgentData?.platform || navigator.platform || "");
     if (isMac) {
-      shortcut = shortcut.replace(/\bMacCtrl\b/g, "Control").replace(/\bCtrl\b/g, "Command");
+      shortcut = macShortcut(shortcut);
     }
     hint.textContent = "";
     if (!shortcut) {
