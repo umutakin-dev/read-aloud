@@ -3,7 +3,7 @@
 **Type:** ✨ Feature
 **Status:** 📋 Backlog
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 4
+**Roadmap:** 🎯 NOW 3
 **Tracked In:** local
 **Created:** 2026-08-03
 
@@ -24,8 +24,8 @@ Pairs naturally with #000040, since both are about knowing and controlling where
 
 ## Estimation
 
-- **Start:** 2026-11-28
-- **End:** 2026-11-29
+- **Start:** 2026-11-25
+- **End:** 2026-11-27
 - **Effort:** ~5h (p75 5h)
 
 ## Actual
@@ -54,6 +54,9 @@ Pairs naturally with #000040, since both are about knowing and controlling where
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 22:06 UTC
+- **Decision:** Roadmap: 🎯 NOW 4 → 🎯 NOW 3
 
 ### 2026-11-23 20:46 UTC
 - **Decision:** Roadmap: 🎯 NOW 4 → 🎯 NOW 3

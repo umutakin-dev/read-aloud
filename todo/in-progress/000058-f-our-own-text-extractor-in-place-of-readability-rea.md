@@ -3,7 +3,7 @@
 **Type:** ✨ Feature
 **Status:** 🔨 In Progress
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 2
+**Roadmap:** 🎯 NOW 1
 **Tracked In:** local
 **Created:** 2026-11-23 21:55 UTC
 
@@ -26,8 +26,8 @@ Closes 000057 when it lands.
 
 ## Estimation
 
-- **Start:** 2026-11-24
-- **End:** 2026-11-25
+- **Start:** 2026-11-23
+- **End:** 2026-11-24
 - **Effort:** ~5h (p75 5h)
 
 ## Actual
@@ -56,6 +56,9 @@ Closes 000057 when it lands.
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 22:06 UTC
+- **Decision:** Roadmap: 🎯 NOW 2 → 🎯 NOW 1
 
 ### 2026-11-23 21:56 UTC
 
