@@ -39,7 +39,7 @@ For the optional server:
 
 - Python 3.10+
 - [uv](https://docs.astral.sh/uv/) package manager
-- NVIDIA GPU with CUDA support (recommended) — falls back to CPU automatically
+- An NVIDIA GPU with CUDA, or an Apple Silicon Mac (recommended) — falls back to CPU automatically
 - [espeak-ng](https://github.com/espeak-ng/espeak-ng/releases) installed on system PATH
 
 ### Installing espeak-ng (Windows)
@@ -62,21 +62,28 @@ The server will download the Kokoro model on first run (~350MB).
 
 `uv sync` installs a CUDA build of torch on Windows and Linux (~2.6GB, pulled
 from PyTorch's own index — PyPI only carries the CPU-only wheel). macOS keeps
-resolving from PyPI.
+resolving from PyPI, whose wheel already reaches the Apple GPU through MPS.
 
-The same wheel covers both cases: with no usable GPU it simply reports
-`cuda.is_available() == False` and the engine runs on CPU. The device is chosen
-at startup and logged, distinguishing the two reasons you can end up on CPU:
+The engine tries CUDA, then MPS, then the CPU. A CUDA wheel with no usable GPU
+simply reports `cuda.is_available() == False` and the engine runs on CPU. The
+device is chosen at startup and logged, along with why it ended up on CPU:
 
 ```
 Using device: cuda (NVIDIA GeForce RTX 4070 Ti SUPER)
+Using device: mps (Apple GPU)
 Using device: cpu — torch has CUDA 12.8 support but found no usable GPU.
 Using device: cpu — this torch is a CPU-only build (2.10.0+cpu), so any GPU
                     on this machine is invisible to it.
 ```
 
 That last line means the wrong wheel is installed, not that the machine lacks a
-GPU. Re-run `uv sync` in `server/`.
+GPU. Re-run `uv sync` in `server/`. On a Mac, CPU lines give Mac advice instead.
+
+On MPS the first chunk after a fresh install compiles Metal kernels, so the
+server synthesizes one word when it builds the pipeline. Metal also compiles
+once for each new chunk length and caches the result on disk. A new length runs
+at about CPU speed (10–13x realtime on an M-series MacBook) and a cached one at
+about 20x, so MPS gets faster the more you read.
 
 For a deliberately CPU-only install:
 
@@ -225,10 +232,11 @@ uv run --directory server pytest
 The extension suite covers `extension/lib/textkit.js` — paragraph extraction,
 chunking, the text index, word spans — plus the manifest, the injection flow in
 `background.js`, and the preload handshake in `offscreen.js`. The server suite
-covers token alignment and the CORS policy.
+covers token alignment, the CORS policy and the choice of compute device.
 
 Neither needs a GPU and the Python tests do not import torch: everything they
-touch lives in `alignment.py`, which is deliberately kept clear of it. So the
+touch lives in `alignment.py` and `device.py`, which are deliberately kept
+clear of it (`device.py` takes torch as an argument). So the
 server suite also runs without installing the project at all:
 
 ```bash

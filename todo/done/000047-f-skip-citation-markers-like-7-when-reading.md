@@ -1,7 +1,7 @@
 # Skip citation markers like [7] when reading
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-16 10:49 UTC
@@ -23,8 +23,8 @@ Wikipedia-style reference markers ([7], [citation needed]) are spoken aloud and 
 ## Actual
 
 - **Start:** 2026-11-16 10:51 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-23 12:17 UTC
+- **Effort:** 1m
 
 ## Requirements
 
@@ -36,12 +36,25 @@ Wikipedia-style reference markers ([7], [citation needed]) are spoken aloud and 
 ## Checklist
 
 - [ ] Design/approach decided
-- [ ] Implementation complete
-- [ ] Tested
+- [x] Implementation complete
+- [x] Tested
 - [ ] Code reviewed
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 12:17 UTC
+
+- **Progress:** Completed
+
+### 2026-11-23 12:17 UTC
+- **Delivered:** PR #10 (feat: skip citation markers like [7] when reading)
+
+### 2026-11-23 12:17 UTC
+- **Progress:** ☑ Checked (Checklist): Tested
+
+### 2026-11-23 12:17 UTC
+- **Progress:** ☑ Checked (Checklist): Implementation complete
 
 ### 2026-11-16 12:57 UTC
 - **Progress:** User verified in Firefox on Wikipedia: markers skipped, highlighting lines up. Tests added in textkit.test.js. PR opened, based on the 000046 branch.

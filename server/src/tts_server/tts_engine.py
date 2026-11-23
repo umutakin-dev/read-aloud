@@ -7,6 +7,7 @@ import numpy as np
 import soundfile as sf
 import torch
 
+from . import device as _device
 from .alignment import align_timestamps_to_text, preview
 from .voices import language_for_voice, language_name
 from .voices import list_voices as _list_voices
@@ -15,44 +16,21 @@ logger = logging.getLogger(__name__)
 
 
 def log_environment() -> None:
-    logger.info("torch %s (CUDA build: %s)", torch.__version__, torch.version.cuda or "none")
-    if torch.cuda.is_available():
-        for i in range(torch.cuda.device_count()):
-            props = torch.cuda.get_device_properties(i)
-            logger.info(
-                "CUDA device %d: %s (%.1f GiB, compute %d.%d)",
-                i, props.name, props.total_memory / 1024**3, props.major, props.minor,
-            )
-
-
-def select_device() -> str:
-    """Pick the compute device, and say why.
-
-    Ending up on the CPU has two very different causes — no GPU on this machine,
-    or a CPU-only torch wheel masking the GPU that is there — and only the second
-    is fixable by reinstalling. The old one-line check could not tell them apart,
-    which is exactly how a 4070 Ti ended up synthesizing on the CPU unnoticed.
-    """
-    if torch.cuda.is_available():
-        logger.info("Using device: cuda (%s)", torch.cuda.get_device_name(0))
-        return "cuda"
-
-    if torch.version.cuda is None:
-        logger.warning(
-            "Using device: cpu — this torch is a CPU-only build (%s), so any GPU "
-            "on this machine is invisible to it. Re-run `uv sync` in server/ to "
-            "pick up the CUDA wheel.",
-            torch.__version__,
-        )
-    else:
-        logger.info(
-            "Using device: cpu — torch has CUDA %s support but found no usable GPU.",
-            torch.version.cuda,
-        )
-    return "cpu"
+    _device.log_environment(torch)
 
 
 SAMPLE_RATE = 24000
+
+# Synthesized once when a pipeline is built on MPS. The first pass after a
+# fresh install compiles Metal kernels: a chunk took 7s, where the CPU takes 2s.
+# One word pays that once, before a reader is waiting on it (000049).
+#
+# It does not warm every chunk. Metal also compiles per input length and keeps
+# those kernels on disk, so a length never seen before runs at 10-13x realtime,
+# about what the CPU does, and a seen one at about 20x. MPS gets faster the
+# more you read, and even its slowest chunk measured 4.6x, so playback never
+# waits.
+WARMUP_TEXT = "Hello."
 
 
 class TTSEngine:
@@ -69,7 +47,7 @@ class TTSEngine:
 
     def _ensure_device(self) -> str:
         if self._device is None:
-            self._device = select_device()
+            self._device = _device.select_device(torch)
         return self._device
 
     def _pipeline_for(self, voice: str):
@@ -92,13 +70,18 @@ class TTSEngine:
         started = time.perf_counter()
         try:
             pipeline = KPipeline(lang_code=language, device=device)
+            if device == "mps":
+                # Inside the try on purpose: an op MPS cannot run surfaces
+                # here and degrades to the CPU, rather than failing a request.
+                for _ in pipeline(WARMUP_TEXT, voice=voice, speed=1.0):
+                    pass
         except Exception:
             if device == "cpu":
                 raise
             # A driver mismatch or an already-occupied GPU only shows up here,
             # after cuda.is_available() has already said yes. Degrade rather
             # than refusing to serve.
-            logger.exception("Kokoro failed to initialize on GPU, falling back to CPU")
+            logger.exception("Kokoro failed to initialize on %s, falling back to CPU", device)
             self._device = device = "cpu"
             pipeline = KPipeline(lang_code=language, device=device)
 

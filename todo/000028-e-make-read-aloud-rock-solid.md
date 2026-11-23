@@ -25,10 +25,12 @@ Alongside that, two real defects are visible in the merged code — a paragraph 
 - #000034 🐛 Text index goes stale on single-page-app navigation
 - #000035 ✨ Remember reading position across a reload
 - #000036 🔧 Cancel in-flight synthesis when playback stops
+- #000048 🐛 Highlight jumps ahead at the start of each paragraph
+- #000049 🐛 Server runs Kokoro on the Apple GPU (MPS) on macOS
 
 
 ## Progress
-██████████░░░░░░░░░░ 50% (4/8)
+██████████░░░░░░░░░░ 50% (5/10)
 
 - ✅ #000029 Test suite for the logic that is easy to get subtly wrong
 - ✅ #000030 Run the test suite on push and pull request
@@ -38,6 +40,8 @@ Alongside that, two real defects are visible in the merged code — a paragraph 
 - 📋 #000034 Text index goes stale on single-page-app navigation
 - 📋 #000035 Remember reading position across a reload
 - 📋 #000036 Cancel in-flight synthesis when playback stops
+- ✅ #000048 Highlight jumps ahead at the start of each paragraph
+- 🔨 #000049 Server runs Kokoro on the Apple GPU (MPS) on macOS
 
 ## Estimation
 
@@ -64,6 +68,12 @@ Alongside that, two real defects are visible in the merged code — a paragraph 
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 10:51 UTC
+- **Note:** Added #000049 Server runs Kokoro on the Apple GPU (MPS) on macOS to Items
+
+### 2026-11-16 11:21 UTC
+- **Note:** Added #000048 Highlight jumps ahead at the start of each paragraph to Items
 
 ### 2026-08-03
 - **Note:** Added #000036 Cancel in-flight synthesis when playback stops to Items

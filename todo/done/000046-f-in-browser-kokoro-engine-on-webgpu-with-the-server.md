@@ -1,9 +1,8 @@
 # In-browser Kokoro engine on WebGPU, with the server as an optional upgrade
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 1
 **Tracked In:** local
 **Created:** 2026-11-16 08:43 UTC
 
@@ -24,8 +23,8 @@ Spike 000025 showed Kokoro runs correctly in Firefox on WebGPU fp32 at ~4x realt
 ## Actual
 
 - **Start:** 2026-11-16 09:24 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-23 12:16 UTC
+- **Effort:** 57m
 
 ## Requirements
 
@@ -33,19 +32,48 @@ Spike 000025 showed Kokoro runs correctly in Firefox on WebGPU fp32 at ~4x realt
 - [x] Model fetched and cached on first use, with visible progress; nothing bundled into the package
 - [x] Warm-up synthesis at load so the first sentence is not ~10s
 - [x] Sentence-exact highlighting, words estimated by phoneme weight with character fallback
-- [ ] Server used instead when configured and reachable; exact word highlighting there
+- [x] Server used instead when configured and reachable; exact word highlighting there
 - [ ] No WebGPU and no server: a clear message, not WASM at 0.8x
-- [ ] Works in Firefox; Chrome checked separately
+- [x] Works in Firefox; Chrome checked separately
 
 ## Checklist
 
 - [x] Design/approach decided
 - [x] Implementation complete
-- [ ] Tested
+- [x] Tested
 - [ ] Code reviewed
 - [x] Documentation updated
 
 ## Log
+
+### 2026-11-23 12:16 UTC
+- **Note:** Took 57m against an estimate of 5h (0.2x) — measured since the previous item closed.
+
+### 2026-11-23 12:16 UTC
+- **Decision:** Closed with 1 unmet requirement(s): The no-WebGPU, no-server message is covered by unit tests only; not tried by hand in a browser
+  - [ ] No WebGPU and no server: a clear message, not WASM at 0.8x
+
+### 2026-11-23 12:16 UTC
+
+- **Progress:** Completed
+
+### 2026-11-23 12:16 UTC
+- **Delivered:** PR #9 (feat: Kokoro in the browser on WebGPU, server as an optional upgrade)
+
+### 2026-11-23 12:16 UTC
+- **Progress:** Verified by Umut in Chrome on the Mac: read Voyager 1 on Wikipedia through the server, then downloaded the model and read on the browser engine at 2x with word highlighting. Seen: during the browser model download the toolbar status still says Kokoro · server, switching to browser once reading starts.
+
+### 2026-11-23 12:16 UTC
+- **Progress:** ☑ Checked (Checklist): Tested
+
+### 2026-11-23 12:16 UTC
+- **Progress:** ☑ Checked (Requirements): Works in Firefox; Chrome checked separately
+
+### 2026-11-23 11:59 UTC
+- **Progress:** Verified by Umut on an M-series MacBook in Firefox 160: the browser engine downloaded the model and read a Wikipedia article on WebGPU over Metal; Automatic with the local server read it the same way. PR #9's CI fixed with an .npmrc that skips onnxruntime-node's CUDA download, which had started returning 404.
+
+### 2026-11-23 11:59 UTC
+- **Progress:** ☑ Checked (Requirements): Server used instead when configured and reachable; exact word highlighting there
 
 ### 2026-11-16 12:56 UTC
 - **Progress:** Verified by the user in Firefox: reads, highlights, cached reload says Loading not Downloading. Unit-tested only: engine choice with the server up, and the no-WebGPU message. Chrome not checked. PR opened.
