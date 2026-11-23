@@ -1,7 +1,7 @@
 # Shortcut hint says Ctrl+Shift+U on a Mac, where the shortcut is Command+Shift+U
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-23 12:26 UTC
@@ -21,7 +21,7 @@ The manifest suggests Ctrl+Shift+U, which Chrome and Firefox both bind as Comman
 ## Actual
 
 - **Start:** 2026-11-23 12:26 UTC
-- **End:**
+- **End:** 2026-11-23 20:42 UTC
 - **Effort:**
 
 ## Requirements
@@ -40,6 +40,13 @@ The manifest suggests Ctrl+Shift+U, which Chrome and Firefox both bind as Comman
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-23 20:42 UTC
+
+- **Progress:** Completed
+
+### 2026-11-23 20:42 UTC
+- **Delivered:** PR #12: the popup reads the bound shortcut from chrome.commands; on a Mac both browsers show it in macOS symbols (⇧⌘U). Checked by Umut in Firefox and Chrome on a Mac, 2026-11-23.
 
 ### 2026-11-23 12:27 UTC
 - **Progress:** ☑ Checked (Requirements): Tests cover the popup's shortcut line

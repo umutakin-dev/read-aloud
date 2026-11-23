@@ -3,7 +3,7 @@
 **Type:** 🔧 Task
 **Status:** 🔨 In Progress
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 2
+**Roadmap:** 🎯 NOW 1
 **Tracked In:** local
 **Created:** 2026-11-23 20:32 UTC
 
@@ -22,8 +22,8 @@ Supersedes the 000044 note that one manifest "stays" because it cannot list perm
 
 ## Estimation
 
-- **Start:** 2026-11-24
-- **End:** 2026-11-25
+- **Start:** 2026-11-23
+- **End:** 2026-11-24
 - **Effort:** ~5h (p75 5h)
 
 ## Actual
@@ -48,6 +48,9 @@ Supersedes the 000044 note that one manifest "stays" because it cannot list perm
 - [ ] Verified
 
 ## Log
+
+### 2026-11-23 20:46 UTC
+- **Decision:** Roadmap: 🎯 NOW 2 → 🎯 NOW 1
 
 ### 2026-11-23 20:34 UTC
 - **Progress:** dist/ built and zipped (7.6MB each); manifests differ only in the browser keys; 203 extension tests pass. web-ext lint was denied in the session, so the no-warning checks wait on loading dist/firefox and dist/chrome in the browsers.
