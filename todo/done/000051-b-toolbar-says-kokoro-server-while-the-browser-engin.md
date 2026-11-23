@@ -1,7 +1,7 @@
 # Toolbar says Kokoro · server while the browser engine downloads its model
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟢 LOW
 **Tracked In:** local
 **Created:** 2026-11-23 12:26 UTC
@@ -21,8 +21,8 @@ Switching Engine to this browser in the popup leaves an open tab with the engine
 ## Actual
 
 - **Start:** 2026-11-23 12:27 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-23 20:43 UTC
+- **Effort:** 1m
 
 ## Requirements
 
@@ -38,6 +38,13 @@ Switching Engine to this browser in the popup leaves an open tab with the engine
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-23 20:43 UTC
+
+- **Progress:** Completed
+
+### 2026-11-23 20:43 UTC
+- **Delivered:** PR #13: the toolbar switches to 'Kokoro · browser' on the first ENGINE_PROGRESS, so the model download is labelled as the browser engine. Covered by the content.js tests; not yet seen in a browser at merge.
 
 ### 2026-11-23 12:28 UTC
 - **Progress:** ☑ Checked (Requirements): A test drives content.js through it with a stubbed chrome
