@@ -1,7 +1,7 @@
 # Run the extension in Firefox from the same tree as Chrome
 
 **Type:** 🔧 Task
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-11-16 05:31 UTC
@@ -19,8 +19,8 @@ Umut is on Firefox now, and the extension only loads in Chrome: it needs a servi
 ## Actual
 
 - **Start:** 2026-11-16 05:31 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-23 12:26 UTC
+- **Effort:** 9m
 
 ## Requirements
 
@@ -28,17 +28,36 @@ Umut is on Firefox now, and the extension only loads in Chrome: it needs a servi
 - [x] Reads a page aloud in Firefox with word highlighting
 - [x] Playback survives a paragraph longer than 30s (event page not suspended mid-read)
 - [x] Server accepts moz-extension origins
-- [ ] Chrome path untouched in code; re-verified in Chrome before close
+- [x] Chrome path untouched in code; re-verified in Chrome before close
 - [x] README covers Firefox setup
 - [x] Tests updated and passing
 
 ## Checklist
 
-- [ ] Implementation complete
-- [ ] Tested
-- [ ] Verified
+- [x] Implementation complete
+- [x] Tested
+- [x] Verified
 
 ## Log
+
+### 2026-11-23 12:26 UTC
+
+- **Progress:** Completed
+
+### 2026-11-23 12:26 UTC
+- **Delivered:** PR #6 (feat: run the extension in Firefox from the same tree). Chrome re-verified by Umut on the Mac on 2026-11-23 while testing PR #9; the item was left open by oversight after #6 merged.
+
+### 2026-11-23 12:26 UTC
+- **Progress:** ☑ Checked (Checklist): Verified
+
+### 2026-11-23 12:26 UTC
+- **Progress:** ☑ Checked (Checklist): Tested
+
+### 2026-11-23 12:26 UTC
+- **Progress:** ☑ Checked (Checklist): Implementation complete
+
+### 2026-11-23 12:26 UTC
+- **Progress:** ☑ Checked (Requirements): Chrome path untouched in code; re-verified in Chrome before close
 
 ### 2026-11-16 07:09 UTC
 - **Delivered:** PR #6 (feat: run the extension in Firefox from the same tree), merged at Umut's call with Firefox verified. The item stays open until the Chrome re-check is done; that check needs no code unless it finds something.

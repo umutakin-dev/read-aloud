@@ -40,6 +40,53 @@ document.addEventListener("DOMContentLoaded", async () => {
     serverUrlInput.value = settings.serverUrl;
   }
 
+  // The toggle's real shortcut, not a hard-coded one. On a Mac both browsers
+  // bind the manifest's "Ctrl+Shift+U" as Command+Shift+U, and the user can
+  // rebind it, so a fixed hint named a key that did nothing (000050).
+  // Chrome reports the binding as the platform shows it ("⇧⌘U"); Firefox
+  // reports manifest syntax, where Ctrl means Command on macOS and MacCtrl
+  // means Control. On a Mac, Firefox's form is turned into the same symbols,
+  // so both browsers show the shortcut the way macOS menus do.
+  const MAC_SYMBOLS = { MacCtrl: "⌃", Alt: "⌥", Option: "⌥", Shift: "⇧", Ctrl: "⌘", Command: "⌘" };
+  // macOS always lists modifiers in this order, whatever order they were typed.
+  const MAC_ORDER = ["⌃", "⌥", "⇧", "⌘"];
+
+  function macShortcut(shortcut) {
+    const parts = shortcut.split("+");
+    if (parts.length < 2) return shortcut; // Chrome's symbols, already right
+    const key = parts.pop();
+    const mods = parts.map((p) => MAC_SYMBOLS[p] || p);
+    mods.sort((a, b) => MAC_ORDER.indexOf(a) - MAC_ORDER.indexOf(b));
+    return mods.join("") + key;
+  }
+
+  async function showShortcut() {
+    const hint = document.getElementById("shortcut-hint");
+    let shortcut = "";
+    try {
+      const commands = await chrome.commands.getAll();
+      shortcut = commands.find((c) => c.name === "toggle-read-aloud")?.shortcut || "";
+    } catch (e) {
+      // No commands API: say nothing rather than guess.
+      return;
+    }
+    const isMac = /mac/i.test(navigator.userAgentData?.platform || navigator.platform || "");
+    if (isMac) {
+      shortcut = macShortcut(shortcut);
+    }
+    hint.textContent = "";
+    if (!shortcut) {
+      hint.textContent =
+        "No keyboard shortcut is set. Choose one in the browser's extension shortcut settings.";
+      return;
+    }
+    const key = document.createElement("kbd");
+    key.textContent = shortcut;
+    hint.append("Press ", key, " to toggle Read Aloud on any page");
+  }
+
+  showShortcut();
+
   // Show the saved voice straight away. Without this the select holds only the
   // hardcoded default until the voice list arrives, and saving while the server
   // is unreachable would silently overwrite the user's choice.

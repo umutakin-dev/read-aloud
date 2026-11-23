@@ -26,6 +26,7 @@ Note that #000042 assumes a server still exists; if #000025 moves synthesis into
 - #000042 🔧 Cache synthesized audio so a re-read is instant
 - #000043 ✨ Support languages other than American English
 - #000047 ✨ Skip citation markers like [7] when reading
+- #000050 🐛 Shortcut hint says Ctrl+Shift+U on a Mac, where the shortcut is Command+Shift+U
 
 ## Estimation
 
@@ -52,6 +53,9 @@ Note that #000042 assumes a server still exists; if #000025 moves synthesis into
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 12:26 UTC
+- **Note:** Added #000050 Shortcut hint says Ctrl+Shift+U on a Mac, where the shortcut is Command+Shift+U to Items
 
 ### 2026-11-16 10:49 UTC
 - **Note:** Added #000047 Skip citation markers like [7] when reading to Items
