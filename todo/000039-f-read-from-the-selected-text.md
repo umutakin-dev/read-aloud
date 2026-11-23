@@ -24,8 +24,8 @@ Pairs naturally with #000040, since both are about knowing and controlling where
 
 ## Estimation
 
-- **Start:** 2026-11-27
-- **End:** 2026-11-28
+- **Start:** 2026-11-28
+- **End:** 2026-11-29
 - **Effort:** ~5h (p75 5h)
 
 ## Actual

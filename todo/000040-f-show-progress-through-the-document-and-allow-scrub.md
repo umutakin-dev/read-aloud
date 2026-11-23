@@ -25,8 +25,8 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 
 ## Estimation
 
-- **Start:** 2026-11-28
-- **End:** 2026-11-29
+- **Start:** 2026-11-30
+- **End:** 2026-12-01
 - **Effort:** ~5h (p75 5h)
 
 ## Actual

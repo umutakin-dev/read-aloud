@@ -12,8 +12,8 @@
 | # | ID | Type | Priority | Title |
 |---|----|------|----------|-------|
 | 1 | [000053](in-progress/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | 🔨 Per-page sentence record, synthesized whole page ahead of the reader |
-| 2 | [000056](000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | Audio keeps playing after the reading page reloads or navigates away |
-| 3 | [000057](000057-b-hacker-news-each-comment-s-first-paragraph-and-sho.md) | 🐛 | 🔴 | Hacker News: each comment's first paragraph and short comments are not read |
+| 2 | [000058](in-progress/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | 🔨 Our own text extractor in place of Readability, reading the live page |
+| 3 | [000056](000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | Audio keeps playing after the reading page reloads or navigates away |
 | 4 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | Read from the selected text |
 | 5 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
 
@@ -21,18 +21,20 @@
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
+| [000058](in-progress/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | Our own text extractor in place of Readability, reading the live page |
 | [000053](in-progress/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | Per-page sentence record, synthesized whole page ahead of the reader |
 
-## 📋 Backlog (14)
+## 📋 Backlog (15)
 
 *Now and Next are listed under Roadmap above.*
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
+| [000057](000057-b-hacker-news-each-comment-s-first-paragraph-and-sho.md) | 🐛 | 🔴 | Hacker News: each comment's first paragraph and short comments are not read |
 | [000038](000038-f-keyboard-controls-and-screen-reader-support-for-th.md) | ✨ | 🔴 | Keyboard controls and screen reader support for the toolbar |
 | [000028](000028-e-make-read-aloud-rock-solid.md) | 👑 | 🔴 | Make Read Aloud rock solid |
 | [000024](000024-e-ship-read-aloud-without-a-local-server.md) | 👑 | 🔴 | Ship Read Aloud without a local server |

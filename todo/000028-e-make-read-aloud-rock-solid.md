@@ -31,6 +31,7 @@ Alongside that, two real defects are visible in the merged code — a paragraph 
 - #000054 🐛 Playback stopped mid-sentence and re-synthesized the chunk on the browser engine
 - #000056 🐛 Audio keeps playing after the reading page reloads or navigates away
 - #000057 🐛 Hacker News: each comment's first paragraph and short comments are not read
+- #000058 ✨ Our own text extractor in place of Readability, reading the live page
 
 
 ## Progress
@@ -72,6 +73,9 @@ Alongside that, two real defects are visible in the merged code — a paragraph 
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 21:55 UTC
+- **Note:** Added #000058 Our own text extractor in place of Readability, reading the live page to Items
 
 ### 2026-11-23 21:24 UTC
 - **Note:** Added #000057 Hacker News: each comment's first paragraph and short comments are not read to Items
