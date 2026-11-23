@@ -21,7 +21,8 @@ extension/            MV3 extension, plain JS, one tree for both browsers
   offscreen.js/.html  audio player (Chrome: offscreen document;
                       Firefox: loaded into the background page itself)
   popup.*             settings
-  lib/textkit.js      pure text logic: paragraphs, chunks, text index, spans
+  lib/textkit.js      pure text logic: paragraphs, sentences, text index, spans
+  lib/record.js       the page's sentence record: synthesis order, kept audio
   lib/Readability.js  vendored Mozilla Readability, do not edit
 engine/               source of the browser engine (ES modules)
   engine.mjs          kokoro-js on WebGPU, loaded lazily by the player

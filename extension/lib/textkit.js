@@ -102,9 +102,11 @@ const ReadAloudText = (() => {
   }
 
   // ─── Chunks ───────────────────────────────────────────────────────────────
-  // Long paragraphs are cut at sentence boundaries so the first audio arrives
-  // quickly and prefetch has something to work ahead on. This is a synthesis
-  // detail — the reader still navigates whole paragraphs.
+  // A chunk is one sentence (000053): the unit that is synthesized, kept and
+  // played. Reading starts as soon as the first sentence is ready instead of a
+  // whole 500-character run, and a sentence already heard replays from the
+  // page's record without synthesis. The reader still navigates paragraphs.
+  // A sentence longer than the cap is cut at a clause, so no request is huge.
   const MAX_CHUNK_CHARS = 500;
 
   // Kokoro spells a URL out one character at a time: 16 seconds of audio for a
@@ -134,23 +136,72 @@ const ReadAloudText = (() => {
     return pieces;
   }
 
+  // ─── Sentences ────────────────────────────────────────────────────────────
+  // Our own rules rather than Intl.Segmenter, which ends a sentence after
+  // "Mr." and "U.S." and need not agree between Chrome and Firefox. A sentence
+  // ends at . ! or ?, with any closing quotes or brackets, followed by
+  // whitespace and something that can start one: a capital, a digit, or an
+  // opening quote or bracket. "3.5" and "e.g. this" never qualify.
+  const SENTENCE_BREAK = /([.!?]+["'”’)\]]*)\s+(?=["'“‘(\[]?[A-Z0-9])/g;
+
+  // Words whose period does not end a sentence even before a capital.
+  const ABBREVIATIONS = new Set(
+    (
+      "mr mrs ms dr prof sr jr st mt ft rev gen col lt sgt capt cmdr gov sen rep " +
+      "pres hon vs etc no nos vol fig figs approx dept est inc ltd co corp jan feb " +
+      "mar apr jun jul aug sep sept oct nov dec e.g i.e cf al ca op"
+    ).split(" ")
+  );
+
+  function endsWithAbbreviation(text) {
+    const word = (text.match(/(\S+)\.$/) || [])[1];
+    if (!word) return false;
+    // An initial ("J.") or an acronym written with stops ("U.S.", "a.m.").
+    if (/^(?:[A-Za-z]\.)*[A-Za-z]$/.test(word)) return true;
+    return ABBREVIATIONS.has(word.toLowerCase().replace(/^[("'“‘\[]+/, ""));
+  }
+
+  function splitIntoSentences(text) {
+    const sentences = [];
+    let start = 0;
+    for (const match of text.matchAll(SENTENCE_BREAK)) {
+      const end = match.index + match[1].length;
+      const candidate = text.slice(start, end);
+      if (match[1].startsWith(".") && endsWithAbbreviation(candidate)) continue;
+      sentences.push(candidate.trim());
+      start = end;
+    }
+    const rest = text.slice(start).trim();
+    if (rest) sentences.push(rest);
+    return sentences.filter(Boolean);
+  }
+
+  // A sentence past the cap is cut at the last clause boundary that fits, or
+  // the last space, so every piece stays an exact run of the page text.
+  function capLength(sentence) {
+    const pieces = [];
+    let rest = sentence;
+    while (rest.length > MAX_CHUNK_CHARS) {
+      const window = rest.slice(0, MAX_CHUNK_CHARS + 1);
+      let cut = Math.max(window.lastIndexOf("; "), window.lastIndexOf(", "));
+      if (cut > MAX_CHUNK_CHARS / 3) cut += 1;
+      else cut = window.lastIndexOf(" ");
+      if (cut <= 0) cut = MAX_CHUNK_CHARS;
+      pieces.push(rest.slice(0, cut).trim());
+      rest = rest.slice(cut).trim();
+    }
+    if (rest) pieces.push(rest);
+    return pieces;
+  }
+
   function splitParagraphIntoChunks(paragraph) {
     const chunks = [];
     for (const piece of splitAroundUrls(paragraph)) {
-      if (piece.length <= MAX_CHUNK_CHARS) {
-        chunks.push(piece);
-        continue;
+      for (const sentence of splitIntoSentences(piece)) {
+        // A lone "(1)" or "—" left between sentences is not worth a request.
+        if (!/[a-z0-9]/i.test(sentence)) continue;
+        chunks.push(...capLength(sentence));
       }
-      const sentences = piece.match(/[^.!?]+[.!?]+[\s)]*/g) || [piece];
-      let chunk = "";
-      for (const sentence of sentences) {
-        if (chunk.length + sentence.length > MAX_CHUNK_CHARS && chunk.length > 0) {
-          chunks.push(chunk.trim());
-          chunk = "";
-        }
-        chunk += sentence;
-      }
-      if (chunk.trim().length > 0) chunks.push(chunk.trim());
     }
     return chunks;
   }
@@ -298,6 +349,7 @@ const ReadAloudText = (() => {
     paragraphsFromRoot,
     splitIntoParagraphs,
     splitAroundUrls,
+    splitIntoSentences,
     splitParagraphIntoChunks,
     buildChunks,
     buildTextIndex,

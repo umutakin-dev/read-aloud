@@ -34,9 +34,8 @@
   let state = {
     active: false,
     playing: false,
-    // Two different units. Chunks are what gets synthesized and played — capped
-    // so playback starts quickly and prefetch can stay ahead. Paragraphs are
-    // what the reader navigates by. A long paragraph spans several chunks.
+    // Two different units. Chunks are what gets synthesized and played: one
+    // sentence each (000053). Paragraphs are what the reader navigates by.
     chunks: [],            // [{ text, paragraph }]
     paragraphStarts: [],   // chunk index each paragraph begins at
     currentChunk: 0,
@@ -55,7 +54,9 @@
     waitingForServer: false,
     toolbar: null,
     utterance: null,       // for Web Speech API fallback
-    prefetchCache: {},     // chunk index -> TTS response data
+    // The page's sentence record (lib/record.js): each chunk's state and, once
+    // made, its audio, kept for the session so going back never re-synthesizes.
+    record: null,
     healthCheckTimer: null,
     animFrameId: null,
     textIndex: null,       // { text, nodes, offsets } — collapsed page text mapped to the DOM
@@ -124,13 +125,14 @@
 
   chrome.storage.onChanged.addListener(onSettingsChanged);
 
-  // Nothing already synthesized can be reused: the prefetch cache and the
-  // player's decoded preload are both in the previous voice.
+  // Nothing already synthesized can be reused: the record and the player's
+  // decoded preload are both in the previous voice.
   function applyNewVoice() {
     const wasPlaying = state.playing;
     const chunk = state.currentChunk;
-    state.prefetchCache = {};
     stopCurrentAudio();
+    state.record?.clear("voice changed");
+    synthesis.generation++;
     state.currentChunk = chunk;
     // A change made while paused should not start it reading.
     if (wasPlaying) playCurrentChunk();
@@ -557,16 +559,62 @@
     });
   }
 
-  async function prefetchChunk(index) {
-    if (index >= state.chunks.length || state.prefetchCache[index]) return;
-    try {
-      const data = await requestTTSWithTimestamps(state.chunks[index].text, index);
-      state.prefetchCache[index] = data;
-      preloadNext(index);
-    } catch (e) {
-      // Not fatal: playing this chunk will request it again. The failure is
-      // already in the debug log from requestTTSWithTimestamps.
-    }
+  // ─── Synthesis: the whole page, one sentence at a time (000053) ──────────
+  // The record says which sentence is next: forward from the reader, then the
+  // gaps a jump left behind. One request at a time, so after a jump the
+  // target waits behind at most the one sentence already in flight, never a
+  // queue of stale work.
+  //
+  // A failure stalls the loop rather than retrying at once, or a server that
+  // is down would be asked again in a tight loop. Playing a sentence kicks it
+  // again, and so does the retry or recovery path that plays one.
+  const synthesis = {
+    inFlight: null,   // index being synthesized
+    stalled: false,
+    generation: 0,    // bumped when what is made would be unusable
+  };
+
+  // The audio kept for one page, as base64. ~64MB is about 17 minutes of
+  // speech; past it, sentences the reader has passed are dropped oldest first.
+  const RECORD_CAP_BYTES = 64 * 2 ** 20;
+
+  function pumpSynthesis({ kick = false } = {}) {
+    if (kick) synthesis.stalled = false;
+    const record = state.record;
+    if (!state.active || !record || synthesis.inFlight != null || synthesis.stalled) return;
+    // Browser speech reads the text itself; there is nothing to make.
+    if (!state.useServer) return;
+
+    const index = record.next();
+    if (index === -1) return;
+    synthesis.inFlight = index;
+    record.start(index);
+    const generation = synthesis.generation;
+
+    requestTTSWithTimestamps(state.chunks[index].text, index)
+      .then(
+        (data) => {
+          if (generation !== synthesis.generation || state.record !== record) return;
+          const dropped = record.store(index, data);
+          if (dropped.length) log("record.drop", { sentences: dropped.length, kept: record.usedBytes });
+          preloadNext(index);
+        },
+        (error) => {
+          if (generation !== synthesis.generation || state.record !== record) return;
+          record.fail(index, error);
+          // Stall only when that is safe. If the reader is waiting on some
+          // other sentence (a jump landed while this one was in flight), it
+          // has to be asked for, or the reader waits forever. Its own failure
+          // then reaches playback, which retries or waits for the server.
+          const reader = record.cursor;
+          synthesis.stalled = index === reader || record.has(reader);
+        }
+      )
+      .finally(() => {
+        // A request from a cleared record still held the one slot until now.
+        if (synthesis.inFlight === index) synthesis.inFlight = null;
+        pumpSynthesis();
+      });
   }
 
   // Hand the immediately-next chunk to the player so it can decode and load it
@@ -574,8 +622,8 @@
   // further ahead would just be displaced by it.
   function preloadNext(index) {
     if (index !== state.currentChunk + 1) return;
-    const data = state.prefetchCache[index];
-    if (!data) return;
+    const data = state.record?.get(index);
+    if (!data || state._preloadedKey === index) return;
     state._preloadedKey = index;
     postMessage({
       type: "PRELOAD_AUDIO",
@@ -583,6 +631,10 @@
       audio_base64: data.audio_base64,
     });
   }
+
+  // Bumped by every start and stop, so a call still waiting on its sentence
+  // knows it has been overtaken by a jump, a stop or a voice change.
+  let playToken = 0;
 
   async function playChunkWithServer(index) {
     if (index >= state.chunks.length) {
@@ -595,24 +647,22 @@
     state.utterance = null;
 
     state.currentChunk = index;
+    const token = ++playToken;
     const label = `Paragraph ${currentParagraph() + 1}/${paragraphCount()}`;
 
     try {
-      let data;
-      if (state.prefetchCache[index]) {
-        data = state.prefetchCache[index];
-        delete state.prefetchCache[index];
-        updateToolbarStatus(label);
-      } else {
+      const record = state.record;
+      record.setCursor(index);
+      if (!record.has(index)) {
         // Say so while waiting. A cold server has to load the model before it
         // can synthesize anything, and jumping straight to the paragraph label
         // makes that look like a hang.
         updateToolbarStatus(`${label} — synthesizing...`);
-        data = await requestTTSWithTimestamps(state.chunks[index].text, index);
-        updateToolbarStatus(label);
       }
-
-      if (!state.active) return;
+      pumpSynthesis({ kick: true });
+      const data = await record.whenReady(index);
+      if (token !== playToken || !state.active) return;
+      updateToolbarStatus(label);
 
       state.timestamps = resolveWordSpans(data.timestamps || []);
       state._paragraphOffset = findParagraphOffset(state.chunks[index].text, index);
@@ -638,12 +688,8 @@
       state.playing = true;
       startHighlightLoop();
 
-      // Prefetch the next chunks, which may run into the following paragraph
-      for (let i = 1; i <= 2; i++) {
-        prefetchChunk(index + i);
-      }
-      // An earlier prefetch may already have cached the next chunk, in which
-      // case nothing above would trigger its preload.
+      // The next sentence may already be made; synthesis preloads it the
+      // moment it is stored otherwise.
       preloadNext(index + 1);
 
       const outcome = await playAudioFromBase64(data.audio_base64, index);
@@ -651,7 +697,8 @@
 
       // Stop/prev/next already tore down the highlight state and may have
       // started somewhere else — leave it alone.
-      if (outcome === "cancelled") return;
+      if (outcome === "cancelled" || token !== playToken) return;
+      record.markPlayed(index);
 
       stopHighlightLoop();
       clearHighlights();
@@ -661,6 +708,9 @@
         playChunkWithServer(index + 1);
       }
     } catch (err) {
+      // Overtaken while waiting: a jump, a stop or a voice change. Whoever
+      // overtook it is in charge now.
+      if (token !== playToken || !state.active) return;
       console.error("Read Aloud: TTS playback error", err);
       log("chunk.error", {
         chunk: index,
@@ -1111,6 +1161,7 @@
 
   // ─── Playback Controls ────────────────────────────────────────────────────
   function stopCurrentAudio() {
+    playToken++;
     stopHighlightLoop();
     clearHighlights();
     state.playing = false;
@@ -1130,6 +1181,9 @@
   function pausePlayback() {
     log("pause", { chunk: state.currentChunk, at: Math.round((state._currentTime || 0) * 100) / 100 });
     state.playing = false;
+    // Paused while its sentence was still being made: it must not start when
+    // the audio arrives. Play starts it over, from the record.
+    if (!audioResolve) playToken++;
     stopHighlightLoop();
     postMessage({ type: "PAUSE_AUDIO" });
     if (state.utterance) {
@@ -1150,8 +1204,8 @@
       return;
     }
     if (!audioResolve) {
-      // Nothing is mid-play, so this starts the chunk over, synthesizing it
-      // again unless it is still cached.
+      // Nothing is mid-play, so this starts the sentence over, from the record
+      // when it is there and synthesizing it otherwise.
       log("resume.restart", { chunk: state.currentChunk });
       playCurrentChunk();
       return;
@@ -1211,7 +1265,6 @@
 
     await loadSettings();
     state.active = true;
-    state.prefetchCache = {};
     state._chunkOffsets = {};
 
     createToolbar();
@@ -1224,6 +1277,7 @@
     const built = buildChunks(paragraphs);
     state.chunks = built.chunks;
     state.paragraphStarts = built.paragraphStarts;
+    state.record = ReadAloudRecord.create(state.chunks.length, { capBytes: RECORD_CAP_BYTES });
 
     if (state.chunks.length === 0) {
       updateToolbarStatus("No readable text found");
@@ -1264,7 +1318,9 @@
   }
 
   function stopReadAloud() {
-    if (state.active) log("read.stop", { chunk: state.currentChunk, of: state.chunks.length });
+    if (state.active) {
+      log("read.stop", { chunk: state.currentChunk, of: state.chunks.length, ...state.record?.summary() });
+    }
     stopCurrentAudio();
     stopHighlightLoop();
     stopHealthCheckTimer();
@@ -1278,7 +1334,12 @@
     state.paragraphStarts = [];
     state.currentChunk = 0;
     state.timestamps = [];
-    state.prefetchCache = {};
+    // Waiters on the old record are rejected, and a request still in flight
+    // finds a different generation when it lands and is dropped.
+    state.record?.clear("stopped");
+    state.record = null;
+    synthesis.generation++;
+    synthesis.stalled = false;
     state.textIndex = null;
     state._chunkOffsets = {};
     state._paragraphOffset = null;

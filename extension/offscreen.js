@@ -32,6 +32,10 @@ let audio = null;
 let objectUrl = null;
 let timeInterval = null;
 let currentKey = null;
+// When the last sentence ended, so the debug log can show the silence between
+// one sentence and the next (000053), the gap a listener hears.
+let lastEndedAt = 0;
+const GAP_WINDOW_MS = 10000;
 
 // One chunk's audio, decoded and loaded while the previous one is still
 // playing. Only ever the immediately-next chunk, so this is a single slot
@@ -95,6 +99,7 @@ function attach(element, url, startAt) {
 
   audio.onended = () => {
     clearInterval(timeInterval);
+    lastEndedAt = Date.now();
     playerLog("audio.ended", { key: currentKey, at: roundSeconds(audio?.currentTime) });
     ReadAloudPlayer.emit({ type: "AUDIO_ENDED" });
   };
@@ -250,11 +255,22 @@ function handlePlayerMessage(msg, sendResponse) {
     currentKey = msg.key;
     attach(element, url, msg.startAt || 0);
     audio.playbackRate = msg.speed || 1.0;
-    playerLog("audio.play", { key: msg.key, preloaded: Boolean(ready), startAt: msg.startAt || undefined });
+    // Only a sentence following one that just ended has a gap to report; the
+    // first, a jump or a resume after a long pause does not.
+    const endedAt = lastEndedAt && Date.now() - lastEndedAt < GAP_WINDOW_MS ? lastEndedAt : 0;
+    lastEndedAt = 0;
 
     audio
       .play()
       .then(() => {
+        // Logged once playback has started, so the gap covers all of the
+        // silence: the message hops, the decode and the start itself.
+        playerLog("audio.play", {
+          key: msg.key,
+          preloaded: Boolean(ready),
+          startAt: msg.startAt || undefined,
+          gapMs: endedAt ? Date.now() - endedAt : undefined,
+        });
         startTimeReporting();
         sendResponse({ ok: true, usedPreload: Boolean(ready) });
       })
