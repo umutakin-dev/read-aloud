@@ -540,8 +540,13 @@
           failAudio(new Error("Could not reach the extension"));
         } else if (!response.ok) {
           failAudio(new Error(response.error || "Audio play failed"));
-        } else if (response.usedPreload) {
-          state._preloadedKey = null;
+        } else {
+          if (response.usedPreload) state._preloadedKey = null;
+          // Only now: the player drops any preload that is not the sentence
+          // it is starting, so one sent before this PLAY was thrown away and
+          // every sentence went without (000053, seen as preloaded=false on
+          // every audio.play in the debug log).
+          preloadNext(key + 1);
         }
       };
 
@@ -688,10 +693,8 @@
       state.playing = true;
       startHighlightLoop();
 
-      // The next sentence may already be made; synthesis preloads it the
-      // moment it is stored otherwise.
-      preloadNext(index + 1);
-
+      // The next sentence is preloaded once the player has started this one
+      // (see playAudioFromBase64), or by synthesis the moment it is stored.
       const outcome = await playAudioFromBase64(data.audio_base64, index);
       log("chunk.played", { chunk: index, outcome });
 

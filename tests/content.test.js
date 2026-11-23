@@ -371,7 +371,10 @@ test("reading a page sentence by sentence (000053)", async (t) => {
         [0, 1]
       );
       // Sentence 1 was preloaded while 0 played, so it goes without its audio.
-      assert.ok(r.page.messages.some((m) => m.type === "PRELOAD_AUDIO" && m.key === 1));
+      // The preload has to follow PLAY 0: the player drops any preload that is
+      // not the sentence it is starting, and sent first, it was thrown away.
+      const at = (type, key) => r.page.messages.findIndex((m) => m.type === type && m.key === key);
+      assert.ok(at("PRELOAD_AUDIO", 1) > at("PLAY_AUDIO", 0), "preload sent before PLAY 0");
       assert.equal(r.plays()[1].audio_base64, undefined);
     } finally {
       r.page.close();
@@ -423,6 +426,32 @@ test("a jump survives the sentence in flight failing (000053)", async () => {
     // The target is still asked for, not left waiting behind a stalled loop.
     assert.equal(pending.length, 1);
     assert.match(pending[0].text, /third/);
+  } finally {
+    page.close();
+  }
+});
+
+test("the next sentence is preloaded after the player starts this one (000053)", async () => {
+  const TEXT = [
+    "The first sentence is here. The second sentence follows it.",
+    "The third sentence opens this one. The fourth sentence closes it.",
+  ].join("\n\n");
+  const page = loadPage({
+    tts: (msg) => ({ ok: true, engine: "server", data: { audio_base64: `audio:${msg.text}`, timestamps: [] } }),
+  });
+  const settle = async () => {
+    for (let i = 0; i < 20; i++) await tick();
+  };
+  try {
+    page.dispatch({ type: "TOGGLE_READ_ALOUD", selectedText: TEXT });
+    await settle();
+    // Everything is made by now, as it is while reading well behind synthesis.
+    page.click("btn-next"); // sentence 2, with 3 already made
+    await settle();
+    const at = (type, key) => page.messages.findIndex((m) => m.type === type && m.key === key);
+    assert.ok(at("PRELOAD_AUDIO", 3) !== -1, "sentence 3 was never preloaded");
+    // Sent before PLAY 2, the player would have dropped it on starting 2.
+    assert.ok(at("PRELOAD_AUDIO", 3) > at("PLAY_AUDIO", 2), "preload sent before PLAY 2");
   } finally {
     page.close();
   }
