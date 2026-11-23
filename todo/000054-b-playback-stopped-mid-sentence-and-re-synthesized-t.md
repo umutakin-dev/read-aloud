@@ -38,6 +38,9 @@ Seen by Umut in Firefox on the Mac, reading z.ai/blog/glm-5.4 at 2x on the brows
 
 ## Log
 
+### 2026-11-23 22:34 UTC
+- **Note:** Possible cause, from 000059 (2026-11-24): Firefox throttles a hidden tab, and every sentence boundary goes through the tab. A stall there that hits the retry path would look like this stop and re-synthesis. Check tab.stall hidden=true in the next log of this.
+
 ### 2026-11-23 12:52 UTC
 - **Note:** Waiting on 000052: catch the next occurrence in the debug log, then find the cause.
 
