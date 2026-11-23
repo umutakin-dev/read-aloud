@@ -1,8 +1,9 @@
-# Click a paragraph to start reading from there
+# Read from the selected text
 
 **Type:** ✨ Feature
 **Status:** 📋 Backlog
 **Priority:** 🔴 HIGH
+**Roadmap:** 🎯 NOW 3
 **Tracked In:** local
 **Created:** 2026-08-03
 
@@ -23,9 +24,9 @@ Pairs naturally with #000040, since both are about knowing and controlling where
 
 ## Estimation
 
-- **Start:**
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-25
+- **End:** 2026-11-27
+- **Effort:** ~5h (p75 5h)
 
 ## Actual
 
@@ -35,12 +36,14 @@ Pairs naturally with #000040, since both are about knowing and controlling where
 
 ## Requirements
 
-- [ ] Clicking a readable paragraph starts reading from it
-- [ ] Links, buttons and text selection still behave normally
-- [ ] A hover cue makes it discoverable
 - [ ] Works while playing and while paused
 - [ ] Node-to-character lookup built alongside the existing text index
 - [ ] Reachable from the keyboard too, per #000038
+- [ ] A popup setting, on by default, turns read-from-selection off
+- [ ] Selecting text while paused jumps there and stays paused
+- [ ] A ready sentence plays at once; an unready one is synthesized first
+- [ ] Selecting text inside the read text jumps to the sentence where the selection starts
+- [ ] Selections outside the read text, and clicks on links and buttons, behave normally
 
 ## Checklist
 
@@ -51,6 +54,24 @@ Pairs naturally with #000040, since both are about knowing and controlling where
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 12:53 UTC
+- **Decision:** Roadmap: (unscheduled) → 🎯 NOW 3
+
+### 2026-11-23 12:53 UTC
+- **Note:** Requirement removed: Links, buttons and text selection still behave normally
+
+### 2026-11-23 12:53 UTC
+- **Note:** Requirement removed: A hover cue makes it discoverable
+
+### 2026-11-23 12:53 UTC
+- **Note:** Requirement removed: Clicking a readable paragraph starts reading from it
+
+### 2026-11-23 12:52 UTC
+- **Decision:** Umut, 2026-11-23: selecting text inside the article jumps reading to the sentence where the selection starts. A popup setting turns it off, on by default. While paused, it jumps and stays paused. A ready sentence plays at once; otherwise it is synthesized first and the background synthesis continues from there (000053). Built on 000053.
+
+### 2026-11-23 12:52 UTC
+- **Note:** Renamed: "Click a paragraph to start reading from there" → "Read from the selected text" — Umut chose selecting text over clicking; a selection never steals a click meant for a link
 
 ### 2026-08-03
 
