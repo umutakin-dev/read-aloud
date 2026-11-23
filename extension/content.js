@@ -364,6 +364,17 @@
     sendMessage(message);
   }
 
+  // Debug log (000052): events go to the background's log, which the popup
+  // downloads. Text appears only as a short preview, never whole.
+  function log(ev, details = {}) {
+    postMessage({ type: "LOG", src: "tab", ev, ...details });
+  }
+
+  function preview(text) {
+    const t = (text || "").trim();
+    return t.length > 40 ? `${t.slice(0, 40)}…` : t;
+  }
+
   // An orphan cannot do anything useful and would otherwise keep its timers
   // firing and — worse — keep speaking. Go quiet and leave the page clean.
   function selfDestruct() {
@@ -404,8 +415,10 @@
   // Audio is always synthesized at 1.0x and sped up at playback time via
   // audio.playbackRate. Doing it server-side too would compound the two rates,
   // and would bake a speed into every prefetched paragraph.
-  async function requestTTSWithTimestamps(text) {
+  async function requestTTSWithTimestamps(text, index) {
     if (!extensionAlive()) throw new Error("Extension context invalidated");
+    const started = Date.now();
+    log("chunk.request", { chunk: index, chars: text.length, text: preview(text) });
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(
         {
@@ -416,14 +429,18 @@
         },
         (response) => {
           if (chrome.runtime.lastError) {
+            log("chunk.fail", { chunk: index, error: chrome.runtime.lastError.message });
             reject(new Error(chrome.runtime.lastError.message));
           } else if (response && response.ok) {
+            log("chunk.ready", { chunk: index, engine: response.engine, ms: Date.now() - started });
             if (response.engine && response.engine !== state.engine) {
+              log("engine.switch", { from: state.engine, to: response.engine });
               state.engine = response.engine;
               updateEngineIndicator();
             }
             resolve(response.data);
           } else {
+            log("chunk.fail", { chunk: index, error: response?.error || "no response" });
             reject(new Error(response?.error || "TTS request failed"));
           }
         }
@@ -543,11 +560,12 @@
   async function prefetchChunk(index) {
     if (index >= state.chunks.length || state.prefetchCache[index]) return;
     try {
-      const data = await requestTTSWithTimestamps(state.chunks[index].text);
+      const data = await requestTTSWithTimestamps(state.chunks[index].text, index);
       state.prefetchCache[index] = data;
       preloadNext(index);
     } catch (e) {
-      // Silently fail prefetch
+      // Not fatal: playing this chunk will request it again. The failure is
+      // already in the debug log from requestTTSWithTimestamps.
     }
   }
 
@@ -590,7 +608,7 @@
         // can synthesize anything, and jumping straight to the paragraph label
         // makes that look like a hang.
         updateToolbarStatus(`${label} — synthesizing...`);
-        data = await requestTTSWithTimestamps(state.chunks[index].text);
+        data = await requestTTSWithTimestamps(state.chunks[index].text, index);
         updateToolbarStatus(label);
       }
 
@@ -629,6 +647,7 @@
       preloadNext(index + 1);
 
       const outcome = await playAudioFromBase64(data.audio_base64, index);
+      log("chunk.played", { chunk: index, outcome });
 
       // Stop/prev/next already tore down the highlight state and may have
       // started somewhere else — leave it alone.
@@ -643,6 +662,11 @@
       }
     } catch (err) {
       console.error("Read Aloud: TTS playback error", err);
+      log("chunk.error", {
+        chunk: index,
+        at: Math.round((state._currentTime || 0) * 100) / 100,
+        error: err?.message || String(err),
+      });
       // Only fall back if the server is actually down, not on transient audio errors
       const serverOk = await checkServerHealth();
       if (!state.active) return;
@@ -651,14 +675,17 @@
         if (!state.allowBrowserFallback) {
           // Reading in a voice the user did not ask for is worse than not
           // reading. Hold here; the health poll picks it up when it returns.
+          log("wait.server", { chunk: index, reason: state.unavailableReason || undefined });
           waitForServer(index);
           return;
         }
+        log("fallback.webspeech", { chunk: index });
         state.useServer = false;
         updateEngineIndicator();
         // Re-check on the way in: stopping during the delay must not restart it.
         setTimeout(() => state.active && playChunkWithWebSpeech(index), 1000);
       } else {
+        log("chunk.retry", { chunk: index });
         updateToolbarStatus(`Retrying paragraph ${currentParagraph() + 1}...`);
         setTimeout(() => state.active && playChunkWithServer(index), 500);
       }
@@ -785,6 +812,7 @@
       }
       const healthy = await checkServerHealth();
       if (!state.active || healthy === state.serverHealthy) return;
+      log("health.change", { ok: healthy, engine: state.engine, reason: state.unavailableReason || undefined });
       state.serverHealthy = healthy;
 
       // Held waiting because fallback is off — pick up from the chunk that
@@ -1100,6 +1128,7 @@
   }
 
   function pausePlayback() {
+    log("pause", { chunk: state.currentChunk, at: Math.round((state._currentTime || 0) * 100) / 100 });
     state.playing = false;
     stopHighlightLoop();
     postMessage({ type: "PAUSE_AUDIO" });
@@ -1121,6 +1150,9 @@
       return;
     }
     if (!audioResolve) {
+      // Nothing is mid-play, so this starts the chunk over, synthesizing it
+      // again unless it is still cached.
+      log("resume.restart", { chunk: state.currentChunk });
       playCurrentChunk();
       return;
     }
@@ -1131,6 +1163,7 @@
     // first frame — leaving whatever was on screen before the pause.
     lastHighlightedWord = -1;
     sendMessage({ type: "RESUME_AUDIO" }).then((response) => {
+      log("resume", { chunk: state.currentChunk, resumed: Boolean(response?.resumed), reason: response?.reason });
       if (!response?.resumed) {
         // Chrome discards an AUDIO_PLAYBACK offscreen document once it stops
         // playing, so a pause of more than a minute or two leaves nothing to
@@ -1205,6 +1238,16 @@
     const serverOk = await checkServerHealth();
     state.serverHealthy = serverOk;
     state.currentChunk = 0;
+    // The host only: enough to tell sessions apart, without the page's path.
+    log("read.start", {
+      host: location.hostname,
+      paragraphs: paragraphCount(),
+      chunks: state.chunks.length,
+      engine: state.engine,
+      ok: serverOk,
+      speed: state.speed,
+      voice: state.voice,
+    });
 
     if (!serverOk && !state.allowBrowserFallback) {
       // Start the poll before waiting, or nothing would ever notice recovery.
@@ -1221,6 +1264,7 @@
   }
 
   function stopReadAloud() {
+    if (state.active) log("read.stop", { chunk: state.currentChunk, of: state.chunks.length });
     stopCurrentAudio();
     stopHighlightLoop();
     stopHealthCheckTimer();

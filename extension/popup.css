@@ -159,3 +159,29 @@ kbd {
   font-size: 11px;
   color: #a6adc8;
 }
+
+/* The debug log (000052): there when needed, out of the way otherwise. */
+.debug-log {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #585b70;
+}
+
+.debug-log button {
+  width: auto;
+  padding: 2px 4px;
+  background: none;
+  color: #7f849c;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.debug-log button:hover {
+  background: none;
+  color: #a6adc8;
+  text-decoration: underline;
+}
