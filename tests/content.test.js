@@ -12,6 +12,7 @@ const { JSDOM } = require("jsdom");
 const EXT = path.join(__dirname, "..", "extension");
 const read = (f) => fs.readFileSync(path.join(EXT, f), "utf8");
 const TEXTKIT = read("lib/textkit.js");
+const RECORD = read("lib/record.js");
 const CONTENT = read("content.js");
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -29,6 +30,7 @@ function loadPage({ engine = "server", tts } = {}) {
   const listeners = [];
   const sent = [];
   const logs = [];
+  const messages = [];
 
   window.chrome = {
     runtime: {
@@ -40,9 +42,16 @@ function loadPage({ engine = "server", tts } = {}) {
       },
       sendMessage: (msg, cb) => {
         sent.push(msg.type);
+        messages.push(msg);
         if (msg.type === "LOG") logs.push(msg);
         if (msg.type === "HEALTH_CHECK") cb({ ok: true, engine, setting: "auto" });
-        else if (msg.type === "TTS_REQUEST") tts && cb(tts(msg));
+        else if (msg.type === "TTS_REQUEST") {
+          // A promise answers when it settles, so a test decides when each
+          // sentence is ready.
+          const answer = tts && tts(msg);
+          if (answer && typeof answer.then === "function") answer.then(cb);
+          else if (tts) cb(answer);
+        }
         else cb({ ok: true });
       },
     },
@@ -64,12 +73,15 @@ function loadPage({ engine = "server", tts } = {}) {
 
   const context = dom.getInternalVMContext();
   new vm.Script(TEXTKIT).runInContext(context);
+  new vm.Script(RECORD).runInContext(context);
   new vm.Script(CONTENT).runInContext(context);
 
   return {
     window,
     sent,
     logs,
+    messages,
+    click: (id) => shadow.getElementById(id).click(),
     dispatch: (msg) => listeners.slice().forEach((fn) => fn(msg, {}, () => {})),
     engineLabel: () => shadow?.getElementById("engine")?.textContent,
     status: () => shadow?.getElementById("status")?.textContent,
@@ -200,4 +212,247 @@ test("the tab's debug log lines (000052)", async (t) => {
       page.close();
     }
   });
+});
+
+test("reading a page sentence by sentence (000053)", async (t) => {
+  // Three paragraphs, six sentences: indices 0-1, 2-3, 4-5.
+  const TEXT = [
+    "The first sentence is here. The second sentence follows it.",
+    "The third sentence opens this one. The fourth sentence closes it.",
+    "The fifth sentence begins the end. The sixth sentence is the last.",
+  ].join("\n\n");
+
+  const settle = async () => {
+    for (let i = 0; i < 10; i++) await tick();
+  };
+
+  // TTS requests wait until the test answers them, one by one, in order.
+  function deferredPage() {
+    const pending = [];
+    const page = loadPage({
+      tts: (msg) =>
+        new Promise((resolve) => {
+          pending.push({
+            text: msg.text,
+            answer: () =>
+              resolve({ ok: true, engine: "server", data: { audio_base64: `audio:${msg.text}`, timestamps: [] } }),
+          });
+        }),
+    });
+    const requested = () => page.messages.filter((m) => m.type === "TTS_REQUEST").map((m) => m.text);
+    const plays = () => page.messages.filter((m) => m.type === "PLAY_AUDIO");
+    const answerNext = async () => {
+      pending.shift().answer();
+      await settle();
+    };
+    const start = async () => {
+      page.dispatch({ type: "TOGGLE_READ_ALOUD", selectedText: TEXT });
+      await settle();
+    };
+    return { page, pending, requested, plays, answerNext, start };
+  }
+
+  await t.test("asks for one sentence at a time, not a whole paragraph", async () => {
+    const r = deferredPage();
+    try {
+      await r.start();
+      assert.deepEqual(r.requested(), ["The first sentence is here."]);
+    } finally {
+      r.page.close();
+    }
+  });
+
+  await t.test("starts playing as soon as the first sentence is ready", async () => {
+    const r = deferredPage();
+    try {
+      await r.start();
+      assert.equal(r.plays().length, 0);
+      await r.answerNext();
+      assert.equal(r.plays().length, 1);
+      assert.equal(r.plays()[0].key, 0);
+      // The next sentence is already on its way, and only that one.
+      assert.equal(r.pending.length, 1);
+      assert.match(r.pending[0].text, /second/);
+    } finally {
+      r.page.close();
+    }
+  });
+
+  await t.test("synthesizes the whole page in the background, in order, one at a time", async () => {
+    const r = deferredPage();
+    try {
+      await r.start();
+      for (let i = 0; i < 6; i++) {
+        assert.ok(r.pending.length <= 1, `${r.pending.length} requests in flight`);
+        await r.answerNext();
+      }
+      assert.equal(r.pending.length, 0);
+      assert.deepEqual(
+        r.requested().map((text) => text.split(" ")[1]),
+        ["first", "second", "third", "fourth", "fifth", "sixth"]
+      );
+      // Still on the first sentence: nothing has ended yet.
+      assert.equal(r.plays().length, 1);
+    } finally {
+      r.page.close();
+    }
+  });
+
+  await t.test("going back to a made sentence plays it with no synthesis", async () => {
+    const r = deferredPage();
+    try {
+      await r.start();
+      for (let i = 0; i < 6; i++) await r.answerNext();
+      const before = r.requested().length;
+
+      r.page.click("btn-next"); // paragraph 2, sentence 2
+      await settle();
+      r.page.click("btn-prev"); // at a paragraph start, so back to paragraph 1
+      await settle();
+
+      assert.equal(r.requested().length, before);
+      const keys = r.plays().map((p) => p.key);
+      assert.deepEqual(keys, [0, 2, 0]);
+      // Not preloaded, so the audio travels with the play request.
+      assert.equal(r.plays().at(-1).audio_base64, "audio:The first sentence is here.");
+    } finally {
+      r.page.close();
+    }
+  });
+
+  await t.test("after a jump, makes the target first, then on to the end, then the gap", async () => {
+    const r = deferredPage();
+    try {
+      await r.start();
+      await r.answerNext(); // sentence 0 made and playing; 1 requested
+      r.page.click("btn-next"); // to paragraph 2 (sentence 2) while 1 is in flight
+      r.page.click("btn-next"); // and on to paragraph 3 (sentence 4)
+      await settle();
+      // The jump waits behind the one request already in flight, never more.
+      assert.equal(r.pending.length, 1);
+      assert.match(r.pending[0].text, /second/);
+      for (let i = 0; i < 5; i++) await r.answerNext();
+      assert.deepEqual(
+        r.requested().map((text) => text.split(" ")[1]),
+        ["first", "second", "fifth", "sixth", "third", "fourth"]
+      );
+      assert.equal(r.plays().at(-1).key, 4);
+    } finally {
+      r.page.close();
+    }
+  });
+
+  await t.test("a jump while waiting does not let the old sentence play late", async () => {
+    const r = deferredPage();
+    try {
+      await r.start(); // waiting on sentence 0
+      r.page.click("btn-next"); // to sentence 2 before 0 is made
+      await settle();
+      for (let i = 0; i < 3; i++) await r.answerNext();
+      assert.deepEqual(
+        r.plays().map((p) => p.key),
+        [2]
+      );
+    } finally {
+      r.page.close();
+    }
+  });
+
+  await t.test("plays on into the next sentence when one ends", async () => {
+    const r = deferredPage();
+    try {
+      await r.start();
+      await r.answerNext();
+      await r.answerNext();
+      r.page.dispatch({ type: "AUDIO_ENDED" });
+      await settle();
+      assert.deepEqual(
+        r.plays().map((p) => p.key),
+        [0, 1]
+      );
+      // Sentence 1 was preloaded while 0 played, so it goes without its audio.
+      // The preload has to follow PLAY 0: the player drops any preload that is
+      // not the sentence it is starting, and sent first, it was thrown away.
+      const at = (type, key) => r.page.messages.findIndex((m) => m.type === type && m.key === key);
+      assert.ok(at("PRELOAD_AUDIO", 1) > at("PLAY_AUDIO", 0), "preload sent before PLAY 0");
+      assert.equal(r.plays()[1].audio_base64, undefined);
+    } finally {
+      r.page.close();
+    }
+  });
+
+  await t.test("a failed sentence is not asked for again until playback tries it", async () => {
+    let calls = 0;
+    const page = loadPage({
+      tts: () => {
+        calls++;
+        return { ok: false, error: "engine exploded" };
+      },
+    });
+    try {
+      page.dispatch({ type: "TOGGLE_READ_ALOUD", selectedText: TEXT });
+      await settle();
+      // One failure, then the retry path after its 500ms delay; not a loop.
+      assert.equal(calls, 1);
+    } finally {
+      page.close();
+    }
+  });
+});
+
+test("a jump survives the sentence in flight failing (000053)", async () => {
+  const TEXT = [
+    "The first sentence is here. The second sentence follows it.",
+    "The third sentence opens this one. The fourth sentence closes it.",
+  ].join("\n\n");
+  const pending = [];
+  const page = loadPage({
+    tts: (msg) =>
+      new Promise((resolve) => {
+        pending.push({ text: msg.text, resolve });
+      }),
+  });
+  const settle = async () => {
+    for (let i = 0; i < 10; i++) await tick();
+  };
+  try {
+    page.dispatch({ type: "TOGGLE_READ_ALOUD", selectedText: TEXT });
+    await settle();
+    // Sentence 0 is in flight; jump to paragraph 2 (sentence 2) meanwhile.
+    page.click("btn-next");
+    await settle();
+    pending.shift().resolve({ ok: false, error: "engine exploded" });
+    await settle();
+    // The target is still asked for, not left waiting behind a stalled loop.
+    assert.equal(pending.length, 1);
+    assert.match(pending[0].text, /third/);
+  } finally {
+    page.close();
+  }
+});
+
+test("the next sentence is preloaded after the player starts this one (000053)", async () => {
+  const TEXT = [
+    "The first sentence is here. The second sentence follows it.",
+    "The third sentence opens this one. The fourth sentence closes it.",
+  ].join("\n\n");
+  const page = loadPage({
+    tts: (msg) => ({ ok: true, engine: "server", data: { audio_base64: `audio:${msg.text}`, timestamps: [] } }),
+  });
+  const settle = async () => {
+    for (let i = 0; i < 20; i++) await tick();
+  };
+  try {
+    page.dispatch({ type: "TOGGLE_READ_ALOUD", selectedText: TEXT });
+    await settle();
+    // Everything is made by now, as it is while reading well behind synthesis.
+    page.click("btn-next"); // sentence 2, with 3 already made
+    await settle();
+    const at = (type, key) => page.messages.findIndex((m) => m.type === type && m.key === key);
+    assert.ok(at("PRELOAD_AUDIO", 3) !== -1, "sentence 3 was never preloaded");
+    // Sent before PLAY 2, the player would have dropped it on starting 2.
+    assert.ok(at("PRELOAD_AUDIO", 3) > at("PLAY_AUDIO", 2), "preload sent before PLAY 2");
+  } finally {
+    page.close();
+  }
 });

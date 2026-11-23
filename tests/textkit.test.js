@@ -475,3 +475,59 @@ test("citation markers", async (t) => {
     assert.ok(!kit.isCitationMarker(body.querySelector("sup")));
   });
 });
+
+// ─── Sentences (000053) ────────────────────────────────────────────────────
+test("splitIntoSentences", async (t) => {
+  const cases = [
+    ["ends at . ! and ?", "One here. Two here! Three here? Four.", ["One here.", "Two here!", "Three here?", "Four."]],
+    ["keeps text with no final stop", "First one. And then", ["First one.", "And then"]],
+    ["does not end after a title", "Mr. Smith met Dr. Jones.", ["Mr. Smith met Dr. Jones."]],
+    ["does not end after an initial", "J. K. Rowling wrote it. Then more.", ["J. K. Rowling wrote it.", "Then more."]],
+    ["does not end after an acronym with stops", "The U.S. Army said so. Next.", ["The U.S. Army said so.", "Next."]],
+    ["does not end inside a number", "It rose 3.5 percent. Then fell.", ["It rose 3.5 percent.", "Then fell."]],
+    ["does not end before a lower-case word", "Use e.g. this one. Done.", ["Use e.g. this one.", "Done."]],
+    ["keeps a closing quote with its sentence", 'He said "Stop." Then he left.', ['He said "Stop."', "Then he left."]],
+    ["ends before an opening quote", 'It was late. "Go home," she said.', ["It was late.", '"Go home," she said.']],
+    ["ends before a number", "Chapter one ends. 2024 was the year.", ["Chapter one ends.", "2024 was the year."]],
+  ];
+  for (const [name, text, expected] of cases) {
+    await t.test(name, () => assert.deepEqual(kit.splitIntoSentences(text), expected));
+  }
+});
+
+test("splitParagraphIntoChunks gives one sentence per chunk", async (t) => {
+  await t.test("each sentence of a short paragraph is its own chunk", () => {
+    assert.deepEqual(kit.splitParagraphIntoChunks("A first sentence here. A second one."), [
+      "A first sentence here.",
+      "A second one.",
+    ]);
+  });
+
+  await t.test("a sentence past the cap is cut at a clause, within the cap", () => {
+    const clause = "a clause that runs on for quite a while, ";
+    const sentence = `Start ${clause.repeat(20)}and the end.`;
+    const chunks = kit.splitParagraphIntoChunks(sentence);
+    assert.ok(chunks.length > 1);
+    for (const c of chunks) assert.ok(c.length <= kit.MAX_CHUNK_CHARS, `${c.length} chars`);
+    assert.ok(chunks[0].endsWith(","), chunks[0].slice(-20));
+    assert.equal(chunks.join(" "), sentence);
+  });
+
+  await t.test("a sentence with no clause or space past the cap is still cut", () => {
+    const chunks = kit.splitParagraphIntoChunks("x".repeat(kit.MAX_CHUNK_CHARS + 10));
+    assert.deepEqual(chunks.map((c) => c.length), [kit.MAX_CHUNK_CHARS, 10]);
+  });
+
+  await t.test("does not split before a dash or an ellipsis, which start no sentence", () => {
+    assert.deepEqual(kit.splitParagraphIntoChunks("Before it. (…) After it."), ["Before it. (…) After it."]);
+    assert.deepEqual(kit.splitParagraphIntoChunks("Before it. — After it."), ["Before it. — After it."]);
+  });
+
+  await t.test("every chunk is an exact run of the paragraph, so it can be highlighted", () => {
+    const paragraph =
+      'Mr. Smith said "No." Then, at 3.5 km, he stopped! Why? See https://example.com/x for more. The end';
+    for (const c of kit.splitParagraphIntoChunks(paragraph)) {
+      assert.ok(paragraph.includes(c), c);
+    }
+  });
+});

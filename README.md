@@ -241,8 +241,10 @@ uv run --directory server pytest
 ```
 
 The extension suite covers `extension/lib/textkit.js` — paragraph extraction,
-chunking, the text index, word spans — plus the manifest, the injection flow in
-`background.js`, and the preload handshake in `offscreen.js`. The server suite
+sentence splitting, the text index, word spans — and `extension/lib/record.js`,
+the order a page is synthesized in and the cap on the audio it keeps. It also
+covers the manifest, the injection flow in `background.js`, reading in a page
+(`content.js`), and the preload handshake in `offscreen.js`. The server suite
 covers token alignment, the CORS policy and the choice of compute device.
 
 Neither needs a GPU and the Python tests do not import torch: everything they

@@ -17,6 +17,8 @@ const SOURCE = fs.readFileSync(
 
 function load() {
   const events = [];
+  const logs = [];
+  const audios = [];
   let listener = null;
   let liveUrls = 0;
 
@@ -27,6 +29,7 @@ function load() {
       this.currentTime = 0;
       this.duration = 30;
       this.readyState = 0;
+      audios.push(this);
       events.push(`construct:${url}`);
     }
     load() {
@@ -67,7 +70,10 @@ function load() {
     clearInterval: () => {},
     chrome: {
       runtime: {
-        sendMessage: (m) => events.push(`emit:${m.type}`),
+        sendMessage: (m) => {
+          if (m.type === "LOG") logs.push(m);
+          return events.push(`emit:${m.type}`);
+        },
         onMessage: { addListener: (fn) => (listener = fn) },
       },
     },
@@ -81,7 +87,7 @@ function load() {
       if (returned !== true) resolve(undefined);
     });
 
-  return { send, events, liveUrls: () => liveUrls };
+  return { send, events, logs, audios, liveUrls: () => liveUrls };
 }
 
 const AUDIO_A = Buffer.from("chunk-a-audio-bytes").toString("base64");
@@ -185,5 +191,32 @@ test("resume", async (t) => {
       startAt: 12.5,
     });
     assert.equal(response.ok, true);
+  });
+});
+
+test("the gap between sentences, in the debug log (000053)", async (t) => {
+  const plays = (logs) => logs.filter((l) => l.ev === "audio.play");
+
+  await t.test("the first sentence has no gap to report", async () => {
+    const { send, logs } = load();
+    await send({ type: "PLAY", key: 0, audio_base64: AUDIO_A, speed: 1 });
+    assert.equal(plays(logs)[0].gapMs, undefined);
+  });
+
+  await t.test("a sentence after one that ended reports the silence between them", async () => {
+    const { send, logs, audios } = load();
+    await send({ type: "PLAY", key: 0, audio_base64: AUDIO_A, speed: 1 });
+    audios.at(-1).onended();
+    await send({ type: "PLAY", key: 1, audio_base64: AUDIO_B, speed: 1 });
+    const gap = plays(logs)[1].gapMs;
+    assert.equal(typeof gap, "number");
+    assert.ok(gap >= 0 && gap < 1000, `${gap}ms`);
+  });
+
+  await t.test("a jump, with nothing just ended, reports none", async () => {
+    const { send, logs } = load();
+    await send({ type: "PLAY", key: 0, audio_base64: AUDIO_A, speed: 1 });
+    await send({ type: "PLAY", key: 5, audio_base64: AUDIO_B, speed: 1 });
+    assert.equal(plays(logs)[1].gapMs, undefined);
   });
 });
