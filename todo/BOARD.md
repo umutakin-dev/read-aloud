@@ -7,13 +7,15 @@
 
 *What is being built and in what order. Everything under Backlog is the implicit Later.*
 
-### 🎯 Now (3)
+### 🎯 Now (5)
 
 | # | ID | Type | Priority | Title |
 |---|----|------|----------|-------|
 | 1 | [000053](in-progress/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | 🔨 Per-page sentence record, synthesized whole page ahead of the reader |
-| 2 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | Read from the selected text |
-| 3 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
+| 2 | [000056](000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | Audio keeps playing after the reading page reloads or navigates away |
+| 3 | [000057](000057-b-hacker-news-each-comment-s-first-paragraph-and-sho.md) | 🐛 | 🔴 | Hacker News: each comment's first paragraph and short comments are not read |
+| 4 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | Read from the selected text |
+| 5 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
 
 ### 🔜 Next (0)
 
