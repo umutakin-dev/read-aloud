@@ -55,6 +55,9 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 
 ## Log
 
+### 2026-11-23 20:46 UTC
+- **Decision:** Roadmap: 🔜 NEXT 1 → 🎯 NOW 4
+
 ### 2026-11-23 12:53 UTC
 - **Decision:** Roadmap: (unscheduled) → 🔜 NEXT 1
 

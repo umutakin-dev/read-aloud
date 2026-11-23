@@ -27,6 +27,9 @@ engine/               source of the browser engine (ES modules)
   engine.mjs          kokoro-js on WebGPU, loaded lazily by the player
   speechkit.mjs       pure logic: sentences → server-shaped response
 scripts/build-engine.mjs  bundles engine/ into extension/engine/
+scripts/build-packages.mjs  copies extension/ per browser into dist/, zips with --zip
+scripts/manifests.mjs     each browser's manifest, derived from the source one
+dist/                     GENERATED, gitignored: dist/chrome/, dist/firefox/, the zips
 server/               FastAPI + Kokoro, managed with uv
   src/tts_server/alignment.py   token → character spans, kept free of torch
   src/tts_server/device.py      cuda → mps → cpu choice, kept free of torch
@@ -39,7 +42,8 @@ todo/                 work items (see Workflow)
 
 ```bash
 npm install                      # once
-npm run build                    # browser engine → extension/engine/ (needed to load the extension)
+npm run build                    # browser engine → extension/engine/, then dist/chrome/ and dist/firefox/
+npm run package                  # the same, plus one store zip per browser in dist/
 npm test                         # extension suite (no build needed)
 
 uv run --directory server --no-project --with pytest --with httpx --with starlette pytest
@@ -72,7 +76,9 @@ Each of these was a fix. Reverting one brings the bug back.
   `device.py` takes torch as an argument (000049). The cheap
   server test run depends on it.
 - **Browser speech fallback is opt-in, off by default** (000018).
-- **One manifest serves both browsers** (000044). `background` carries both
+- **One manifest serves both browsers** (000044). The store packages are derived
+  from it by `scripts/manifests.mjs` (000055), each with only its own browser's
+  keys; edit `extension/manifest.json`, never a copy in `dist/`. `background` carries both
   `service_worker` (Chrome) and `scripts` (Firefox), and each browser ignores
   the other's key. Firefox loads `offscreen.js` ahead of `background.js` in one
   page, where `runtime.sendMessage` never reaches that page's own listeners, so

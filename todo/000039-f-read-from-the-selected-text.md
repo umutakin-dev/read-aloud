@@ -55,6 +55,9 @@ Pairs naturally with #000040, since both are about knowing and controlling where
 
 ## Log
 
+### 2026-11-23 20:46 UTC
+- **Decision:** Roadmap: 🎯 NOW 4 → 🎯 NOW 3
+
 ### 2026-11-23 12:53 UTC
 - **Decision:** Roadmap: (unscheduled) → 🎯 NOW 3
 

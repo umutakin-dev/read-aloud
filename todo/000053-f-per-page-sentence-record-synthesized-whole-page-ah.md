@@ -55,6 +55,9 @@ Playback starts once the first sentence is ready. This is the foundation for jum
 
 ## Log
 
+### 2026-11-23 20:46 UTC
+- **Decision:** Roadmap: 🎯 NOW 3 → 🎯 NOW 2
+
 ### 2026-11-23 12:53 UTC
 - **Decision:** Roadmap: (unscheduled) → 🎯 NOW 2
 
