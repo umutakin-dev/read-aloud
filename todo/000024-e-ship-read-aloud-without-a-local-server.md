@@ -22,6 +22,7 @@ So the sequence is: find out whether the browser can do it (#000025), and only i
 - #000027 🔧 Chrome Web Store listing, privacy policy and permission justification
 - #000046 ✨ In-browser Kokoro engine on WebGPU, with the server as an optional upgrade
 - #000051 🐛 Toolbar says Kokoro · server while the browser engine downloads its model
+- #000055 🔧 Build a Chrome and a Firefox package from the one extension tree
 
 ## Estimation
 
@@ -48,6 +49,9 @@ So the sequence is: find out whether the browser can do it (#000025), and only i
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 20:32 UTC
+- **Note:** Added #000055 Build a Chrome and a Firefox package from the one extension tree to Items
 
 ### 2026-11-23 12:26 UTC
 - **Note:** Added #000051 Toolbar says Kokoro · server while the browser engine downloads its model to Items
