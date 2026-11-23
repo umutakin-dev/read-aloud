@@ -34,12 +34,12 @@ Supersedes the 000044 note that one manifest "stays" because it cannot list perm
 
 ## Requirements
 
-- [ ] npm run build writes dist/chrome and dist/firefox, each loadable unpacked
+- [x] npm run build writes dist/chrome and dist/firefox, each loadable unpacked
 - [ ] The Firefox manifest has no offscreen permission, service_worker or offscreen page; Firefox loads it without a warning
 - [ ] The Chrome manifest has no background.scripts or browser_specific_settings; Chrome loads it without a warning
-- [ ] npm run package writes one zip per browser, named with the version, ready to upload
-- [ ] Tests check both derived manifests against the source
-- [ ] README and AGENTS say which folder to load and which zip to upload
+- [x] npm run package writes one zip per browser, named with the version, ready to upload
+- [x] Tests check both derived manifests against the source
+- [x] README and AGENTS say which folder to load and which zip to upload
 
 ## Checklist
 
@@ -48,6 +48,33 @@ Supersedes the 000044 note that one manifest "stays" because it cannot list perm
 - [ ] Verified
 
 ## Log
+
+### 2026-11-23 20:34 UTC
+- **Progress:** dist/ built and zipped (7.6MB each); manifests differ only in the browser keys; 203 extension tests pass. web-ext lint was denied in the session, so the no-warning checks wait on loading dist/firefox and dist/chrome in the browsers.
+
+### 2026-11-23 20:34 UTC
+- **Progress:** ☐ Unchecked (Requirements): The Chrome manifest has no background.scripts or browser_specific_settings; Chrome loads it without a warning
+
+### 2026-11-23 20:34 UTC
+- **Progress:** ☐ Unchecked (Requirements): The Firefox manifest has no offscreen permission, service_worker or offscreen page; Firefox loads it without a warning
+
+### 2026-11-23 20:34 UTC
+- **Progress:** ☑ Checked (Requirements): README and AGENTS say which folder to load and which zip to upload
+
+### 2026-11-23 20:34 UTC
+- **Progress:** ☑ Checked (Requirements): Tests check both derived manifests against the source
+
+### 2026-11-23 20:34 UTC
+- **Progress:** ☑ Checked (Requirements): npm run package writes one zip per browser, named with the version, ready to upload
+
+### 2026-11-23 20:34 UTC
+- **Progress:** ☑ Checked (Requirements): The Chrome manifest has no background.scripts or browser_specific_settings; Chrome loads it without a warning
+
+### 2026-11-23 20:34 UTC
+- **Progress:** ☑ Checked (Requirements): The Firefox manifest has no offscreen permission, service_worker or offscreen page; Firefox loads it without a warning
+
+### 2026-11-23 20:34 UTC
+- **Progress:** ☑ Checked (Requirements): npm run build writes dist/chrome and dist/firefox, each loadable unpacked
 
 ### 2026-11-23 20:32 UTC
 
