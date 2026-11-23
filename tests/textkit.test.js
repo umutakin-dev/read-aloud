@@ -11,15 +11,18 @@ function bodyOf(html) {
   return new JSDOM(`<!doctype html><body>${html}</body>`).window.document.body;
 }
 
-// ─── paragraphsFromRoot ─────────────────────────────────────────────────────
-test("paragraphsFromRoot", async (t) => {
+// What the extension reads from a page made of this body (000058).
+const paragraphsOf = (body, options) => kit.extractParagraphs(body.ownerDocument, options);
+
+// ─── extractParagraphs ──────────────────────────────────────────────────────
+test("extractParagraphs", async (t) => {
   await t.test("takes one paragraph per block element", () => {
     const body = bodyOf(`
       <h1>A heading long enough to survive the filter</h1>
       <p>The first paragraph, which is comfortably past the minimum length.</p>
       <p>The second paragraph, also long enough to be worth reading aloud.</p>
     `);
-    assert.equal(kit.paragraphsFromRoot(body).length, 3);
+    assert.equal(paragraphsOf(body).length, 3);
   });
 
   await t.test("does not emit a wrapper alongside the blocks inside it", () => {
@@ -31,35 +34,35 @@ test("paragraphsFromRoot", async (t) => {
         <p>The second half of that same comment, also long enough to count.</p>
       </div></td>
     `);
-    const paragraphs = kit.paragraphsFromRoot(body);
+    const paragraphs = paragraphsOf(body);
     assert.equal(paragraphs.length, 2);
     assert.ok(!paragraphs.some((p) => p.includes("first half") && p.includes("second half")));
   });
 
   await t.test("does not emit a list item and its paragraph twice", () => {
     const body = bodyOf(`<li><p>A list item wrapping a paragraph of real text.</p></li>`);
-    assert.equal(kit.paragraphsFromRoot(body).length, 1);
+    assert.equal(paragraphsOf(body).length, 1);
   });
 
   await t.test("keeps inline markup inside one paragraph", () => {
     const body = bodyOf(
       `<p>Body text with <em>emphasis</em> and a <a href="#">link</a> inside it.</p>`
     );
-    const paragraphs = kit.paragraphsFromRoot(body);
+    const paragraphs = paragraphsOf(body);
     assert.equal(paragraphs.length, 1);
     assert.equal(paragraphs[0], "Body text with emphasis and a link inside it.");
   });
 
   await t.test("drops blocks too short to be worth reading", () => {
     const body = bodyOf(`<p>short</p><p>A paragraph that is long enough to keep.</p>`);
-    assert.deepEqual(kit.paragraphsFromRoot(body), [
+    assert.deepEqual(paragraphsOf(body), [
       "A paragraph that is long enough to keep.",
     ]);
   });
 
   await t.test("collapses whitespace so the text index can match it", () => {
     const body = bodyOf(`<p>  Text   with\n\n  irregular\twhitespace throughout.  </p>`);
-    assert.deepEqual(kit.paragraphsFromRoot(body), [
+    assert.deepEqual(paragraphsOf(body), [
       "Text with irregular whitespace throughout.",
     ]);
   });
@@ -301,7 +304,7 @@ test("buildTextIndex", async (t) => {
     const html = `<p>The first paragraph here.</p><p>The second paragraph here.</p>`;
     const body = bodyOf(html);
     const index = kit.buildTextIndex(body);
-    for (const paragraph of kit.paragraphsFromRoot(body)) {
+    for (const paragraph of paragraphsOf(body)) {
       assert.ok(index.text.includes(paragraph), `${JSON.stringify(paragraph)} not in index`);
     }
   });
@@ -445,17 +448,17 @@ test("citation markers", async (t) => {
     'Individuals weighted new information ("cold cognition"). More recent theories were motivational or affective.';
 
   await t.test("are skipped from paragraph text when asked", () => {
-    assert.deepEqual(kit.paragraphsFromRoot(bodyOf(WIKI), { skipCitations: true }), [SPOKEN]);
+    assert.deepEqual(paragraphsOf(bodyOf(WIKI), { skipCitations: true }), [SPOKEN]);
   });
 
   await t.test("are kept by default", () => {
-    const [text] = kit.paragraphsFromRoot(bodyOf(WIKI));
+    const [text] = paragraphsOf(bodyOf(WIKI));
     assert.match(text, /\[7\]/);
   });
 
   await t.test("the skipped paragraph is still found in the skipped index", () => {
     const body = bodyOf(WIKI);
-    const [paragraph] = kit.paragraphsFromRoot(body, { skipCitations: true });
+    const [paragraph] = paragraphsOf(body, { skipCitations: true });
     const index = kit.buildTextIndex(body, { skipCitations: true });
     assert.notEqual(index.text.indexOf(paragraph), -1, index.text);
   });

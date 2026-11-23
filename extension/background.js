@@ -16,7 +16,6 @@ chrome.runtime.onInstalled.addListener(() => {
 // points below (action click, context menu item, commands shortcut).
 // Order matters: content.js reads ReadAloudText and ReadAloudRecord at load.
 const CONTENT_SCRIPTS = [
-  "lib/Readability.js",
   "lib/textkit.js",
   "lib/record.js",
   "content.js",

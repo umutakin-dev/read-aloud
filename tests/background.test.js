@@ -128,7 +128,7 @@ test("invoking Read Aloud on a tab", async (t) => {
     assert.deepEqual(calls, [
       "tab:TOGGLE_READ_ALOUD",
       "insertCSS:content.css",
-      "executeScript:lib/Readability.js,lib/textkit.js,lib/record.js,content.js",
+      "executeScript:lib/textkit.js,lib/record.js,content.js",
       "tab:TOGGLE_READ_ALOUD",
     ]);
   });

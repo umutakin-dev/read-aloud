@@ -143,7 +143,7 @@
   // chunking, the text index and word spans. It is separated because that is
   // where the subtle bugs are, and it is covered by tests/textkit.test.js.
   const {
-    paragraphsFromRoot,
+    extractParagraphs: extractFromPage,
     splitIntoParagraphs,
     buildChunks,
     buildTextIndex,
@@ -159,30 +159,12 @@
     return { skipCitations: !state.readCitations };
   }
 
+  // Read from the live page by our own rules (000058), not from a copy: what
+  // is extracted is then exactly what the text index finds.
   function extractParagraphs() {
-    try {
-      const clone = document.cloneNode(true);
-      const article = new Readability(clone).parse();
-
-      // article.content is the cleaned HTML, which still has the block
-      // structure. article.textContent is the same thing already flattened.
-      if (article && article.content) {
-        const doc = new DOMParser().parseFromString(article.content, "text/html");
-        const paragraphs = paragraphsFromRoot(doc.body, textOptions());
-        if (paragraphs.length) return paragraphs;
-      }
-      if (article && article.textContent && article.textContent.trim().length > 100) {
-        return splitIntoParagraphs(article.textContent);
-      }
-    } catch (e) {
-      console.warn("Read Aloud: Readability failed, falling back to page structure", e);
-    }
-
-    // Readability declined — usually a page that is not article-shaped. The
-    // live document still has blocks worth reading.
-    const fromDom = paragraphsFromRoot(document.body, textOptions());
-    if (fromDom.length) return fromDom;
-
+    const paragraphs = extractFromPage(document, textOptions());
+    if (paragraphs.length) return paragraphs;
+    // Nothing structured survived the rules: read what the page shows.
     return splitIntoParagraphs(document.body.innerText);
   }
 
@@ -205,8 +187,8 @@
       idx = findChunkOffset(state.textIndex.text, paragraphText, 0);
     }
     if (idx === -1) {
-      // Readability sometimes alters a paragraph slightly (entity decoding,
-      // dropped inline nodes). A prefix match still anchors the highlight.
+      // The page may have changed inside the paragraph since it was read (an
+      // edited comment, a live counter). A prefix match still anchors it.
       const probe = paragraphText.slice(0, 60);
       if (probe.length >= 20) {
         idx = findChunkOffset(state.textIndex.text, probe, from);
