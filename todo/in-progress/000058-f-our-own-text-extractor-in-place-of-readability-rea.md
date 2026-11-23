@@ -38,13 +38,13 @@ Closes 000057 when it lands.
 
 ## Requirements
 
-- [ ] Extraction reads the live page; Readability is removed from the extension
-- [ ] Text directly inside a container, before or between its blocks, is read
-- [ ] Navigation, headers, footers, sidebars, forms and hidden text are not read
-- [ ] Short blocks under link-heavy headers are read: every comment on the saved HN thread
-- [ ] Saved-page tests: Hacker News, Wikipedia, a news article, a blog and a docs page
-- [ ] Every extracted block is found in the page, so highlighting has nothing to hunt for
-- [ ] Citation markers are still skipped unless the setting says to read them
+- [x] Extraction reads the live page; Readability is removed from the extension
+- [x] Text directly inside a container, before or between its blocks, is read
+- [x] Navigation, headers, footers, sidebars, forms and hidden text are not read
+- [x] Short blocks under link-heavy headers are read: every comment on the saved HN thread
+- [x] Saved-page tests: Hacker News, Wikipedia, a news article, a blog and a docs page
+- [x] Every extracted block is found in the page, so highlighting has nothing to hunt for
+- [x] Citation markers are still skipped unless the setting says to read them
 - [ ] Read in Chrome and Firefox on real pages before merging
 
 ## Checklist
@@ -56,6 +56,30 @@ Closes 000057 when it lands.
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 22:38 UTC
+- **Progress:** Extractor in, Readability out. Umut's Firefox logs on the HN thread: antihero's comment and short replies read, 553 paragraphs (was 467), extraction 131-259ms, index built once in 32ms, never rebuilt. Saved-page tests for 5 sites; 309 extension tests pass. Left: a read in Chrome and Firefox on real pages.
+
+### 2026-11-23 22:38 UTC
+- **Progress:** ☑ Checked (Requirements): Citation markers are still skipped unless the setting says to read them
+
+### 2026-11-23 22:38 UTC
+- **Progress:** ☑ Checked (Requirements): Every extracted block is found in the page, so highlighting has nothing to hunt for
+
+### 2026-11-23 22:38 UTC
+- **Progress:** ☑ Checked (Requirements): Saved-page tests: Hacker News, Wikipedia, a news article, a blog and a docs page
+
+### 2026-11-23 22:38 UTC
+- **Progress:** ☑ Checked (Requirements): Short blocks under link-heavy headers are read: every comment on the saved HN thread
+
+### 2026-11-23 22:38 UTC
+- **Progress:** ☑ Checked (Requirements): Navigation, headers, footers, sidebars, forms and hidden text are not read
+
+### 2026-11-23 22:38 UTC
+- **Progress:** ☑ Checked (Requirements): Text directly inside a container, before or between its blocks, is read
+
+### 2026-11-23 22:38 UTC
+- **Progress:** ☑ Checked (Requirements): Extraction reads the live page; Readability is removed from the extension
 
 ### 2026-11-23 22:06 UTC
 - **Decision:** Roadmap: 🎯 NOW 2 → 🎯 NOW 1
