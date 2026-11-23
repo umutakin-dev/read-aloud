@@ -77,6 +77,8 @@ function load({
           const wanted = typeof keys === "string" ? [keys] : keys ?? Object.keys(settings);
           return Object.fromEntries(wanted.filter((k) => k in settings).map((k) => [k, settings[k]]));
         },
+        set: async (values) => Object.assign(settings, values),
+        remove: async (key) => delete settings[key],
       },
     },
     offscreen: { createDocument: async () => {}, closeDocument: async () => {} },
@@ -318,5 +320,67 @@ test("audio control relay", async (t) => {
     listeners.message({ type: "PAUSE_AUDIO" }, {}, () => {});
     await settle();
     assert.deepEqual(calls, []);
+  });
+});
+
+test("the debug log (000052)", async (t) => {
+  const ask = (listeners, message, sender = { tab: { id: 7 } }) =>
+    new Promise((resolve) => listeners.message(message, sender, resolve));
+  const lines = (response) => response.text.split("\n").filter(Boolean);
+
+  await t.test("records what the tab sends, with the tab it came from", async () => {
+    const { listeners } = load();
+    listeners.message({ type: "LOG", src: "tab", ev: "chunk.request", chunk: 3, text: "A short preview" }, { tab: { id: 7 } }, () => {});
+    const log = await ask(listeners, { type: "GET_LOG" });
+    const line = lines(log).find((l) => l.includes("chunk.request"));
+    assert.ok(line, log.text);
+    assert.match(line, /tab=7/);
+    assert.match(line, /chunk=3/);
+    assert.match(line, /text="A short preview"/);
+  });
+
+  await t.test("notes each start of the background, since memory was lost there", async () => {
+    const { listeners } = load();
+    const log = await ask(listeners, { type: "GET_LOG" });
+    assert.match(log.text, /bg\s+bg\.start player=offscreen/);
+  });
+
+  await t.test("keeps what earlier runs of the background saved", async () => {
+    const earlier = { t: "2026-11-23T10:00:00.000Z", src: "player", ev: "audio.error", error: "decode" };
+    const { listeners } = load({ settings: { debugLog: [earlier] } });
+    const log = await ask(listeners, { type: "GET_LOG" });
+    assert.match(lines(log)[0], /player audio\.error error=decode/);
+    assert.equal(log.count, 2);
+  });
+
+  await t.test("is capped, dropping the oldest", async () => {
+    const full = Array.from({ length: 2000 }, (_, i) => ({ t: "x", src: "tab", ev: `old.${i}` }));
+    const { listeners } = load({ settings: { debugLog: full } });
+    const log = await ask(listeners, { type: "GET_LOG" });
+    assert.equal(log.count, 2000);
+    assert.ok(!log.text.includes("old.0\n"), "the oldest entry should be gone");
+    assert.match(lines(log).at(-1), /bg\.start/);
+  });
+
+  await t.test("logs each synthesis with its engine, time and size", async () => {
+    const { listeners } = load({ serverUp: true });
+    await ask(listeners, { type: "TTS_REQUEST", text: "Hello there." });
+    const log = await ask(listeners, { type: "GET_LOG" });
+    assert.match(log.text, /synth\.done engine=server ms=\d+ chars=12/);
+  });
+
+  await t.test("logs a failed synthesis with its error", async () => {
+    const { listeners } = load({ settings: { engine: "server" }, serverUp: false });
+    await ask(listeners, { type: "TTS_REQUEST", text: "Hello." });
+    const log = await ask(listeners, { type: "GET_LOG" });
+    assert.match(log.text, /synth\.fail engine=server .*error="connection refused"/);
+  });
+
+  await t.test("clears on request", async () => {
+    const { listeners } = load();
+    listeners.message({ type: "LOG", src: "tab", ev: "something" }, {}, () => {});
+    await ask(listeners, { type: "CLEAR_LOG" });
+    const log = await ask(listeners, { type: "GET_LOG" });
+    assert.equal(log.count, 0);
   });
 });

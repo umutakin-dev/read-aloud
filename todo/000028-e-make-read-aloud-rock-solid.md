@@ -27,6 +27,8 @@ Alongside that, two real defects are visible in the merged code — a paragraph 
 - #000036 🔧 Cancel in-flight synthesis when playback stops
 - #000048 🐛 Highlight jumps ahead at the start of each paragraph
 - #000049 🐛 Server runs Kokoro on the Apple GPU (MPS) on macOS
+- #000052 ✨ Debug log the extension records and the popup downloads
+- #000054 🐛 Playback stopped mid-sentence and re-synthesized the chunk on the browser engine
 
 
 ## Progress
@@ -68,6 +70,12 @@ Alongside that, two real defects are visible in the merged code — a paragraph 
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 12:52 UTC
+- **Note:** Added #000054 Playback stopped mid-sentence and re-synthesized the chunk on the browser engine to Items
+
+### 2026-11-23 12:52 UTC
+- **Note:** Added #000052 Debug log the extension records and the popup downloads to Items
 
 ### 2026-11-23 10:51 UTC
 - **Note:** Added #000049 Server runs Kokoro on the Apple GPU (MPS) on macOS to Items

@@ -3,6 +3,7 @@
 **Type:** ✨ Feature
 **Status:** 📋 Backlog
 **Priority:** 🟡 MEDIUM
+**Roadmap:** 🎯 NOW 3
 **Tracked In:** local
 **Created:** 2026-08-03
 
@@ -24,9 +25,9 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 
 ## Estimation
 
-- **Start:**
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-25
+- **End:** 2026-11-27
+- **Effort:** ~5h (p75 5h)
 
 ## Actual
 
@@ -42,6 +43,7 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 - [ ] Dragging jumps, snapping to paragraph boundaries
 - [ ] Scrubbing backwards re-synthesizes without stalling
 - [ ] Toolbar layout still works at narrow widths
+- [ ] The bar shows a second shade for sentences already synthesized, from 000053's record
 
 ## Checklist
 
@@ -52,6 +54,12 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 12:53 UTC
+- **Decision:** Roadmap: (unscheduled) → 🔜 NEXT 1
+
+### 2026-11-23 12:52 UTC
+- **Decision:** Umut, 2026-11-23: show how much of the page is synthesized as a second shade on the bar, like a video's buffered range. The whole page is synthesized in the background (000053), so the shade fills across the article.
 
 ### 2026-08-03
 

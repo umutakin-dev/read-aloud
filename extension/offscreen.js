@@ -16,9 +16,22 @@ const ReadAloudPlayer = (globalThis.ReadAloudPlayer = {
   handle: handlePlayerMessage,
 });
 
+// Debug log (000052). Goes out through emit like the audio events: a runtime
+// message in Chrome, kept in the page by background.js in Firefox. Not named
+// `log`: in Firefox this file shares one global scope with background.js,
+// whose own `log` would silently replace it.
+function playerLog(ev, details = {}) {
+  try {
+    ReadAloudPlayer.emit({ type: "LOG", src: "player", ev, ...details })?.catch?.(() => {});
+  } catch (e) {
+    // Logging must never be the thing that breaks playback.
+  }
+}
+
 let audio = null;
 let objectUrl = null;
 let timeInterval = null;
+let currentKey = null;
 
 // One chunk's audio, decoded and loaded while the previous one is still
 // playing. Only ever the immediately-next chunk, so this is a single slot
@@ -82,15 +95,34 @@ function attach(element, url, startAt) {
 
   audio.onended = () => {
     clearInterval(timeInterval);
+    playerLog("audio.ended", { key: currentKey, at: roundSeconds(audio?.currentTime) });
     ReadAloudPlayer.emit({ type: "AUDIO_ENDED" });
   };
   audio.onerror = () => {
     clearInterval(timeInterval);
+    playerLog("audio.error", {
+      key: currentKey,
+      at: roundSeconds(audio?.currentTime),
+      code: audio?.error?.code,
+      error: audio?.error?.message || "unknown",
+    });
     ReadAloudPlayer.emit({
       type: "AUDIO_ERROR",
       message: audio?.error?.message || "unknown",
     });
   };
+  // Not acted on, only recorded: a stall that never recovers looks like a
+  // stop with no error, and these are the only trace it leaves.
+  const watched = audio;
+  for (const ev of ["stalled", "waiting"]) {
+    watched.addEventListener(ev, () => {
+      if (watched === audio) playerLog(`audio.${ev}`, { key: currentKey, at: roundSeconds(watched.currentTime) });
+    });
+  }
+}
+
+function roundSeconds(seconds) {
+  return typeof seconds === "number" ? Math.round(seconds * 100) / 100 : undefined;
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -122,7 +154,14 @@ function engine() {
   return enginePromise;
 }
 
+// Progress arrives many times a second during a download; log each phase once.
+let loggedPhase = null;
+
 function reportEngineProgress(progress) {
+  if (progress.phase !== loggedPhase) {
+    loggedPhase = progress.phase;
+    playerLog("engine.phase", { phase: progress.phase });
+  }
   ReadAloudPlayer.emit({ type: "ENGINE_PROGRESS", ...progress });
 }
 
@@ -148,11 +187,23 @@ function handlePlayerMessage(msg, sendResponse) {
   }
 
   if (msg.type === "ENGINE_SYNTHESIZE") {
+    const started = Date.now();
     return answer(
       sendResponse,
-      engine().then(async (mod) => ({
-        data: await mod.synthesize(msg.text, msg.voice || "af_heart", reportEngineProgress),
-      }))
+      engine()
+        .then(async (mod) => ({
+          data: await mod.synthesize(msg.text, msg.voice || "af_heart", reportEngineProgress),
+        }))
+        .then(
+          (result) => {
+            playerLog("engine.synth", { ms: Date.now() - started, chars: msg.text?.length });
+            return result;
+          },
+          (e) => {
+            playerLog("engine.fail", { ms: Date.now() - started, error: e.message });
+            throw e;
+          }
+        )
     );
   }
 
@@ -196,8 +247,10 @@ function handlePlayerMessage(msg, sendResponse) {
       element = new Audio(url);
     }
 
+    currentKey = msg.key;
     attach(element, url, msg.startAt || 0);
     audio.playbackRate = msg.speed || 1.0;
+    playerLog("audio.play", { key: msg.key, preloaded: Boolean(ready), startAt: msg.startAt || undefined });
 
     audio
       .play()
@@ -206,6 +259,7 @@ function handlePlayerMessage(msg, sendResponse) {
         sendResponse({ ok: true, usedPreload: Boolean(ready) });
       })
       .catch((err) => {
+        playerLog("audio.play.fail", { key: msg.key, error: `${err.name}: ${err.message}` });
         sendResponse({ ok: false, error: err.message });
       });
 

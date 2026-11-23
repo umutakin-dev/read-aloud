@@ -20,13 +20,14 @@ Note that #000042 assumes a server still exists; if #000025 moves synthesis into
 ## Items
 
 - #000038 ✨ Keyboard controls and screen reader support for the toolbar
-- #000039 ✨ Click a paragraph to start reading from there
+- #000039 ✨ Read from the selected text
 - #000040 ✨ Show progress through the document and allow scrubbing
 - #000041 ✨ Preview a voice before choosing it
 - #000042 🔧 Cache synthesized audio so a re-read is instant
 - #000043 ✨ Support languages other than American English
 - #000047 ✨ Skip citation markers like [7] when reading
 - #000050 🐛 Shortcut hint says Ctrl+Shift+U on a Mac, where the shortcut is Command+Shift+U
+- #000053 ✨ Per-page sentence record, synthesized whole page ahead of the reader
 
 ## Estimation
 
@@ -53,6 +54,9 @@ Note that #000042 assumes a server still exists; if #000025 moves synthesis into
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 12:52 UTC
+- **Note:** Added #000053 Per-page sentence record, synthesized whole page ahead of the reader to Items
 
 ### 2026-11-23 12:26 UTC
 - **Note:** Added #000050 Shortcut hint says Ctrl+Shift+U on a Mac, where the shortcut is Command+Shift+U to Items

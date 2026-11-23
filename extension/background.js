@@ -74,8 +74,9 @@ const inlinePlayer = globalThis.ReadAloudPlayer ?? null;
 
 if (inlinePlayer) {
   // AUDIO_* events would otherwise go out by runtime.sendMessage, which never
-  // reaches this page's own listener.
-  inlinePlayer.emit = relayAudioEvent;
+  // reaches this page's own listener. The player's log lines stay here.
+  inlinePlayer.emit = (message) =>
+    message.type === "LOG" ? recordLog(message) : relayAudioEvent(message);
 }
 
 // The offscreen document outlives the service worker, so its existence has to
@@ -168,6 +169,7 @@ async function clearActiveTab() {
 // otherwise it keeps playing with nothing to highlight.
 chrome.tabs.onRemoved.addListener(async (tabId) => {
   if ((await getActiveTab()) !== tabId) return;
+  log("tab.closed", { tab: tabId });
   await clearActiveTab();
   if (inlinePlayer) {
     await sendToOffscreen({ target: "offscreen", type: "STOP" });
@@ -183,8 +185,95 @@ function relayAudioEvent(message) {
   });
 }
 
+// ─── Debug log (000052) ───────────────────────────────────────────────────
+// A record of what happened, so a failure can be read afterwards instead of
+// reproduced with two consoles open. The tab, the popup and the player send
+// LOG messages here; this file logs its own events directly. Events, not
+// content: senders pass at most a short preview of the text involved.
+//
+// Kept in storage.local so it outlives the service worker (Chrome evicts it
+// after ~30s idle) and a browser restart. Entries are batched, and the writes
+// are chained so two batches never read the same old log and drop each other.
+const LOG_KEY = "debugLog";
+const LOG_MAX = 2000;
+const LOG_FLUSH_MS = 1000;
+let logPending = [];
+let logTimer = null;
+let logWrites = Promise.resolve();
+
+function recordLog({ src, ev, ...details }, tabId) {
+  const entry = { t: new Date().toISOString(), src: src || "?", ev: ev || "?" };
+  if (tabId !== undefined) entry.tab = tabId;
+  for (const [key, value] of Object.entries(details)) {
+    if (key !== "type" && value !== undefined) entry[key] = value;
+  }
+  logPending.push(entry);
+  if (!logTimer) logTimer = setTimeout(flushLog, LOG_FLUSH_MS);
+}
+
+function log(ev, details = {}) {
+  recordLog({ src: "bg", ev, ...details });
+}
+
+function flushLog() {
+  clearTimeout(logTimer);
+  logTimer = null;
+  const batch = logPending;
+  logPending = [];
+  logWrites = logWrites
+    .then(async () => {
+      if (!batch.length) return;
+      const { [LOG_KEY]: saved = [] } = await chrome.storage.local.get(LOG_KEY);
+      await chrome.storage.local.set({ [LOG_KEY]: saved.concat(batch).slice(-LOG_MAX) });
+    })
+    .catch(() => {});
+  return logWrites;
+}
+
+// One line per event: time, source, event, then its details as key=value.
+function formatLog(entries) {
+  return entries
+    .map(({ t, src, ev, ...details }) => {
+      const rest = Object.entries(details)
+        .map(([k, v]) => `${k}=${typeof v === "string" && /\s/.test(v) ? JSON.stringify(v) : v}`)
+        .join(" ");
+      return `${t} ${src.padEnd(6)} ${ev}${rest ? " " + rest : ""}`;
+    })
+    .join("\n");
+}
+
+async function readLog() {
+  await flushLog();
+  const { [LOG_KEY]: saved = [] } = await chrome.storage.local.get(LOG_KEY);
+  return saved;
+}
+
+// Each start is a restart of the service worker (Chrome) or of the background
+// page (Firefox). Anything held only in memory was lost at that point.
+log("bg.start", { player: inlinePlayer ? "inline" : "offscreen" });
+
 // ─── Message handler ──────────────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "LOG") {
+    recordLog(message, sender?.tab?.id);
+    return;
+  }
+
+  if (message.type === "GET_LOG") {
+    readLog()
+      .then((entries) => sendResponse({ ok: true, count: entries.length, text: formatLog(entries) }))
+      .catch((err) => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
+
+  if (message.type === "CLEAR_LOG") {
+    flushLog()
+      .then(() => chrome.storage.local.remove(LOG_KEY))
+      .then(() => sendResponse({ ok: true }))
+      .catch((err) => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
+
   if (
     message.type === "AUDIO_ENDED" ||
     message.type === "AUDIO_ERROR" ||
@@ -237,13 +326,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse(response);
           return;
         }
+        log("player.missing", { key: message.key });
         return ensureOffscreen()
           .then(() => sendToOffscreen(play))
-          .then((retry) =>
-            sendResponse(retry || { ok: false, error: "offscreen player did not respond" })
-          );
+          .then((retry) => {
+            if (!retry) log("player.noanswer", { key: message.key });
+            sendResponse(retry || { ok: false, error: "offscreen player did not respond" });
+          });
       })
       .catch((err) => {
+        log("play.fail", { key: message.key, error: err.message });
         sendResponse({ ok: false, error: err.message });
       });
     return true;
@@ -269,6 +361,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     hasOffscreen()
       .then((exists) => {
         if (!exists) {
+          log("resume.nodocument");
           sendResponse({ resumed: false, reason: "offscreen document is gone" });
           return;
         }
@@ -373,6 +466,18 @@ async function handleEngineHealth(serverUrl) {
 }
 
 async function handleSpeechRequest(message, sender) {
+  const started = Date.now();
+  const response = await synthesizeWithEngine(message, sender);
+  log(response.ok ? "synth.done" : "synth.fail", {
+    engine: response.engine,
+    ms: Date.now() - started,
+    chars: message.text?.length,
+    error: response.error,
+  });
+  return response;
+}
+
+async function synthesizeWithEngine(message, sender) {
   const engine = await chooseEngine(message.serverUrl);
   if (engine === "server") {
     const response = await handleTTSRequest(message);

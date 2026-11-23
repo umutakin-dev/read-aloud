@@ -20,6 +20,7 @@ function load() {
   const listeners = {};
   const runtimeListeners = [];
   const audios = [];
+  const stored = {};
 
   class FakeAudio {
     constructor(url) {
@@ -70,7 +71,11 @@ function load() {
     },
     storage: {
       session: { get: async () => ({}), set: async () => {}, remove: async () => {} },
-      local: { get: async () => ({}) },
+      local: {
+        get: async (key) => (key in stored ? { [key]: stored[key] } : {}),
+        set: async (values) => Object.assign(stored, values),
+        remove: async (key) => delete stored[key],
+      },
     },
     // No chrome.offscreen and no runtime.getContexts: Firefox has neither.
   };
@@ -165,5 +170,31 @@ test("Firefox background page", async (t) => {
     await fromTab({ type: "PLAY_AUDIO", key: 0, audio_base64: AUDIO, speed: 1 });
     await listeners.tabRemoved(7);
     assert.ok(calls.includes("audio:pause"), calls.join(" "));
+  });
+});
+
+test("the debug log in the Firefox background page (000052)", async (t) => {
+  await t.test("the player's lines stay in the page and are never relayed to the tab", async () => {
+    const { calls, fromTab, audios } = load();
+    await fromTab({ type: "PLAY_AUDIO", key: 4, audio_base64: AUDIO, speed: 2 });
+    audios.at(-1).currentTime = 12.345;
+    audios.at(-1).onended();
+    await settle();
+    assert.ok(calls.includes("tab7:AUDIO_ENDED"), calls.join(" "));
+    assert.ok(!calls.some((c) => c.endsWith(":LOG")), calls.join(" "));
+
+    const log = await fromTab({ type: "GET_LOG" });
+    assert.match(log.text, /player audio\.play key=4 preloaded=false/);
+    assert.match(log.text, /player audio\.ended key=4 at=12\.35/);
+    assert.match(log.text, /bg\.start player=inline/);
+  });
+
+  await t.test("records an audio error with its code", async () => {
+    const { fromTab, audios } = load();
+    await fromTab({ type: "PLAY_AUDIO", key: 2, audio_base64: AUDIO, speed: 1 });
+    audios.at(-1).error = { code: 3, message: "decode failed" };
+    audios.at(-1).onerror();
+    const log = await fromTab({ type: "GET_LOG" });
+    assert.match(log.text, /player audio\.error key=2 at=0 code=3 error="decode failed"/);
   });
 });

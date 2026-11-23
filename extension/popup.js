@@ -229,4 +229,56 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 1500);
     checkServer();
   });
+
+  // ─── Debug log (000052) ─────────────────────────────────────────────────
+  // The background keeps the log; this saves it as a text file. A plain
+  // download link needs no "downloads" permission.
+  const btnDownloadLog = document.getElementById("btn-download-log");
+  const btnClearLog = document.getElementById("btn-clear-log");
+
+  // Callback form, as checkServer uses, rather than relying on the promise.
+  function ask(message) {
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        void chrome.runtime.lastError;
+        resolve(response ?? null);
+      });
+    });
+  }
+
+  function flash(button, text) {
+    const original = button.textContent;
+    button.textContent = text;
+    setTimeout(() => (button.textContent = original), 1500);
+  }
+
+  btnDownloadLog.addEventListener("click", async () => {
+    const response = await ask({ type: "GET_LOG" });
+    if (!response?.ok) {
+      flash(btnDownloadLog, "Couldn't read the log");
+      return;
+    }
+    const manifest = chrome.runtime.getManifest();
+    const header = [
+      `Read Aloud ${manifest.version} debug log, ${response.count} events`,
+      `Saved ${new Date().toISOString()}`,
+      `Browser: ${navigator.userAgent}`,
+      "",
+    ].join("\n");
+    const blob = new Blob([header + response.text + "\n"], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:]/g, "").replace("T", "-");
+    link.download = `read-aloud-log-${stamp}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  });
+
+  btnClearLog.addEventListener("click", async () => {
+    const response = await ask({ type: "CLEAR_LOG" });
+    flash(btnClearLog, response?.ok ? "Cleared" : "Couldn't clear");
+  });
 });

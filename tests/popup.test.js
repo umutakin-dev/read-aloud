@@ -13,13 +13,28 @@ const SCRIPT = fs.readFileSync(path.join(EXT, "popup.js"), "utf8");
 
 // Resolves once the popup has finished its startup work: settings, shortcut,
 // and the first server check.
-async function openPopup({ platform = "MacIntel", shortcut = "Ctrl+Shift+U", commands = true } = {}) {
+async function openPopup(options) {
+  const window = await loadPopup(options);
+  return window.document.getElementById("shortcut-hint");
+}
+
+// `reply` answers runtime messages; by default every one fails, which is what
+// the popup sees with no background to talk to.
+async function loadPopup({
+  platform = "MacIntel",
+  shortcut = "Ctrl+Shift+U",
+  commands = true,
+  reply = () => ({ ok: false }),
+} = {}) {
   const dom = new JSDOM(HTML, { runScripts: "outside-only" });
   const { window } = dom;
   Object.defineProperty(window.navigator, "platform", { value: platform });
   window.chrome = {
     storage: { local: { get: async () => ({}), set: async () => {} } },
-    runtime: { sendMessage: (msg, cb) => cb({ ok: false }) },
+    runtime: {
+      sendMessage: (msg, cb) => cb(reply(msg)),
+      getManifest: () => ({ version: "9.9.9" }),
+    },
     permissions: { contains: async () => true, request: async () => true },
   };
   if (commands) {
@@ -34,7 +49,7 @@ async function openPopup({ platform = "MacIntel", shortcut = "Ctrl+Shift+U", com
   window.document.dispatchEvent(new window.Event("DOMContentLoaded"));
   await new Promise((r) => setTimeout(r, 0));
   await new Promise((r) => setTimeout(r, 0));
-  return window.document.getElementById("shortcut-hint");
+  return window;
 }
 
 test("the popup's shortcut hint (000050)", async (t) => {
@@ -77,5 +92,72 @@ test("the popup's shortcut hint (000050)", async (t) => {
   await t.test("stays empty without a commands API rather than guessing", async () => {
     const hint = await openPopup({ commands: false });
     assert.equal(hint.textContent.trim(), "");
+  });
+});
+
+test("the popup's debug log buttons (000052)", async (t) => {
+  // jsdom has no object URLs or downloads: capture the blob and the click.
+  function captureDownload(window) {
+    const saved = {};
+    window.URL.createObjectURL = (blob) => {
+      saved.blob = blob;
+      return "blob:log";
+    };
+    window.URL.revokeObjectURL = () => {};
+    window.HTMLAnchorElement.prototype.click = function () {
+      saved.name = this.download;
+      saved.href = this.href;
+    };
+    return saved;
+  }
+
+  await t.test("Download saves the background's log as a text file", async () => {
+    const asked = [];
+    const window = await loadPopup({
+      reply: (msg) => {
+        asked.push(msg.type);
+        return msg.type === "GET_LOG"
+          ? { ok: true, count: 2, text: "line one\nline two" }
+          : { ok: false };
+      },
+    });
+    const saved = captureDownload(window);
+    window.document.getElementById("btn-download-log").click();
+    await new Promise((r) => setTimeout(r, 0));
+
+    assert.ok(asked.includes("GET_LOG"), asked.join(" "));
+    assert.match(saved.name, /^read-aloud-log-\d{8}-\d{4}\.txt$/);
+    // jsdom's Blob has no text(); FileReader reads it.
+    const text = await new Promise((resolve) => {
+      const reader = new window.FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsText(saved.blob);
+    });
+    assert.match(text, /^Read Aloud 9\.9\.9 debug log, 2 events\n/);
+    assert.match(text, /line one\nline two\n$/);
+    // Ends the popup's timer for revoking the URL.
+    window.close();
+  });
+
+  await t.test("Download says so when the log cannot be read", async () => {
+    const window = await loadPopup();
+    const saved = captureDownload(window);
+    const button = window.document.getElementById("btn-download-log");
+    button.click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(saved.blob, undefined);
+    assert.equal(button.textContent, "Couldn't read the log");
+  });
+
+  await t.test("Clear asks the background to clear it", async () => {
+    const asked = [];
+    const window = await loadPopup({
+      reply: (msg) => (asked.push(msg.type), { ok: msg.type === "CLEAR_LOG" }),
+    });
+    window.document.getElementById("btn-clear-log").click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.ok(asked.includes("CLEAR_LOG"), asked.join(" "));
+    assert.equal(window.document.getElementById("btn-clear-log").textContent, "Cleared");
+    window.close();
   });
 });
