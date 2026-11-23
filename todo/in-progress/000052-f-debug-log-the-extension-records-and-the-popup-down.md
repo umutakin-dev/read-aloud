@@ -29,12 +29,12 @@ Umut asked for the extension to record its own log instead of asking him to open
 
 ## Requirements
 
-- [ ] Tab, background, player and browser engine each log to one ring buffer kept by the background
-- [ ] The buffer survives a background restart and is capped by entry count
-- [ ] Errors, retries, synthesis timings and playback start/end/stall are logged with chunk index and engine
-- [ ] The popup has a Download debug log button that saves a text file
-- [ ] No page text beyond a short preview per event; nothing is sent anywhere
-- [ ] Tests cover the buffer and each part's logging
+- [x] Tab, background, player and browser engine each log to one ring buffer kept by the background
+- [x] The buffer survives a background restart and is capped by entry count
+- [x] Errors, retries, synthesis timings and playback start/end/stall are logged with chunk index and engine
+- [x] The popup has a Download debug log button that saves a text file
+- [x] No page text beyond a short preview per event; nothing is sent anywhere
+- [x] Tests cover the buffer and each part's logging
 
 ## Checklist
 
@@ -45,6 +45,27 @@ Umut asked for the extension to record its own log instead of asking him to open
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 12:59 UTC
+- **Progress:** Built and tested (190 extension tests). The Firefox test caught offscreen.js and background.js sharing one global scope: the player's log helper was silently replaced by the background's, so it is playerLog. Not yet seen in a real browser: the download from the popup in both browsers.
+
+### 2026-11-23 12:59 UTC
+- **Progress:** ☑ Checked (Requirements): Tests cover the buffer and each part's logging
+
+### 2026-11-23 12:59 UTC
+- **Progress:** ☑ Checked (Requirements): No page text beyond a short preview per event; nothing is sent anywhere
+
+### 2026-11-23 12:59 UTC
+- **Progress:** ☑ Checked (Requirements): The popup has a Download debug log button that saves a text file
+
+### 2026-11-23 12:59 UTC
+- **Progress:** ☑ Checked (Requirements): Errors, retries, synthesis timings and playback start/end/stall are logged with chunk index and engine
+
+### 2026-11-23 12:59 UTC
+- **Progress:** ☑ Checked (Requirements): The buffer survives a background restart and is capped by entry count
+
+### 2026-11-23 12:59 UTC
+- **Progress:** ☑ Checked (Requirements): Tab, background, player and browser engine each log to one ring buffer kept by the background
 
 ### 2026-11-23 12:53 UTC
 
