@@ -534,3 +534,57 @@ test("splitParagraphIntoChunks gives one sentence per chunk", async (t) => {
     }
   });
 });
+
+// ─── What is not read (000058) ─────────────────────────────────────────────
+test("extractParagraphs skips page furniture by what the markup says", async (t) => {
+  const BODY = "A paragraph of the article, long enough to be read aloud.";
+  const only = (html) => paragraphsOf(bodyOf(`${html}<p>${BODY}</p>`));
+
+  const cases = [
+    ["a nav", `<nav><p>Home, About, and all the other places to go.</p></nav>`],
+    ["an aside", `<aside><p>A sidebar with related reading in it, long enough.</p></aside>`],
+    ["a form and its labels", `<form><label>Your name, please, in full if you can.</label><textarea>draft</textarea></form>`],
+    ["a button", `<p><button>Subscribe to the newsletter today.</button></p>`],
+    ["role=navigation", `<div role="navigation"><p>Previous article and the next article too.</p></div>`],
+    ["role=banner", `<div role="banner"><p>The site's banner with its long tagline here.</p></div>`],
+    ["the hidden attribute", `<p hidden>Text the page keeps but never shows to anyone.</p>`],
+    ["aria-hidden", `<p aria-hidden="true">Text hidden from assistive technology entirely.</p>`],
+    ["display:none", `<p style="display: none">A collapsed section's long text, not shown.</p>`],
+    ["a site header", `<header><p>The site's name and its long tagline go here.</p></header>`],
+    ["a data table", `<table><tr><th>Year</th><th>Event</th></tr><tr><td>1779</td><td>Kratzenstein's vowel machine won a prize.</td></tr></table>`],
+    ["a code listing", `<pre><code>for (const word of sentence.split(" ")) speak(word);</code></pre>`],
+    ["a menu of links", `<ul><li><a href="/a">The first section of the site</a></li><li><a href="/b">The second section of the site</a></li></ul>`],
+  ];
+  for (const [name, html] of cases) {
+    await t.test(`skips ${name}`, () => assert.deepEqual(only(html), [BODY]));
+  }
+
+  await t.test("reads a layout table, as on Hacker News", () => {
+    const html = `<table><tr><td>A comment laid out in a table cell, long enough to read.</td></tr></table>`;
+    assert.deepEqual(only(html), ["A comment laid out in a table cell, long enough to read.", BODY]);
+  });
+
+  await t.test("reads an article's own header, which holds its title", () => {
+    const body = bodyOf(`<article><header><h1>Title</h1></header><p>${BODY}</p></article>`);
+    assert.deepEqual(paragraphsOf(body), ["Title", BODY]);
+  });
+
+  await t.test("reads a paragraph with a link in it, as long as it is mostly prose", () => {
+    const text = "Read the full report on the agency's site before deciding.";
+    const html = `<p>Read the full <a href="/r">report</a> on the agency's site before deciding.</p>`;
+    assert.deepEqual(only(html), [text, BODY]);
+  });
+
+  await t.test("drops [edit] beside a heading, but not a citation when asked to read them", () => {
+    const body = bodyOf(
+      `<h2>History<span class="mw-editsection"><span>[</span><a href="/e">edit</a><span>]</span></span></h2>` +
+        `<p>${BODY}<sup><a href="#c1">[1]</a></sup></p>`
+    );
+    assert.deepEqual(paragraphsOf(body, { skipCitations: false }), ["History", `${BODY}[1]`]);
+  });
+
+  await t.test("goes into <main> when the page marks one", () => {
+    const body = bodyOf(`<div><p>Promotional text outside the main region, long enough.</p></div><main><p>${BODY}</p></main>`);
+    assert.deepEqual(paragraphsOf(body), [BODY]);
+  });
+});

@@ -21,9 +21,8 @@ extension/            MV3 extension, plain JS, one tree for both browsers
   offscreen.js/.html  audio player (Chrome: offscreen document;
                       Firefox: loaded into the background page itself)
   popup.*             settings
-  lib/textkit.js      pure text logic: paragraphs, sentences, text index, spans
+  lib/textkit.js      pure text logic: extraction, sentences, text index, spans
   lib/record.js       the page's sentence record: synthesis order, kept audio
-  lib/Readability.js  vendored Mozilla Readability, do not edit
 engine/               source of the browser engine (ES modules)
   engine.mjs          kokoro-js on WebGPU, loaded lazily by the player
   speechkit.mjs       pure logic: sentences → server-shaped response
@@ -35,6 +34,7 @@ server/               FastAPI + Kokoro, managed with uv
   src/tts_server/alignment.py   token → character spans, kept free of torch
   src/tts_server/device.py      cuda → mps → cpu choice, kept free of torch
 tests/                node:test suites for the extension
+  fixtures/pages/     saved pages the extractor is tested against
 spikes/               timeboxed experiments, not shipped
 todo/                 work items (see Workflow)
 ```
@@ -77,6 +77,12 @@ Each of these was a fix. Reverting one brings the bug back.
   `device.py` takes torch as an argument (000049). The cheap
   server test run depends on it.
 - **Browser speech fallback is opt-in, off by default** (000018).
+- **Extraction reads the live page with our own rules** (000058), not
+  Readability, which dropped short comments and made highlighting search a
+  copy of the page. Extraction and the text index share one skip rule
+  (`skipRule` in textkit), so every paragraph is an exact run of the indexed
+  text. Change what is skipped only there, so both sides change together. A site
+  that reads badly gets a fixture in `tests/fixtures/pages` and a test.
 - **One manifest serves both browsers** (000044). The store packages are derived
   from it by `scripts/manifests.mjs` (000055), each with only its own browser's
   keys; edit `extension/manifest.json`, never a copy in `dist/`. `background` carries both

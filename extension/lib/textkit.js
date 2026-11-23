@@ -109,8 +109,11 @@ const ReadAloudText = (() => {
     if (SKIP_TAGS.has(tag)) return true;
     const role = element.getAttribute("role");
     if (role && SKIP_ROLES.has(role)) return true;
-    // A site's header and footer go; an article's own header holds its title.
-    if ((tag === "HEADER" || tag === "FOOTER") && !element.parentElement?.closest("article")) {
+    // A site's header and footer go. A header inside the article or the main
+    // region holds the title (Wikipedia puts its <h1> in one); a footer there
+    // is still small print, unless it is an article's own.
+    const within = tag === "HEADER" ? "article, main, [role=main]" : "article";
+    if ((tag === "HEADER" || tag === "FOOTER") && !element.parentElement?.closest(within)) {
       return true;
     }
     // A data table (headings, a caption) reads as a stream of fragments. A
@@ -146,6 +149,9 @@ const ReadAloudText = (() => {
   // which is where the content is laid out. Counted without link text, so a
   // menu weighs nothing.
   const MAIN_SHARE = 0.9;
+  const CONTAINERS = new Set([
+    "DIV", "SECTION", "ARTICLE", "MAIN", "CENTER", "TABLE", "TBODY", "TR", "TD",
+  ]);
 
   function chooseRoot(doc, skipped) {
     const marked = doc.querySelector("main, [role=main]");
@@ -166,7 +172,8 @@ const ReadAloudText = (() => {
     measure(body, false);
 
     let root = body;
-    for (;;) {
+    // An article is a whole; going inside it would only lose its title.
+    while (root.tagName !== "ARTICLE") {
       const total = weight.get(root) || 0;
       if (!total) break;
       let best = null;
@@ -174,6 +181,13 @@ const ReadAloudText = (() => {
         if ((weight.get(child) || 0) > (weight.get(best) || 0)) best = child;
       }
       if (!best || weight.get(best) < total * MAIN_SHARE) break;
+      // Only into a container: a lone <p> holding 90% is still one paragraph
+      // of the content, not the content.
+      if (!CONTAINERS.has(best.tagName)) break;
+      // The page's title is a few words beside the body of the text, so it
+      // weighs little; never leave it behind.
+      const title = root.querySelector("h1");
+      if (title && !best.contains(title) && !skipped(title)) break;
       root = best;
     }
 
@@ -202,11 +216,15 @@ const ReadAloudText = (() => {
   // of links is still read.
   const MAX_LINK_SHARE = 0.5;
 
-  function worthReading(text, linkChars) {
+  // A heading is read however short: "Interfaces" tells the listener where
+  // they are, the way it tells a reader.
+  const HEADING = /^H[1-6]$/;
+
+  function worthReading(text, linkChars, heading) {
     if (!/[\p{L}\p{N}]/u.test(text)) return false;
     const solid = text.replace(/\s+/g, "").length;
     if (linkChars > solid * MAX_LINK_SHARE) return false;
-    return text.length > MIN_PARAGRAPH_CHARS || /[.!?…]["'”’)\]]*$/.test(text);
+    return heading || text.length > MIN_PARAGRAPH_CHARS || /[.!?…]["'”’)\]]*$/.test(text);
   }
 
   function extractParagraphs(doc, options = {}) {
@@ -215,10 +233,11 @@ const ReadAloudText = (() => {
     const paragraphs = [];
     let parts = [];
     let linkChars = 0;
+    let inHeading = false;
 
     const flush = () => {
       const text = parts.join("").replace(/\s+/g, " ").trim();
-      if (text && worthReading(text, linkChars)) paragraphs.push(text);
+      if (text && worthReading(text, linkChars, inHeading)) paragraphs.push(text);
       parts = [];
       linkChars = 0;
     };
@@ -231,8 +250,11 @@ const ReadAloudText = (() => {
         } else if (child.nodeType === 1 && !skipped(child)) {
           const breaks = BREAKS.has(child.tagName);
           if (breaks) flush();
+          const outer = inHeading;
+          inHeading = inHeading || HEADING.test(child.tagName);
           walk(child, inLink || child.tagName === "A");
           if (breaks) flush();
+          inHeading = outer;
         }
       }
     };

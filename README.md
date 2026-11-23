@@ -22,7 +22,7 @@ Without WebGPU, the browser engine is not offered: its CPU fallback runs at
 
 - High-quality text-to-speech via Kokoro, in the browser on the GPU or on a local server
 - Word and sentence-level highlighting using CSS Custom Highlight API
-- Automatic text extraction via Mozilla Readability.js
+- Reads the page itself, by its structure: articles, docs and discussion threads, with menus, sidebars, footers, code listings and hidden text left out
 - Toolbar with play/pause, prev/next paragraph, speed control
 - Optional Web Speech API fallback when the server is unavailable (off by default)
 - Auto-reconnect when server comes back online
@@ -240,8 +240,9 @@ uv sync --directory server
 uv run --directory server pytest
 ```
 
-The extension suite covers `extension/lib/textkit.js` — paragraph extraction,
-sentence splitting, the text index, word spans — and `extension/lib/record.js`,
+The extension suite covers `extension/lib/textkit.js` — extraction from the
+page (checked against saved Hacker News, Wikipedia, MDN, Go blog and Wikinews
+pages in `tests/fixtures/pages`), sentence splitting, the text index, word spans — and `extension/lib/record.js`,
 the order a page is synthesized in and the cap on the audio it keeps. It also
 covers the manifest, the injection flow in `background.js`, reading in a page
 (`content.js`), and the preload handshake in `offscreen.js`. The server suite
