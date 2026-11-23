@@ -485,6 +485,14 @@
     // shaders on every load. Both take long enough to look like a hang, so
     // say what is happening in place of "synthesizing...".
     if (msg.type === "ENGINE_PROGRESS" && state.active) {
+      // Only the browser engine reports progress, so this settles which engine
+      // is running. Without it, switching the popup to this browser left the
+      // label on the engine the last health check saw, and the model download
+      // ran under "Kokoro · server" (000051).
+      if (state.engine !== "browser") {
+        state.engine = "browser";
+        updateEngineIndicator();
+      }
       const status = {
         download: `Downloading the voice model, one time only: ${msg.percent}%`,
         load: "Loading the voice model...",

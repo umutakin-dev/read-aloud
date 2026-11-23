@@ -7,7 +7,7 @@
 
 *(none)*
 
-## 📋 Backlog (16)
+## 📋 Backlog (15)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
@@ -21,7 +21,6 @@
 | [000033](000033-b-reading-in-a-second-tab-silently-breaks-the-first.md) | 🐛 | 🟡 | Reading in a second tab silently breaks the first |
 | [000027](000027-t-chrome-web-store-listing-privacy-policy-and-permis.md) | 🔧 | 🟡 | Chrome Web Store listing, privacy policy and permission justification |
 | [000026](000026-t-package-the-server-so-it-installs-and-runs-itself.md) | 🔧 | 🟡 | Package the server so it installs and runs itself |
-| [000051](000051-b-toolbar-says-kokoro-server-while-the-browser-engin.md) | 🐛 | 🟢 | Toolbar says Kokoro · server while the browser engine downloads its model |
 | [000043](000043-f-support-languages-other-than-american-english.md) | ✨ | 🟢 | Support languages other than American English |
 | [000042](000042-t-cache-synthesized-audio-so-a-re-read-is-instant.md) | 🔧 | 🟢 | Cache synthesized audio so a re-read is instant |
 | [000041](000041-f-preview-a-voice-before-choosing-it.md) | ✨ | 🟢 | Preview a voice before choosing it |
@@ -34,10 +33,11 @@
 
 *(none)*
 
-## ✅ Done (35)
+## ✅ Done (36)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000051](done/000051-b-toolbar-says-kokoro-server-while-the-browser-engin.md) | 🐛 | 🟢 | 2026&#8209;11&#8209;23 | Toolbar says Kokoro · server while the browser engine downloads its model |
 | [000050](done/000050-b-shortcut-hint-says-ctrl-shift-u-on-a-mac-where-the.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;23 | Shortcut hint says Ctrl+Shift+U on a Mac, where the shortcut is Command+Shift+U |
 | [000049](done/000049-b-server-runs-kokoro-on-the-apple-gpu-mps-on-macos.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;23 | Server runs Kokoro on the Apple GPU (MPS) on macOS |
 | [000048](done/000048-b-highlight-jumps-ahead-at-the-start-of-each-paragra.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;23 | Highlight jumps ahead at the start of each paragraph |
