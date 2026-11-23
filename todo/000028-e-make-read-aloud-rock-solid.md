@@ -25,6 +25,7 @@ Alongside that, two real defects are visible in the merged code — a paragraph 
 - #000034 🐛 Text index goes stale on single-page-app navigation
 - #000035 ✨ Remember reading position across a reload
 - #000036 🔧 Cancel in-flight synthesis when playback stops
+- #000049 🐛 Server runs Kokoro on the Apple GPU (MPS) on macOS
 
 
 ## Progress
@@ -64,6 +65,9 @@ Alongside that, two real defects are visible in the merged code — a paragraph 
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-23 10:51 UTC
+- **Note:** Added #000049 Server runs Kokoro on the Apple GPU (MPS) on macOS to Items
 
 ### 2026-08-03
 - **Note:** Added #000036 Cancel in-flight synthesis when playback stops to Items
