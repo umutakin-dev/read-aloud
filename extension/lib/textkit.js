@@ -76,8 +76,13 @@ const ReadAloudText = (() => {
   // An inline "[edit]" or "[–]": brackets around nothing but links. Always
   // interface, never prose. A <sup> is left to the citation rule instead, so
   // "Read citation markers" keeps deciding those.
+  const INLINE_CONTROLS = new Set(["SPAN", "SMALL", "B", "I", "EM", "STRONG", "FONT"]);
+
   function isBracketedControl(element) {
-    if (element.tagName === "SUP" || element.tagName === "A") return false;
+    // Only a small inline element can be one. Checked first, because reading
+    // textContent of every container on a deeply nested page (Hacker News is
+    // tables inside tables) repeats the whole page's text dozens of times.
+    if (!INLINE_CONTROLS.has(element.tagName) || element.childElementCount > 4) return false;
     const text = element.textContent.replace(/\s+/g, " ").trim();
     if (!BRACKETED.test(text)) return false;
     const links = [...element.querySelectorAll("a")];
@@ -96,6 +101,9 @@ const ReadAloudText = (() => {
     return /display\s*:\s*none|visibility\s*:\s*hidden/i.test(style);
   }
 
+  const DATA_TABLE =
+    ":scope > caption, :scope > thead, :scope > tr > th, :scope > tbody > tr > th";
+
   function skippedHere(element, skipCitations) {
     const tag = element.tagName;
     if (SKIP_TAGS.has(tag)) return true;
@@ -107,7 +115,9 @@ const ReadAloudText = (() => {
     }
     // A data table (headings, a caption) reads as a stream of fragments. A
     // table without them is layout, as on Hacker News, and holds the page.
-    if (tag === "TABLE" && element.querySelector("th, caption")) return true;
+    // Only its own rows count: a nested table's headings are its own business,
+    // and searching every subtree costs a lot on pages of tables in tables.
+    if (tag === "TABLE" && element.querySelector(DATA_TABLE)) return true;
     // A code listing read aloud is punctuation, one symbol at a time. A <pre>
     // without <code> may be poetry or a plain-text page, and is read.
     if (tag === "PRE" && element.querySelector("code")) return true;
