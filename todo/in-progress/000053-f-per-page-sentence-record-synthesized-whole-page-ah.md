@@ -55,6 +55,9 @@ Playback starts once the first sentence is ready. This is the foundation for jum
 
 ## Log
 
+### 2026-11-23 21:33 UTC
+- **Progress:** Umut's Firefox log, 2026-11-24, server then browser engine on an HN thread: gapMs 6-24ms at nearly every boundary, outliers 34, 36, 84, 110ms. Highlighting lined up on the browser engine (screenshot). Found preloaded=false on every play: the preload was sent before PLAY and dropped by the player. Fixed; needs one more log to confirm preloaded=true.
+
 ### 2026-11-23 21:07 UTC
 - **Progress:** Built: lib/record.js (state, order, 64MB cap), sentence chunks from our own splitter, one-request synthesis loop in content.js, gapMs in the player's audio.play log. 259 extension tests pass. Waiting on a real-browser read in Chrome and Firefox, on both engines: highlighting, and gapMs in the debug log.
 
