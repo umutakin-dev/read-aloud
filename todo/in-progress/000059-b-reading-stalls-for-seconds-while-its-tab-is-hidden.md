@@ -1,7 +1,7 @@
 # Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence
 
 **Type:** 🐛 Bug
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🔴 HIGH
 **Roadmap:** 🎯 NOW 2
 **Tracked In:** local
@@ -29,7 +29,7 @@ Every sentence boundary goes through the reading tab: the player reports AUDIO_E
 
 ## Actual
 
-- **Start:**
+- **Start:** 2026-11-24 07:15 UTC
 - **End:**
 - **Effort:**
 
@@ -50,6 +50,10 @@ Every sentence boundary goes through the reading tab: the player reports AUDIO_E
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-24 07:15 UTC
+
+- **Progress:** Started work
 
 ### 2026-11-23 22:34 UTC
 - **Decision:** Roadmap: (unscheduled) → 🎯 NOW 2

@@ -83,6 +83,12 @@ Each of these was a fix. Reverting one brings the bug back.
   (`skipRule` in textkit), so every paragraph is an exact run of the indexed
   text. Change what is skipped only there, so both sides change together. A site
   that reads badly gets a fixture in `tests/fixtures/pages` and a test.
+- **The player moves to the next sentence by itself** (000059). The tab hands
+  it up to six made sentences ahead (PRELOAD); when one ends and the next is
+  loaded, the player starts it and reports `AUDIO_ENDED` with `advancedTo`,
+  and the tab follows without sending PLAY. Firefox throttles a hidden tab
+  for seconds, so a boundary that waits on the tab is an audible stall. Keep
+  the tab out of that path.
 - **One manifest serves both browsers** (000044). The store packages are derived
   from it by `scripts/manifests.mjs` (000055), each with only its own browser's
   keys; edit `extension/manifest.json`, never a copy in `dist/`. `background` carries both

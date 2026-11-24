@@ -12,7 +12,7 @@
 | # | ID | Type | Priority | Title |
 |---|----|------|----------|-------|
 | 1 | [000058](in-progress/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | 🔨 Our own text extractor in place of Readability, reading the live page |
-| 2 | [000059](000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| 2 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | 🔨 Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
 | 3 | [000056](000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | Audio keeps playing after the reading page reloads or navigates away |
 | 4 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | Read from the selected text |
 | 5 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
@@ -21,10 +21,11 @@
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
+| [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
 | [000058](in-progress/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | Our own text extractor in place of Readability, reading the live page |
 
 ## 📋 Backlog (15)

@@ -52,6 +52,8 @@ function loadPage({ engine = "server", tts } = {}) {
           if (answer && typeof answer.then === "function") answer.then(cb);
           else if (tts) cb(answer);
         }
+        // The player answers a resume with whether it had anything to resume.
+        else if (msg.type === "RESUME_AUDIO") cb({ resumed: true });
         else cb({ ok: true });
       },
     },
@@ -448,11 +450,103 @@ test("the next sentence is preloaded after the player starts this one (000053)",
     // Everything is made by now, as it is while reading well behind synthesis.
     page.click("btn-next"); // sentence 2, with 3 already made
     await settle();
-    const at = (type, key) => page.messages.findIndex((m) => m.type === type && m.key === key);
-    assert.ok(at("PRELOAD_AUDIO", 3) !== -1, "sentence 3 was never preloaded");
-    // Sent before PLAY 2, the player would have dropped it on starting 2.
-    assert.ok(at("PRELOAD_AUDIO", 3) > at("PLAY_AUDIO", 2), "preload sent before PLAY 2");
+    // The jump stopped the player, which dropped every preload; sentence 3
+    // has to be sent again, and after PLAY 2, or starting 2 would drop it.
+    const play2 = page.messages.findIndex((m) => m.type === "PLAY_AUDIO" && m.key === 2);
+    const after = page.messages.slice(play2 + 1);
+    assert.ok(play2 !== -1, "sentence 2 never played");
+    assert.ok(after.some((m) => m.type === "PRELOAD_AUDIO" && m.key === 3), "3 not preloaded after PLAY 2");
   } finally {
     page.close();
   }
+});
+
+test("the tab follows the player when it moves on by itself (000059)", async (t) => {
+  const TEXT = [
+    "The first sentence is here. The second sentence follows it.",
+    "The third sentence opens this one. The fourth sentence closes it.",
+  ].join("\n\n");
+  const settle = async () => {
+    for (let i = 0; i < 20; i++) await tick();
+  };
+  const readyPage = () =>
+    loadPage({
+      tts: (msg) => ({ ok: true, engine: "server", data: { audio_base64: `audio:${msg.text}`, timestamps: [] } }),
+    });
+  const start = async (page) => {
+    page.dispatch({ type: "TOGGLE_READ_ALOUD", selectedText: TEXT });
+    await settle();
+  };
+  const plays = (page) => page.messages.filter((m) => m.type === "PLAY_AUDIO").map((m) => m.key);
+
+  await t.test("hands the player every made sentence just ahead, not only the next", async () => {
+    const page = readyPage();
+    try {
+      await start(page);
+      const preloaded = page.messages.filter((m) => m.type === "PRELOAD_AUDIO").map((m) => m.key);
+      assert.deepEqual([...new Set(preloaded)].sort(), [1, 2, 3]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("sends no PLAY for a sentence the player already started", async () => {
+    const page = readyPage();
+    try {
+      await start(page);
+      page.dispatch({ type: "AUDIO_ENDED", key: 0, advancedTo: 1 });
+      await settle();
+      page.dispatch({ type: "AUDIO_ENDED", key: 1, advancedTo: 2 });
+      await settle();
+      assert.deepEqual(plays(page), [0]);
+      const played = page.logs.filter((l) => l.ev === "chunk.played").map((l) => [l.chunk, l.outcome]);
+      assert.deepEqual(played, [[0, "advanced"], [1, "advanced"]]);
+      assert.match(page.status(), /Paragraph 2\/2/);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("asks for the next one itself when the player could not advance", async () => {
+    const page = readyPage();
+    try {
+      await start(page);
+      page.dispatch({ type: "AUDIO_ENDED", key: 0 });
+      await settle();
+      assert.deepEqual(plays(page), [0, 1]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("ignores an end reported for a sentence it has moved away from", async () => {
+    const page = readyPage();
+    try {
+      await start(page);
+      page.click("btn-next"); // to sentence 2
+      await settle();
+      page.dispatch({ type: "AUDIO_ENDED", key: 0 }); // the old one, late
+      await settle();
+      assert.deepEqual(plays(page), [0, 2]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("paused as the player moved on: stays paused on the new sentence", async () => {
+    const page = readyPage();
+    try {
+      await start(page);
+      page.click("btn-play"); // pause
+      await settle();
+      page.dispatch({ type: "AUDIO_ENDED", key: 0, advancedTo: 1 });
+      await settle();
+      page.click("btn-play"); // resume
+      await settle();
+      assert.deepEqual(plays(page), [0], "resume must not start a sentence over");
+      assert.ok(page.sent.includes("RESUME_AUDIO"), page.sent.join(" "));
+    } finally {
+      page.close();
+    }
+  });
 });
