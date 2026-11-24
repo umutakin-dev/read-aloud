@@ -1,7 +1,7 @@
 # Show progress through the document and allow scrubbing
 
 **Type:** ✨ Feature
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🟡 MEDIUM
 **Roadmap:** 🎯 NOW 5
 **Tracked In:** local
@@ -31,7 +31,7 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 
 ## Actual
 
-- **Start:**
+- **Start:** 2026-11-24 07:23 UTC
 - **End:**
 - **Effort:**
 
@@ -54,6 +54,10 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-24 07:23 UTC
+
+- **Progress:** Started work
 
 ### 2026-11-23 22:06 UTC
 - **Decision:** Roadmap: 🎯 NOW 5 → 🎯 NOW 4
