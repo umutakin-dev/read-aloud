@@ -37,13 +37,13 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 
 ## Requirements
 
-- [ ] Progress bar reflects position through the document
-- [ ] Time remaining estimated from measured synthesis durations
-- [ ] Estimate accounts for playback rate and improves as it goes
-- [ ] Dragging jumps, snapping to paragraph boundaries
-- [ ] Scrubbing backwards re-synthesizes without stalling
+- [x] Progress bar reflects position through the document
+- [x] Time remaining estimated from measured synthesis durations
+- [x] Estimate accounts for playback rate and improves as it goes
+- [x] Dragging jumps, snapping to paragraph boundaries
+- [x] Scrubbing backwards re-synthesizes without stalling
 - [ ] Toolbar layout still works at narrow widths
-- [ ] The bar shows a second shade for sentences already synthesized, from 000053's record
+- [x] The bar shows a second shade for sentences already synthesized, from 000053's record
 
 ## Checklist
 
@@ -54,6 +54,27 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-24 07:26 UTC
+- **Progress:** Built: bottom-edge bar (played, synthesized shade from the record, rest), time left in the status from measured durations / speed, click/drag/keys jump to paragraph starts, paused stays paused. 349 extension tests pass. Left for Umut: the look at narrow widths, in Chrome and Firefox.
+
+### 2026-11-24 07:26 UTC
+- **Progress:** ☑ Checked (Requirements): The bar shows a second shade for sentences already synthesized, from 000053's record
+
+### 2026-11-24 07:26 UTC
+- **Progress:** ☑ Checked (Requirements): Scrubbing backwards re-synthesizes without stalling
+
+### 2026-11-24 07:26 UTC
+- **Progress:** ☑ Checked (Requirements): Dragging jumps, snapping to paragraph boundaries
+
+### 2026-11-24 07:26 UTC
+- **Progress:** ☑ Checked (Requirements): Estimate accounts for playback rate and improves as it goes
+
+### 2026-11-24 07:26 UTC
+- **Progress:** ☑ Checked (Requirements): Time remaining estimated from measured synthesis durations
+
+### 2026-11-24 07:26 UTC
+- **Progress:** ☑ Checked (Requirements): Progress bar reflects position through the document
 
 ### 2026-11-24 07:23 UTC
 
