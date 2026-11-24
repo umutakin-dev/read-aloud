@@ -30,8 +30,8 @@ Refreshing the page mid-read leaves the current audio playing to its end (Umut, 
 ## Requirements
 
 - [ ] Reloading or leaving the page stops the audio at once, in Chrome and Firefox
-- [ ] A same-page #fragment jump does not stop it
-- [ ] A test covers the stop on pagehide
+- [x] A same-page #fragment jump does not stop it
+- [x] A test covers the stop on pagehide
 
 ## Checklist
 
@@ -42,6 +42,15 @@ Refreshing the page mid-read leaves the current audio playing to its end (Umut, 
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-24 07:20 UTC
+- **Progress:** Built: pagehide stops reading (stopReadAloud sends STOP_AUDIO and removes the toolbar), logged as page.leave; a hashchange does not. Tests fail without the fix. Waiting on Umut: a reload mid-sentence in Firefox and Chrome.
+
+### 2026-11-24 07:20 UTC
+- **Progress:** ☑ Checked (Requirements): A test covers the stop on pagehide
+
+### 2026-11-24 07:20 UTC
+- **Progress:** ☑ Checked (Requirements): A same-page #fragment jump does not stop it
 
 ### 2026-11-24 07:19 UTC
 
