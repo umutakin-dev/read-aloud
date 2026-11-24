@@ -1406,11 +1406,25 @@
 
   chrome.runtime.onMessage.addListener(onToggleMessage);
 
+  // Leaving the page (a reload, a link, the back button) stops reading here.
+  // The audio plays in another context that outlives this page, so without
+  // this it finished its sentence after the page was gone (000056). pagehide
+  // fires for all of those, and for a page going into the back-forward cache,
+  // but not for a #fragment jump within the page (Hacker News's "parent").
+  function onPageHide() {
+    if (!state.active) return;
+    log("page.leave", { chunk: state.currentChunk });
+    stopReadAloud();
+  }
+
+  window.addEventListener("pagehide", onPageHide);
+
   // Published so a later injection can replace this copy cleanly. DOM and timer
   // cleanup comes first: everything below it can throw once this copy's
   // extension context has been invalidated, and a stranded toolbar or a live
   // health-check interval is what the user would actually notice.
   window.__readAloudTeardown = () => {
+    window.removeEventListener("pagehide", onPageHide);
     removeToolbar();
     stopHighlightLoop();
     stopHealthCheckTimer();

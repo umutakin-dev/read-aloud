@@ -550,3 +550,51 @@ test("the tab follows the player when it moves on by itself (000059)", async (t)
     }
   });
 });
+
+test("leaving the page stops the audio (000056)", async (t) => {
+  const settle = async () => {
+    for (let i = 0; i < 10; i++) await tick();
+  };
+  const readyPage = () =>
+    loadPage({ tts: () => ({ ok: true, engine: "server", data: { audio_base64: "a", timestamps: [] } }) });
+
+  await t.test("a reload or navigation stops reading and the player", async () => {
+    const page = readyPage();
+    try {
+      await startReading(page);
+      const before = page.sent.filter((s) => s === "STOP_AUDIO").length;
+      page.window.dispatchEvent(new page.window.Event("pagehide"));
+      await settle();
+      assert.ok(page.sent.filter((s) => s === "STOP_AUDIO").length > before, page.sent.join(" "));
+      assert.ok(page.logs.some((l) => l.ev === "page.leave"));
+      assert.equal(page.window.document.getElementById("read-aloud-toolbar-host"), null, "the toolbar should be gone");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("a jump to a #fragment on the same page does not", async () => {
+    const page = readyPage();
+    try {
+      await startReading(page);
+      const before = page.sent.filter((s) => s === "STOP_AUDIO").length;
+      page.window.dispatchEvent(new page.window.HashChangeEvent("hashchange"));
+      await settle();
+      assert.equal(page.sent.filter((s) => s === "STOP_AUDIO").length, before);
+      assert.ok(page.window.document.getElementById("read-aloud-toolbar-host"), "the toolbar should still be there");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("leaving a page that is not being read sends nothing", async () => {
+    const page = readyPage();
+    try {
+      page.window.dispatchEvent(new page.window.Event("pagehide"));
+      await settle();
+      assert.deepEqual(page.sent, []);
+    } finally {
+      page.close();
+    }
+  });
+});

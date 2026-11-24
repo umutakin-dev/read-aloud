@@ -1,7 +1,7 @@
 # Audio keeps playing after the reading page reloads or navigates away
 
 **Type:** 🐛 Bug
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🟡 MEDIUM
 **Roadmap:** 🎯 NOW 3
 **Tracked In:** local
@@ -23,7 +23,7 @@ Refreshing the page mid-read leaves the current audio playing to its end (Umut, 
 
 ## Actual
 
-- **Start:**
+- **Start:** 2026-11-24 07:19 UTC
 - **End:**
 - **Effort:**
 
@@ -42,6 +42,10 @@ Refreshing the page mid-read leaves the current audio playing to its end (Umut, 
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-24 07:19 UTC
+
+- **Progress:** Started work
 
 ### 2026-11-23 22:06 UTC
 - **Decision:** Roadmap: 🎯 NOW 3 → 🎯 NOW 2
