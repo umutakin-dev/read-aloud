@@ -36,8 +36,8 @@ Every sentence boundary goes through the reading tab: the player reports AUDIO_E
 ## Requirements
 
 - [ ] With the tab hidden, sentences follow each other with no audible gap, in Firefox and Chrome
-- [ ] The player starts the preloaded next sentence itself, then tells the tab
-- [ ] Pause, stop, jumps and a voice change still win over an advance already under way
+- [x] The player starts the preloaded next sentence itself, then tells the tab
+- [x] Pause, stop, jumps and a voice change still win over an advance already under way
 - [ ] Highlighting catches up when the tab is shown again
 - [ ] tab.stall in the debug log shows hidden=true during a test, with gapMs still small
 
@@ -50,6 +50,15 @@ Every sentence boundary goes through the reading tab: the player reports AUDIO_E
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-24 07:19 UTC
+- **Progress:** Built: player queue of up to 8 preloads, self-advance with AUDIO_ENDED advancedTo, tab follows without PLAY; keyed AUDIO_TIME/AUDIO_ENDED. 322 extension tests pass; the new tab tests fail on the old code. Waiting on Umut: read with the tab hidden in Firefox and Chrome, then a log with tab.stall hidden=true and small gapMs.
+
+### 2026-11-24 07:19 UTC
+- **Progress:** ☑ Checked (Requirements): Pause, stop, jumps and a voice change still win over an advance already under way
+
+### 2026-11-24 07:19 UTC
+- **Progress:** ☑ Checked (Requirements): The player starts the preloaded next sentence itself, then tells the tab
 
 ### 2026-11-24 07:15 UTC
 
