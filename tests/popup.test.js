@@ -161,3 +161,10 @@ test("the popup's debug log buttons (000052)", async (t) => {
     window.close();
   });
 });
+
+test("the read-from-selection setting (000039)", async (t) => {
+  await t.test("is on when never set", async () => {
+    const window = await loadPopup();
+    assert.equal(window.document.getElementById("read-from-selection").checked, true);
+  });
+});

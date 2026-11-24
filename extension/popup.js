@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const allowFallback = document.getElementById("allow-fallback");
   const engineSelect = document.getElementById("engine-select");
   const readCitations = document.getElementById("read-citations");
+  const readFromSelection = document.getElementById("read-from-selection");
   const btnSave = document.getElementById("btn-save");
 
   // Load saved settings
@@ -18,9 +19,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     "allowBrowserFallback",
     "engine",
     "readCitations",
+    "readFromSelection",
   ]);
   engineSelect.value = settings.engine || "auto";
   readCitations.checked = settings.readCitations === true;
+  // On unless turned off (000039).
+  readFromSelection.checked = settings.readFromSelection !== false;
 
   // Saved on change rather than on Save: the status line below reports what
   // the background would actually use, and it reads the stored setting.
@@ -218,6 +222,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       allowBrowserFallback: allowFallback.checked,
       engine: engineSelect.value,
       readCitations: readCitations.checked,
+      readFromSelection: readFromSelection.checked,
     };
     await chrome.storage.local.set(newSettings);
     // Keep the snapshot current — checkServer() below re-applies settings.voice.

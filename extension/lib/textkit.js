@@ -434,6 +434,9 @@ const ReadAloudText = (() => {
     let text = "";
     const nodes = []; // nodes[i] + offsets[i] locate text[i] in the DOM
     const offsets = [];
+    // The reverse: where each text node's first character landed in `text`,
+    // so a point on the page (a selection's start) becomes a position (000039).
+    const starts = new Map();
     let pendingSpace = false;
     let node;
 
@@ -446,6 +449,7 @@ const ReadAloudText = (() => {
           pendingSpace = text.length > 0;
           continue;
         }
+        if (!starts.has(node)) starts.set(node, nodes.length);
         if (pendingSpace) {
           text += " ";
           nodes.push(node);
@@ -458,7 +462,48 @@ const ReadAloudText = (() => {
       }
     }
 
-    return { text, nodes, offsets };
+    return { text, nodes, offsets, starts };
+  }
+
+  // Where a point on the page falls in the index text, for a Range boundary
+  // (node, offset). A point in a text node the index skipped, or between
+  // elements, moves forward to the next indexed character. -1 when nothing
+  // indexed follows it.
+  function positionInIndex(index, node, offset) {
+    if (!index?.starts || !node) return -1;
+    // A collapsed space is stored under the node after it, so a point at the
+    // start of a paragraph would land on the space before it, outside every
+    // sentence. Step over it.
+    const settle = (i) => {
+      while (i < index.text.length && index.text[i] === " ") i++;
+      return i < index.text.length ? i : -1;
+    };
+    if (node.nodeType === 3 && index.starts.has(node)) {
+      let i = index.starts.get(node);
+      while (i < index.nodes.length && index.nodes[i] === node && index.offsets[i] < offset) i++;
+      return settle(i);
+    }
+    // Find the first indexed text node at or after the point.
+    const doc = node.ownerDocument || node;
+    const walker = doc.createTreeWalker(doc.body || doc, 4 /* SHOW_TEXT */);
+    let from = node;
+    if (node.nodeType === 1) {
+      const child = node.childNodes[offset];
+      if (child) from = child;
+      else {
+        // Past the last child: continue after this element's subtree.
+        from = node;
+        while (from && !from.nextSibling) from = from.parentNode;
+        from = from?.nextSibling;
+      }
+    }
+    if (!from) return -1;
+    if (from.nodeType === 3 && index.starts.has(from)) return settle(index.starts.get(from));
+    walker.currentNode = from;
+    for (let next = walker.nextNode(); next; next = walker.nextNode()) {
+      if (index.starts.has(next)) return settle(index.starts.get(next));
+    }
+    return -1;
   }
 
   // ─── Locating a chunk in the page ─────────────────────────────────────────
@@ -525,6 +570,7 @@ const ReadAloudText = (() => {
     buildChunks,
     buildTextIndex,
     findChunkOffset,
+    positionInIndex,
     searchStartFor,
     resolveWordSpans,
   };

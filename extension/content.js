@@ -51,6 +51,8 @@
     unavailableReason: null, // why neither engine can speak, from HEALTH_CHECK
     allowBrowserFallback: false,  // opt-in; otherwise we wait for Kokoro
     readCitations: false,  // speak "[7]"-style markers (000047); skipped by default
+    readFromSelection: true, // selecting text jumps there (000039); on by default
+    userPaused: false,     // the reader pressed pause, as opposed to waiting on audio
     waitingForServer: false,
     toolbar: null,
     utterance: null,       // for Web Speech API fallback
@@ -91,10 +93,12 @@
       "serverUrl",
       "allowBrowserFallback",
       "readCitations",
+      "readFromSelection",
     ]);
     // Skipped unless asked for; read once per session, since the chunks are
     // cut from the extraction it shapes.
     state.readCitations = result.readCitations === true;
+    state.readFromSelection = result.readFromSelection !== false;
     if (result.voice) state.voice = result.voice;
     if (result.speed) state.speed = result.speed;
     if (result.serverUrl) state.serverUrl = result.serverUrl;
@@ -108,6 +112,9 @@
 
     if (changes.serverUrl) {
       state.serverUrl = changes.serverUrl.newValue || state.serverUrl;
+    }
+    if (changes.readFromSelection) {
+      state.readFromSelection = changes.readFromSelection.newValue !== false;
     }
     if (changes.allowBrowserFallback) {
       state.allowBrowserFallback = changes.allowBrowserFallback.newValue === true;
@@ -194,6 +201,7 @@
       // and this search starts from the beginning rather than a stale hint.
       state.textIndex = timedIndex("miss", chunkIndex);
       state._chunkOffsets = {};
+      state._sentenceStarts = null;
       idx = findChunkOffset(state.textIndex.text, paragraphText, 0);
     }
     if (idx === -1) {
@@ -1226,6 +1234,7 @@
   }
 
   function pausePlayback() {
+    state.userPaused = true;
     log("pause", { chunk: state.currentChunk, at: Math.round((state._currentTime || 0) * 100) / 100 });
     state.playing = false;
     // Paused while its sentence was still being made: it must not start when
@@ -1239,6 +1248,7 @@
   }
 
   function resumePlayback() {
+    state.userPaused = false;
     // Pressing Play while held is an explicit "try again now" — don't make the
     // user wait out the poll interval.
     if (state.waitingForServer) {
@@ -1312,7 +1322,9 @@
 
     await loadSettings();
     state.active = true;
+    state.userPaused = false;
     state._chunkOffsets = {};
+    state._sentenceStarts = null;
 
     createToolbar();
     updateToolbarStatus("Extracting text...");
@@ -1379,6 +1391,8 @@
     state.active = false;
     state.playing = false;
     state.waitingForServer = false;
+    state.userPaused = false;
+    state._sentenceStarts = null;
     state.chunks = [];
     state.paragraphStarts = [];
     state.currentChunk = 0;
@@ -1419,12 +1433,96 @@
 
   window.addEventListener("pagehide", onPageHide);
 
+  // ─── Read from the selected text (000039) ─────────────────────────────────
+  // Selecting text in what is being read jumps to the sentence where the
+  // selection starts: at once while playing, and staying paused while paused
+  // (Umut, 2026-11-23). Acted on once the selection settles, so dragging
+  // across a paragraph jumps once. A selection that does not start inside a
+  // read sentence (a menu, a form, the page's chrome) is left alone.
+  const SELECTION_SETTLE_MS = 350;
+  let selectionTimer = null;
+  let lastJumpedFrom = null; // the selection start already acted on
+
+  function onSelectionChange() {
+    if (!state.active || !state.readFromSelection) return;
+    clearTimeout(selectionTimer);
+    selectionTimer = setTimeout(jumpToSelection, SELECTION_SETTLE_MS);
+  }
+
+  // Where each sentence starts in the text index, found in reading order the
+  // way highlighting finds them. Built on first use and kept for the session.
+  function sentenceStarts() {
+    if (state._sentenceStarts) return state._sentenceStarts;
+    if (!state.textIndex) state.textIndex = timedIndex("first", state.currentChunk);
+    const text = state.textIndex.text;
+    let from = 0;
+    state._sentenceStarts = state.chunks.map((chunk) => {
+      const at = findChunkOffset(text, chunk.text, from);
+      if (at !== -1) from = at;
+      return at;
+    });
+    return state._sentenceStarts;
+  }
+
+  function sentenceAt(position) {
+    if (position < 0) return -1;
+    const starts = sentenceStarts();
+    for (let i = starts.length - 1; i >= 0; i--) {
+      const at = starts[i];
+      if (at === -1 || at > position) continue;
+      return position < at + state.chunks[i].text.length ? i : -1;
+    }
+    return -1;
+  }
+
+  function jumpToSelection() {
+    if (!state.active || !state.readFromSelection) return;
+    const selection = document.getSelection();
+    if (!selection || selection.isCollapsed || !selection.rangeCount) {
+      lastJumpedFrom = null;
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    const start = range.startContainer;
+    const element = start.nodeType === 1 ? start : start.parentElement;
+    // Text being typed, not read.
+    if (element?.closest("input, textarea, [contenteditable]:not([contenteditable='false'])")) return;
+
+    if (!state.textIndex) state.textIndex = timedIndex("first", state.currentChunk);
+    const position = ReadAloudText.positionInIndex(state.textIndex, start, range.startOffset);
+    if (position === lastJumpedFrom) return; // the same selection, grown or shrunk at its end
+    const index = sentenceAt(position);
+    if (index === -1) return;
+    lastJumpedFrom = position;
+    log("jump.selection", { chunk: index, from: state.currentChunk, paused: state.userPaused || undefined });
+    jumpToSentence(index);
+  }
+
+  function jumpToSentence(index) {
+    if (index === state.currentChunk && state.playing) return;
+    stopCurrentAudio();
+    state.currentChunk = index;
+    const label = `Paragraph ${currentParagraph() + 1}/${paragraphCount()}`;
+    if (state.userPaused || state.waitingForServer) {
+      // Stay put, but have the sentence made, so Play starts it at once.
+      state.record?.setCursor(index);
+      pumpSynthesis({ kick: true });
+      if (!state.waitingForServer) updateToolbarStatus(`${label} — paused`);
+      return;
+    }
+    playCurrentChunk();
+  }
+
+  document.addEventListener("selectionchange", onSelectionChange);
+
   // Published so a later injection can replace this copy cleanly. DOM and timer
   // cleanup comes first: everything below it can throw once this copy's
   // extension context has been invalidated, and a stranded toolbar or a live
   // health-check interval is what the user would actually notice.
   window.__readAloudTeardown = () => {
     window.removeEventListener("pagehide", onPageHide);
+    document.removeEventListener("selectionchange", onSelectionChange);
+    clearTimeout(selectionTimer);
     removeToolbar();
     stopHighlightLoop();
     stopHealthCheckTimer();

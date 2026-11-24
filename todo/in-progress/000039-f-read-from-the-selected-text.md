@@ -1,7 +1,7 @@
 # Read from the selected text
 
 **Type:** ✨ Feature
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🔴 HIGH
 **Roadmap:** 🎯 NOW 4
 **Tracked In:** local
@@ -30,7 +30,7 @@ Pairs naturally with #000040, since both are about knowing and controlling where
 
 ## Actual
 
-- **Start:**
+- **Start:** 2026-11-24 07:20 UTC
 - **End:**
 - **Effort:**
 
@@ -54,6 +54,10 @@ Pairs naturally with #000040, since both are about knowing and controlling where
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-24 07:20 UTC
+
+- **Progress:** Started work
 
 ### 2026-11-23 22:06 UTC
 - **Decision:** Roadmap: 🎯 NOW 4 → 🎯 NOW 3
