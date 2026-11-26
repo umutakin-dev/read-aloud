@@ -1,7 +1,7 @@
 # Acronyms said as words, like RAM, are spelled out on the browser engine
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-26 09:38 UTC
@@ -22,9 +22,9 @@ Fix: take the all-caps words misaki's dictionary says exactly like their lowerca
 
 ## Actual
 
-- **Start:** 2026-11-26 09:38 UTC
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-26 09:30 UTC
+- **End:** 2026-11-26 09:49 UTC
+- **Effort:** 19m
 
 ## Requirements
 
@@ -39,6 +39,13 @@ Fix: take the all-caps words misaki's dictionary says exactly like their lowerca
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-26 09:49 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 09:49 UTC
+- **Delivered:** PR #31: 50 acronyms said as words, generated from misaki's dictionary by scripts/build-word-acronyms.mjs, sent lowercase
 
 ### 2026-11-26 09:39 UTC
 - **Progress:** PR #31 opened: 50 acronyms said as words, generated from misaki's dictionary, sent lowercase

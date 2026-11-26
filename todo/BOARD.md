@@ -18,20 +18,18 @@
 
 *(none)*
 
-## 🔨 In Progress (2)
+## 🔨 In Progress (1)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
-| [000068](in-progress/000068-f-acronyms-said-as-words-like-ram-are-spelled-out-on.md) | ✨ | 🟡 | Acronyms said as words, like RAM, are spelled out on the browser engine |
 
-## 📋 Backlog (15)
+## 📋 Backlog (14)
 
 *Now and Next are listed under Roadmap above.*
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
-| [000057](000057-b-hacker-news-each-comment-s-first-paragraph-and-sho.md) | 🐛 | 🔴 | Hacker News: each comment's first paragraph and short comments are not read |
 | [000038](000038-f-keyboard-controls-and-screen-reader-support-for-th.md) | ✨ | 🔴 | Keyboard controls and screen reader support for the toolbar |
 | [000028](000028-e-make-read-aloud-rock-solid.md) | 👑 | 🔴 | Make Read Aloud rock solid |
 | [000024](000024-e-ship-read-aloud-without-a-local-server.md) | 👑 | 🔴 | Ship Read Aloud without a local server |
@@ -53,10 +51,11 @@
 
 *(none)*
 
-## ✅ Done (51)
+## ✅ Done (53)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000068](done/000068-f-acronyms-said-as-words-like-ram-are-spelled-out-on.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Acronyms said as words, like RAM, are spelled out on the browser engine |
 | [000067](done/000067-f-data-sizes-like-5mb-are-spelled-out-letter-by-lett.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Data sizes like 5MB are spelled out letter by letter |
 | [000066](done/000066-b-iv-is-read-as-roman-four-on-the-browser-engine.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;26 | IV is read as roman four on the browser engine |
 | [000065](done/000065-t-a-local-test-page-for-what-the-reader-says.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;26 | A local test page for what the reader says |
@@ -66,6 +65,7 @@
 | [000061](done/000061-t-toolbar-status-shows-time-left-and-percent-read-no.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;26 | Toolbar status shows time left and percent read, not a paragraph count |
 | [000060](done/000060-b-firefox-on-a-mac-ignores-the-command-shift-u-short.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | Firefox on a Mac ignores the Command-Shift-U shortcut |
 | [000058](done/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | Our own text extractor in place of Readability, reading the live page |
+| [000057](done/000057-b-hacker-news-each-comment-s-first-paragraph-and-sho.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | Hacker News: each comment's first paragraph and short comments are not read |
 | [000056](done/000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;26 | Audio keeps playing after the reading page reloads or navigates away |
 | [000040](done/000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Show progress through the document and allow scrubbing |
 | [000039](done/000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | Read from the selected text |
