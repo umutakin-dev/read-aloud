@@ -1,9 +1,8 @@
 # Our own text extractor in place of Readability, reading the live page
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 1
 **Tracked In:** local
 **Created:** 2026-11-23 21:55 UTC
 
@@ -33,7 +32,7 @@ Closes 000057 when it lands.
 ## Actual
 
 - **Start:** 2026-11-23 21:56 UTC
-- **End:**
+- **End:** 2026-11-26 06:59 UTC
 - **Effort:**
 
 ## Requirements
@@ -45,7 +44,7 @@ Closes 000057 when it lands.
 - [x] Saved-page tests: Hacker News, Wikipedia, a news article, a blog and a docs page
 - [x] Every extracted block is found in the page, so highlighting has nothing to hunt for
 - [x] Citation markers are still skipped unless the setting says to read them
-- [ ] Read in Chrome and Firefox on real pages before merging
+- [x] Read in Chrome and Firefox on real pages before merging
 
 ## Checklist
 
@@ -56,6 +55,16 @@ Closes 000057 when it lands.
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-26 06:59 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 06:59 UTC
+- **Progress:** Umut read en.wikipedia.org/wiki/Bird_of_prey in Chrome and Firefox (2026-11-26): nothing skipped that should be read, citations skipped, and the order heading, figure caption, paragraph is right. Read in place of Readability over 372 sentences with no stall.
+
+### 2026-11-26 06:59 UTC
+- **Progress:** ☑ Checked (Requirements): Read in Chrome and Firefox on real pages before merging
 
 ### 2026-11-23 22:38 UTC
 - **Progress:** Extractor in, Readability out. Umut's Firefox logs on the HN thread: antihero's comment and short replies read, 553 paragraphs (was 467), extraction 131-259ms, index built once in 32ms, never rebuilt. Saved-page tests for 5 sites; 309 extension tests pass. Left: a read in Chrome and Firefox on real pages.
