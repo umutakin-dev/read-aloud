@@ -17,13 +17,12 @@
 
 *(none)*
 
-## 🔨 In Progress (3)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000069](in-progress/000069-f-without-webgpu-read-with-the-system-voice-instead-.md) | ✨ | 🔴 | Without WebGPU, read with the system voice instead of nothing |
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
-| [000038](in-progress/000038-f-keyboard-controls-and-screen-reader-support-for-th.md) | ✨ | 🔴 | Keyboard controls and screen reader support for the toolbar |
 
 ## 📋 Backlog (12)
 
@@ -44,11 +43,13 @@
 | [000036](000036-t-cancel-in-flight-synthesis-when-playback-stops.md) | 🔧 | 🟢 | Cancel in-flight synthesis when playback stops |
 | [000035](000035-f-remember-reading-position-across-a-reload.md) | ✨ | 🟢 | Remember reading position across a reload |
 
-## 🅿️ Parked (0)
+## 🅿️ Parked (1)
 
 *Open, but waiting on a named trigger — `todo stale` lists each with its trigger.*
 
-*(none)*
+| ID | Type | Priority | Title |
+|----|------|----------|-------|
+| [000038](parked/000038-f-keyboard-controls-and-screen-reader-support-for-th.md) | ✨ | 🔴 | Keyboard controls and screen reader support for the toolbar |
 
 ## ✅ Done (54)
 

@@ -1,8 +1,9 @@
 # Keyboard controls and screen reader support for the toolbar
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** 📋 Backlog
 **Priority:** 🔴 HIGH
+**Parked-Until:** Umut has time to read a page with VoiceOver in Chrome and Firefox; PR #34 holds the code
 **Tracked In:** local
 **Created:** 2026-08-03
 
@@ -57,6 +58,9 @@ Worth checking the highlight colours against contrast requirements too, and how 
 - [x] Documentation updated
 
 ## Log
+
+### 2026-11-26 22:26 UTC
+- **Decision:** PARKED — reopen when Umut has time to read a page with VoiceOver in Chrome and Firefox; PR #34 holds the code
 
 ### 2026-11-26 22:21 UTC
 - **Progress:** PR #34 opened (keyboard controls, screen reader labels and announcements, highlight contrast). 406 extension tests pass. Left open for requirement 8: hear it with VoiceOver in Chrome and Firefox, including that Space on Previous does not also press it.
