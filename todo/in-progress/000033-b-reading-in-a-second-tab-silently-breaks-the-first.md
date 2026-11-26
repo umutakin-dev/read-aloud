@@ -52,6 +52,9 @@ A general audience will hit this quickly — opening a second article while the 
 ## Log
 
 ### 2026-11-26 22:31 UTC
+- **Progress:** PR #35 opened (one tab reads at a time; the old tab stops and says reading moved). 404 extension tests pass. Left open for the check in Chrome and Firefox.
+
+### 2026-11-26 22:31 UTC
 - **Note:** Reproduced from the code, not in a browser: activeTabId moved to whichever tab sent PLAY_AUDIO, and the old tab's Stop on the way out would also have stopped the new tab's audio once that was fixed. The browser check is the last requirement.
 
 ### 2026-11-26 22:31 UTC
