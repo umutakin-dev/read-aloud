@@ -42,6 +42,9 @@ Umut, 2026-11-26: fall back automatically. When the browser engine is unsupporte
 
 ## Log
 
+### 2026-11-26 09:54 UTC
+- **Progress:** PR #32 opened: noKokoro in the health answer, system voice used where Kokoro cannot run, hand-over to Kokoro at the next sentence. Not yet tried in a browser without WebGPU.
+
 ### 2026-11-26 09:52 UTC
 
 - **Progress:** Started work
