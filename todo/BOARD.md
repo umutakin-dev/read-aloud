@@ -18,11 +18,12 @@
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| [000063](in-progress/000063-f-roman-numerals-are-read-as-letters.md) | ✨ | 🟡 | Roman numerals are read as letters |
 
 ## 📋 Backlog (15)
 

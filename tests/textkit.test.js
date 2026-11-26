@@ -626,3 +626,81 @@ test("positionInIndex", async (t) => {
     }
   });
 });
+
+// Kokoro spelled "GTA VI" as letters (000063). The engine is sent a spoken
+// form, and its word spans are mapped back so the page's "VI" lights up.
+test("spokenForm reads Roman numerals as numbers", async (t) => {
+  const spoken = (text) => kit.spokenForm(text).text;
+
+  await t.test("two or more letters after a capitalised word", () => {
+    assert.equal(spoken("Now with the launch of GTA VI you may lose"), "Now with the launch of GTA six you may lose");
+    assert.equal(spoken("After World War II ended."), "After World War two ended.");
+    assert.equal(spoken("Rocky IV, then Chapter XXXIX."), "Rocky four, then Chapter thirty-nine.");
+    assert.equal(spoken("Henry VIII"), "Henry eight");
+  });
+
+  await t.test("a lone V or X only after an all-caps name", () => {
+    assert.equal(spoken("still making millions from GTA V."), "still making millions from GTA five.");
+    assert.equal(spoken("replace GTA V online"), "replace GTA five online");
+    assert.equal(spoken("Mac OS X"), "Mac OS ten");
+    assert.equal(spoken("Malcolm X spoke"), "Malcolm X spoke");
+    assert.equal(spoken("Plan V"), "Plan V");
+  });
+
+  await t.test("leaves everything else alone", () => {
+    for (const text of [
+      "I think I said so.",       // the pronoun
+      "Then I went home.",        // after a capital, still the pronoun
+      "an IV drip",               // after a lowercase word
+      "VI is an editor",          // nothing before it
+      "Buy the CD and MIX it",    // not made of I, V and X alone
+      "Section IIII",             // not a numeral
+      "GTA-V and GTA VIs",        // joined to something
+      "Mr. V",                    // punctuation between
+    ]) {
+      assert.equal(spoken(text), text);
+    }
+  });
+
+  await t.test("no edits when nothing changes", () => {
+    assert.deepEqual(kit.spokenForm("Plain text.").edits, []);
+  });
+});
+
+test("spansToPage maps spoken offsets back onto the page text", async (t) => {
+  // Spans as the server returns them, counted into the spoken text.
+  const spansOf = (spokenText, words) => {
+    let from = 0;
+    return words.map((word) => {
+      const at = spokenText.indexOf(word, from);
+      from = at + word.length;
+      return { word, start_char: at, end_char: at + word.length };
+    });
+  };
+
+  await t.test("a replaced word covers the numeral, and later words shift back", () => {
+    const page = "From GTA V to GTA VI soon.";
+    const { text, edits } = kit.spokenForm(page);
+    assert.equal(text, "From GTA five to GTA six soon.");
+    const spans = kit.spansToPage(spansOf(text, ["From", "GTA", "five", "to", "GTA", "six", "soon", "."]), edits);
+    assert.deepEqual(
+      spans.map((s) => page.slice(s.start_char, s.end_char)),
+      ["From", "GTA", "V", "to", "GTA", "VI", "soon", "."]
+    );
+  });
+
+  await t.test("a span over part of a replaced word still covers the numeral", () => {
+    const page = "Part XXI ends";
+    const { text, edits } = kit.spokenForm(page);
+    assert.equal(text, "Part twenty-one ends");
+    // A tokenizer may split "twenty-one" into "twenty", "-" and "one".
+    const spans = kit.spansToPage(spansOf(text, ["twenty", "-", "one", "ends"]), edits);
+    assert.deepEqual(spans.map((s) => page.slice(s.start_char, s.end_char)), ["XXI", "XXI", "XXI", "ends"]);
+  });
+
+  await t.test("a word without a span is left for resolveWordSpans", () => {
+    const { edits } = kit.spokenForm("GTA VI");
+    const spans = kit.spansToPage([{ word: "six", start_char: null, end_char: null }], edits);
+    assert.equal(spans[0].start_char, null);
+  });
+});
