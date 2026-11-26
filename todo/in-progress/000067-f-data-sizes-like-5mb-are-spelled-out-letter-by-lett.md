@@ -43,6 +43,9 @@ Fix, through the spoken form (000063):
 
 ## Log
 
+### 2026-11-26 09:27 UTC
+- **Progress:** PR #30 opened: data sizes and rates after a number sent as words (megabyte/megabytes, megabits per second)
+
 ### 2026-11-26 09:26 UTC
 
 - **Progress:** Started work
