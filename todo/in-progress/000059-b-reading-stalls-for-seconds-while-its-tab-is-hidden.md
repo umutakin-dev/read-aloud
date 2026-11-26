@@ -51,6 +51,9 @@ Every sentence boundary goes through the reading tab: the player reports AUDIO_E
 
 ## Log
 
+### 2026-11-26 07:01 UTC
+- **Note:** Code merged ahead of the browser check, since the PRs above it are stacked on it. Umut's Chrome log (2026-11-26) shows every boundary advanced=true with gapMs 0-3, but the tab was never hidden. Left open for: a read with the tab hidden in Firefox and Chrome, and highlighting catching up when it is shown again.
+
 ### 2026-11-24 07:19 UTC
 - **Progress:** Built: player queue of up to 8 preloads, self-advance with AUDIO_ENDED advancedTo, tab follows without PLAY; keyed AUDIO_TIME/AUDIO_ENDED. 322 extension tests pass; the new tab tests fail on the old code. Waiting on Umut: read with the tab hidden in Firefox and Chrome, then a log with tab.stall hidden=true and small gapMs.
 
