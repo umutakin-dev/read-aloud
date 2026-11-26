@@ -54,6 +54,9 @@ No new extension permission: `http://localhost:7860/*` is already in `host_permi
 
 ## Log
 
+### 2026-11-26 11:38 UTC
+- **Note:** PR #33 opened: one-command install, start-at-login service on macOS, Linux and Windows, 2s toolbar poll while Kokoro is down.
+
 ### 2026-11-26 11:37 UTC
 - **Note:** Built on feat/000070-server-install-at-login.
 
