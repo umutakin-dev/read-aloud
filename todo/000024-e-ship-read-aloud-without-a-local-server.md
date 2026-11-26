@@ -52,6 +52,16 @@ So the sequence is: find out whether the browser can do it (#000025), and only i
 
 ## Log
 
+### 2026-11-26 11:48 UTC
+- **Decision:** Server offered as a choice (Umut, 2026-11-26).
+
+Without WebGPU, the system voice is not acceptable as the only way to read: it stays available, but nobody would choose it. The server is the real answer for those browsers. It is offered at two levels:
+
+- Level 1, now: 000070 (install the server with one command and have it start at login), PR #33. No new extension permission, since `http://localhost:7860/*` is already in `host_permissions`.
+- Level 2, only if level 1 users complain about running a server: native messaging with per-platform installers and an ONNX port. That is what 000026 (package the server so it installs and runs itself) described, retired today. It would add the `nativeMessaging` permission for 000027 (store listing, privacy policy and permission justifications) to justify.
+
+Order: 000070 merges and is tried for real, then 000027.
+
 ### 2026-11-26 11:30 UTC
 - **Note:** Added #000070 Install the server with one command and have it start at login to Items
 

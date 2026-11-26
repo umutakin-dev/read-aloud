@@ -8,15 +8,18 @@
 *What is being built and in what order. Everything under Backlog is the implicit Later.*
 *Start and End are projected from the lane order at this repo's measured pace, as of 2026-11-26 (the folder's newest entry); `todo schedule` shows the working.*
 
-### 🎯 Now (1)
+### 🎯 Now (2)
 
 | # | ID | Type | Priority | Start | End | Title |
 |---|----|------|----------|-------|-----|-------|
-| 1 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;26 | 🔨 Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| 1 | [000070](in-progress/000070-f-install-the-server-with-one-command-and-have-it-st.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;26 | 🔨 Install the server with one command and have it start at login |
+| 2 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;26 | 🔨 Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
 
-### 🔜 Next (0)
+### 🔜 Next (1)
 
-*(none)*
+| # | ID | Type | Priority | Start | End | Title |
+|---|----|------|----------|-------|-----|-------|
+| 1 | [000027](000027-t-chrome-web-store-listing-privacy-policy-and-permis.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;26 | Chrome Web Store listing, privacy policy and permission justification |
 
 ## 🔨 In Progress (3)
 
@@ -26,7 +29,7 @@
 | [000069](in-progress/000069-f-without-webgpu-read-with-the-system-voice-instead-.md) | ✨ | 🔴 | Without WebGPU, read with the system voice instead of nothing |
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
 
-## 📋 Backlog (13)
+## 📋 Backlog (12)
 
 *Now and Next are listed under Roadmap above.*
 
@@ -39,7 +42,6 @@
 | [000037](000037-e-make-read-aloud-pleasant-to-use.md) | 👑 | 🟡 | Make Read Aloud pleasant to use |
 | [000034](000034-b-text-index-goes-stale-on-single-page-app-navigatio.md) | 🐛 | 🟡 | Text index goes stale on single-page-app navigation |
 | [000033](000033-b-reading-in-a-second-tab-silently-breaks-the-first.md) | 🐛 | 🟡 | Reading in a second tab silently breaks the first |
-| [000027](000027-t-chrome-web-store-listing-privacy-policy-and-permis.md) | 🔧 | 🟡 | Chrome Web Store listing, privacy policy and permission justification |
 | [000043](000043-f-support-languages-other-than-american-english.md) | ✨ | 🟢 | Support languages other than American English |
 | [000042](000042-t-cache-synthesized-audio-so-a-re-read-is-instant.md) | 🔧 | 🟢 | Cache synthesized audio so a re-read is instant |
 | [000041](000041-f-preview-a-voice-before-choosing-it.md) | ✨ | 🟢 | Preview a voice before choosing it |

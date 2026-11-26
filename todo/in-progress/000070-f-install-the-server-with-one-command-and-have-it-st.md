@@ -3,6 +3,7 @@
 **Type:** ✨ Feature
 **Status:** 🔨 In Progress
 **Priority:** 🔴 HIGH
+**Roadmap:** 🎯 NOW @1000
 **Tracked In:** local
 **Created:** 2026-11-26 11:30 UTC
 
@@ -53,6 +54,18 @@ No new extension permission: `http://localhost:7860/*` is already in `host_permi
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-26 11:48 UTC
+- **Decision:** Roadmap: (unscheduled) → 🎯 NOW 1
+
+### 2026-11-26 11:48 UTC
+- **Note:** Paused 2026-11-26 with PR #33 open and unmerged.
+
+To finish:
+- run `read-aloud-server install-service` on the Mac (the tool is already installed there from testing), log out and in, and read a page without starting anything
+- check the agent: `launchctl print gui/$(id -u)/io.github.umutakin-dev.read-aloud-server`, logs in `~/Library/Logs/read-aloud-server.log`
+- if a Linux or Windows machine is to hand, repeat there, and check the log's `Using device:` line shows CUDA rather than a CPU-only torch
+- then tick the last two requirements, merge #33 and close this item
 
 ### 2026-11-26 11:38 UTC
 - **Note:** PR #33 opened: one-command install, start-at-login service on macOS, Linux and Windows, 2s toolbar poll while Kokoro is down.
