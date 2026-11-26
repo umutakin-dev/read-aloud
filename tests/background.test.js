@@ -24,6 +24,7 @@ function load({
   serverUp = false,
 } = {}) {
   const calls = [];
+  const tabCalls = []; // [tabId, type], for what went to which tab
   const listeners = {};
 
   const chrome = {
@@ -49,6 +50,7 @@ function load({
       onRemoved: { addListener: (fn) => (listeners.tabRemoved = fn) },
       sendMessage: async (tabId, msg) => {
         calls.push(`tab:${msg.type}`);
+        tabCalls.push([tabId, msg.type]);
         if (tabMessage) return tabMessage();
         throw new Error(NOT_FOUND);
       },
@@ -100,7 +102,7 @@ function load({
   const sandbox = { chrome, console, setTimeout, clearTimeout, fetch, AbortController };
   vm.createContext(sandbox);
   vm.runInContext(SOURCE, sandbox, { filename: "background.js" });
-  return { calls, listeners, sandbox };
+  return { calls, tabCalls, listeners, sandbox };
 }
 
 const settle = () => new Promise((r) => setTimeout(r, 10));
@@ -432,5 +434,68 @@ test("the toggle path in the debug log", async (t) => {
     await settle();
     const { text } = await ask(listeners, { type: "GET_LOG" });
     assert.match(text, /toggle via=menu tab=7/);
+  });
+});
+
+test("a second tab starting to read takes the player over (000033)", async (t) => {
+  const send = (listeners, message, tab) =>
+    new Promise((resolve) => listeners.message(message, tab === undefined ? {} : { tab: { id: tab } }, resolve));
+  const open = () => load({ offscreenExists: true, tabMessage: async () => undefined });
+
+  await t.test("stops the player and tells the tab that was reading", async () => {
+    const { calls, tabCalls, listeners } = open();
+    await send(listeners, { type: "READING_STARTED" }, 7);
+    calls.length = 0;
+    await send(listeners, { type: "READING_STARTED" }, 9);
+    await settle();
+    assert.deepEqual(calls, ["offscreen:STOP", "tab:READING_MOVED"]);
+    assert.deepEqual(tabCalls.at(-1), [7, "READING_MOVED"]);
+  });
+
+  await t.test("the first tab to read, or the same tab again, takes nothing over", async () => {
+    const { calls, listeners } = open();
+    await send(listeners, { type: "READING_STARTED" }, 7);
+    await send(listeners, { type: "READING_STARTED" }, 7); // a reload, or a second read
+    await settle();
+    assert.deepEqual(calls, []);
+  });
+
+  await t.test("the tab that lost the player can no longer steer it", async () => {
+    const { calls, listeners } = open();
+    await send(listeners, { type: "READING_STARTED" }, 7);
+    await send(listeners, { type: "READING_STARTED" }, 9);
+    calls.length = 0;
+    // Its own Stop on the way out would otherwise cut off the new tab.
+    await send(listeners, { type: "STOP_AUDIO" }, 7);
+    const play = await send(listeners, { type: "PLAY_AUDIO", key: 3, audio_base64: "a" }, 7);
+    const resume = await send(listeners, { type: "RESUME_AUDIO" }, 7);
+    await settle();
+    assert.deepEqual(calls, []);
+    assert.equal(play.moved, true);
+    assert.equal(resume.resumed, false);
+  });
+
+  await t.test("the reading tab and the popup still can", async () => {
+    const { calls, listeners } = open();
+    await send(listeners, { type: "READING_STARTED" }, 7);
+    await send(listeners, { type: "READING_STARTED" }, 9);
+    calls.length = 0;
+    await send(listeners, { type: "PLAY_AUDIO", key: 0, audio_base64: "a" }, 9);
+    await send(listeners, { type: "PAUSE_AUDIO" }, 9);
+    listeners.message({ type: "SET_AUDIO_SPEED", speed: 1.5 }, {}, () => {}); // the popup
+    await settle();
+    assert.deepEqual(calls, ["offscreen:PLAY", "offscreen:PAUSE", "offscreen:SET_SPEED"]);
+  });
+
+  await t.test("only closing the tab now reading tears the player down", async () => {
+    let closed = 0;
+    const { listeners, sandbox } = open();
+    sandbox.chrome.offscreen.closeDocument = async () => closed++;
+    await send(listeners, { type: "READING_STARTED" }, 7);
+    await send(listeners, { type: "READING_STARTED" }, 9);
+    await listeners.tabRemoved(7);
+    assert.equal(closed, 0);
+    await listeners.tabRemoved(9);
+    assert.equal(closed, 1);
   });
 });
