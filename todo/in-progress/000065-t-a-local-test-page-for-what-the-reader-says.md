@@ -39,6 +39,9 @@ Each case shows what should be heard, in a way the reader itself does not read. 
 
 ## Log
 
+### 2026-11-26 09:14 UTC
+- **Progress:** PR #28 opened: tests/manual/speech-cases.html plus speech-cases.test.js holding its expectations to the code
+
 ### 2026-11-26 09:13 UTC
 
 - **Progress:** Started work
