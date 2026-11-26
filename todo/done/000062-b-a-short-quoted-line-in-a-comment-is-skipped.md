@@ -1,7 +1,7 @@
 # A short quoted line in a comment is skipped
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-26 08:46 UTC
@@ -27,9 +27,9 @@ Fix: a line opening with `>` is a quotation by convention, never page furniture,
 
 ## Actual
 
-- **Start:** 2026-11-26 08:46 UTC
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-26 07:26 UTC
+- **End:** 2026-11-26 09:04 UTC
+- **Effort:** 1h38
 
 ## Requirements
 
@@ -44,6 +44,16 @@ Fix: a line opening with `>` is a quotation by convention, never page furniture,
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-26 09:04 UTC
+- **Note:** Took 1h38 against an estimate of 9m (10.9x) — measured since the previous item closed.
+
+### 2026-11-26 09:04 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 09:04 UTC
+- **Delivered:** PR #25: a line opening with > is read however short, and the mark is not spoken; the HN fixture gains a quote-and-link reply
 
 ### 2026-11-26 08:47 UTC
 - **Progress:** PR #25 opened: quote lines read however short, the > mark not spoken; HN fixture gains a quote-and-link reply
