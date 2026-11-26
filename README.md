@@ -205,6 +205,22 @@ few seconds of GPU warm-up.
 | Speed slider | Adjust playback speed (0.5x - 3.0x) |
 | Stop/Close | Stop reading and remove toolbar |
 
+The toolbar takes keyboard focus when it opens, and while focus is in it:
+
+| Key | Action |
+|-----|--------|
+| Space | Pause or resume, whichever control has focus (Enter presses the focused button) |
+| ← / → | Previous / next paragraph (on the speed slider they change the speed) |
+| + / - | Speed up / slow down by 0.1x |
+| Escape | Stop reading and close the toolbar; focus goes back where it was |
+| Tab | Move between the controls, or out into the page |
+
+On the page itself these keys keep their usual meaning, so Space and the
+arrows still scroll. A screen reader hears the toolbar as a "Read Aloud"
+region, and is told when reading pauses or resumes, when the speed changes, and
+when the Kokoro engine goes away or comes back, but never the time left, which
+would talk over the reading.
+
 ### Settings (Popup)
 
 Click the extension icon to access:

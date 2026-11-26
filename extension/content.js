@@ -90,6 +90,9 @@
   if (CSS.highlights) {
     wordHighlight = new Highlight();
     sentenceHighlight = new Highlight();
+    // The word paints over the sentence it sits in, so its own text colour
+    // applies there (see content.css).
+    wordHighlight.priority = 1;
     CSS.highlights.set("read-aloud-word", wordHighlight);
     CSS.highlights.set("read-aloud-sentence", sentenceHighlight);
   }
@@ -835,6 +838,8 @@
     state.serverHealthy = healthy;
     if (!healthy) {
       waitForServer(state.currentChunk);
+      // The indicator has not changed, so it says nothing; say this instead.
+      announce("Still waiting for the Kokoro server");
       return;
     }
     state.waitingForServer = false;
@@ -1234,6 +1239,19 @@
         button:hover {
           background: #313244;
         }
+        button:focus-visible, input[type="range"]:focus-visible {
+          outline: 2px solid #89b4fa;
+          outline-offset: 2px;
+        }
+        /* Heard, not seen: the live region that announces state changes. */
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
+        }
         button.active {
           background: #89b4fa;
           color: #1e1e2e;
@@ -1311,18 +1329,20 @@
           pointer-events: none;
         }
       </style>
-      <div class="toolbar">
-        <button id="btn-prev" title="Previous paragraph">&#9664;&#9664;</button>
-        <button id="btn-play" title="Play/Pause" class="active">&#9654;</button>
-        <button id="btn-next" title="Next paragraph">&#9654;&#9654;</button>
-        <button id="btn-stop" title="Stop">&#9632;</button>
+      <div class="toolbar" role="region" aria-label="Read Aloud">
+        <button id="btn-prev" title="Previous paragraph (Left arrow)" aria-label="Previous paragraph">&#9664;&#9664;</button>
+        <button id="btn-play" title="Play/Pause (Space)" aria-label="Play" aria-pressed="false">&#9654;</button>
+        <button id="btn-next" title="Next paragraph (Right arrow)" aria-label="Next paragraph">&#9654;&#9654;</button>
+        <button id="btn-stop" title="Stop" aria-label="Stop">&#9632;</button>
         <div class="speed-group">
-          <span class="speed-label" id="speed-label">1.0x</span>
-          <input type="range" id="speed-slider" min="0.5" max="3" step="0.1" value="1.0" />
+          <span class="speed-label" id="speed-label" aria-hidden="true">1.0x</span>
+          <input type="range" id="speed-slider" min="0.5" max="3" step="0.1" value="1.0"
+                 aria-label="Speed" aria-valuetext="1.0x" title="Speed (- and +)" />
         </div>
         <span class="status" id="status">Starting...</span>
         <span class="engine" id="engine">Connecting</span>
-        <button class="close-btn" id="btn-close" title="Close">&times;</button>
+        <button class="close-btn" id="btn-close" title="Close (Escape)" aria-label="Close Read Aloud">&times;</button>
+        <div class="sr-only" id="announcer" role="status" aria-live="polite"></div>
         <div class="progress" id="progress" role="slider" tabindex="0"
              aria-label="Position in the page" aria-valuemin="1"
              title="Drag or click to jump; time left is listening time at this speed"><div class="played" id="progress-played"></div></div>
@@ -1341,18 +1361,22 @@
 
     speedSlider.value = state.speed;
     speedLabel.textContent = `${state.speed}x`;
+    speedSlider.setAttribute("aria-valuetext", `${Number(state.speed).toFixed(1)}x`);
 
-    btnPlay.addEventListener("click", () => {
+    function togglePlay() {
       if (state.playing) {
         pausePlayback();
-        btnPlay.innerHTML = "&#9654;";
-        btnPlay.classList.remove("active");
+        updatePlayButton(false);
+        announce("Paused");
       } else {
+        // While held for the server, Play is "try again now"; what that finds
+        // is announced by retryServerNow and the engine indicator.
+        if (state.waitingForServer) announce("Checking the Kokoro server");
+        else announce("Playing");
         resumePlayback();
-        btnPlay.innerHTML = "&#10074;&#10074;";
-        btnPlay.classList.add("active");
+        updatePlayButton(true);
       }
-    });
+    }
 
     // Prev/next move a whole paragraph, however many chunks it was split into.
     function jumpToParagraph(index) {
@@ -1362,35 +1386,123 @@
       playCurrentChunk();
     }
 
-    btnPrev.addEventListener("click", () => {
+    function previousParagraph() {
       const here = currentParagraph();
       // Part-way into a paragraph, Prev restarts it rather than skipping back,
       // the way a track-skip does. At the start, it goes to the previous one.
       const atStart = state.currentChunk === state.paragraphStarts[here];
       jumpToParagraph(atStart ? here - 1 : here);
-    });
+    }
 
-    btnNext.addEventListener("click", () => {
+    function nextParagraph() {
       jumpToParagraph(currentParagraph() + 1);
-    });
+    }
 
-    btnStop.addEventListener("click", stopReadAloud);
-    btnClose.addEventListener("click", stopReadAloud);
-
-    speedSlider.addEventListener("input", () => {
-      const val = parseFloat(speedSlider.value);
+    function setSpeed(val) {
       state.speed = val;
+      speedSlider.value = val;
       speedLabel.textContent = `${val.toFixed(1)}x`;
+      speedSlider.setAttribute("aria-valuetext", `${val.toFixed(1)}x`);
       // Time left is listening time at this speed, so it moves with the slider.
       if (state.playing) updateToolbarStatus(statusLabel());
       postMessage({ type: "SET_AUDIO_SPEED", speed: val });
       chrome.storage.local.set({ speed: val });
+    }
+
+    function stepSpeed(by) {
+      const min = parseFloat(speedSlider.min);
+      const max = parseFloat(speedSlider.max);
+      const val = Math.round(Math.min(max, Math.max(min, Number(state.speed) + by)) * 10) / 10;
+      if (val === state.speed) return;
+      setSpeed(val);
+      announce(`Speed ${val.toFixed(1)}x`);
+    }
+
+    btnPlay.addEventListener("click", togglePlay);
+    btnPrev.addEventListener("click", previousParagraph);
+    btnNext.addEventListener("click", nextParagraph);
+    btnStop.addEventListener("click", stopReadAloud);
+    btnClose.addEventListener("click", stopReadAloud);
+    speedSlider.addEventListener("input", () => setSpeed(parseFloat(speedSlider.value)));
+
+    // Keys act only while focus is in the toolbar (Umut, 2026-11-27), which
+    // takes focus when reading starts. On the page Space and the arrows scroll,
+    // and taking them from every page for a whole session would be worse than
+    // a Tab away. Keys typed into a page's own fields never reach here at all.
+    // The page's own key handlers are not told about a key used here, so a
+    // site shortcut does not fire as well.
+    const KEYS = {
+      " ": togglePlay,
+      ArrowLeft: previousParagraph,
+      ArrowRight: nextParagraph,
+      "+": () => stepSpeed(0.1),
+      "=": () => stepSpeed(0.1),
+      "-": () => stepSpeed(-0.1),
+      _: () => stepSpeed(-0.1),
+      Escape: stopReadAloud,
+    };
+    toolbar.addEventListener("keydown", (event) => {
+      // The position bar handles its own arrows; the speed slider's arrows
+      // change the speed, as a slider's do.
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+      const onSlider = event.target === speedSlider || event.target.id === "progress";
+      if (onSlider && event.key.startsWith("Arrow")) return;
+      const action = KEYS[event.key];
+      if (!action) return;
+      event.preventDefault();
+      event.stopPropagation();
+      action();
+    });
+    // A focused button activates on Space's keyup; Space is play/pause here
+    // wherever focus is, and Enter still presses the button.
+    toolbar.addEventListener("keyup", (event) => {
+      if (event.key === " ") {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     });
 
     document.body.appendChild(host);
     state.toolbar = host;
     state._shadow = shadow;
     return host;
+  }
+
+  // Said once by a screen reader, politely, after whatever it is saying. Kept
+  // to changes the listener needs to know about: play and pause, the engine
+  // going away or coming back, nothing to read. Never the time left, which
+  // changes every sentence and would talk over the reading itself. Cleared
+  // first so the same words twice ("Paused" again) are still announced.
+  let announceTimer = null;
+
+  function announce(text) {
+    const el = state._shadow?.getElementById("announcer");
+    if (!el) return;
+    el.textContent = "";
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(() => {
+      el.textContent = text;
+    }, 50);
+  }
+
+  // Focus goes to the toolbar when it opens, so its keys work at once and a
+  // screen reader says the "Read Aloud" region has appeared. It goes back to
+  // where it was when the toolbar closes, but only if it is still in the
+  // toolbar: a reader who has moved on into the page is left there.
+  function focusToolbar() {
+    state._focusBefore = document.activeElement;
+    state._shadow?.getElementById("btn-play")?.focus({ preventScroll: true });
+  }
+
+  function restoreFocus(host) {
+    const before = state._focusBefore;
+    state._focusBefore = null;
+    if (document.activeElement !== host) return;
+    if (before && before !== host && before.isConnected && typeof before.focus === "function") {
+      before.focus({ preventScroll: true });
+    } else {
+      host.blur?.();
+    }
   }
 
   function updateToolbarStatus(text) {
@@ -1464,6 +1576,14 @@
       title = `Using the Kokoro TTS server at ${state.serverUrl}`;
     }
 
+    // The engine going away, coming back or changing is announced, with the
+    // tooltip's words, which say what to do about it. Not "Connecting", and
+    // not the first answer when it is a working engine: reading starting is
+    // news enough, and talking over its first sentence is not.
+    const before = el.textContent;
+    const opening = before === "Connecting" && cls === "engine ok";
+    if (label !== before && label !== "Connecting" && !opening) announce(title);
+
     el.textContent = label;
     el.className = cls;
     el.title = title;
@@ -1476,11 +1596,15 @@
       btn.innerHTML = isPlaying ? "&#10074;&#10074;" : "&#9654;";
       if (isPlaying) btn.classList.add("active");
       else btn.classList.remove("active");
+      // The glyph and the colour are seen; this is what a screen reader hears.
+      btn.setAttribute("aria-pressed", String(Boolean(isPlaying)));
     }
   }
 
   function removeToolbar() {
     if (state.toolbar) {
+      clearTimeout(announceTimer);
+      restoreFocus(state.toolbar);
       state.toolbar.remove();
       state.toolbar = null;
       state._shadow = null;
@@ -1606,6 +1730,7 @@
     state._sentenceStarts = null;
 
     createToolbar();
+    focusToolbar();
     updateToolbarStatus("Extracting text...");
 
     // A selection is plain text with no structure to read; the page has both.
@@ -1620,6 +1745,7 @@
 
     if (state.chunks.length === 0) {
       updateToolbarStatus("No readable text found");
+      announce("No readable text found");
       setTimeout(stopReadAloud, 3000);
       return;
     }
