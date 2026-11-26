@@ -1,7 +1,7 @@
 # Package the server so it installs and runs itself
 
 **Type:** 🔧 Task
-**Status:** 📋 Backlog
+**Status:** ✅ Retired
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-08-03
@@ -30,7 +30,7 @@ The hard part either way is the payload. Torch plus CUDA is measured in gigabyte
 ## Actual
 
 - **Start:**
-- **End:**
+- **End:** 2026-11-26 09:51 UTC
 - **Effort:**
 
 ## Requirements
@@ -49,6 +49,9 @@ The hard part either way is the payload. Torch plus CUDA is measured in gigabyte
 - [ ] Verified
 
 ## Log
+
+### 2026-11-26 09:51 UTC
+- **Decision:** RETIRED — Not needed: 000025 (Kokoro in the browser spike) and 000046 (the in-browser WebGPU engine) made the browser the no-install path. The server stays an optional upgrade for developers. Umut, 2026-11-26: retire it.
 
 ### 2026-08-03
 

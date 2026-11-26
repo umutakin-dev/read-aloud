@@ -17,6 +17,8 @@ is started. The popup's **Engine** setting can pin either one.
 
 Without WebGPU, the browser engine is not offered: its CPU fallback runs at
 0.5–0.8x realtime, slower than listening (measured in `spikes/browser-kokoro`).
+Such a browser reads with its own built-in voice instead, unless the server is
+running, and switches to Kokoro at the next sentence once it is.
 
 ## Features
 
@@ -24,7 +26,7 @@ Without WebGPU, the browser engine is not offered: its CPU fallback runs at
 - Word and sentence-level highlighting using CSS Custom Highlight API
 - Reads the page itself, by its structure: articles, docs and discussion threads, with menus, sidebars, footers, code listings and hidden text left out
 - Toolbar with play/pause, prev/next paragraph, speed control, and a progress bar showing what has been synthesized, and the listening time left at the current speed with the percent read; click or drag it, or use the arrow keys, to jump to a paragraph
-- Optional Web Speech API fallback when the server is unavailable (off by default)
+- Optional Web Speech API fallback when the server is unavailable (off by default; always on in a browser without WebGPU)
 - Auto-reconnect when server comes back online
 - Right-click context menu and keyboard shortcut (Ctrl+Shift+U; on a Mac ⌘⇧U in Chrome, ⌃⇧U in Firefox)
 

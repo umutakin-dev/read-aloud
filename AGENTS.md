@@ -80,7 +80,11 @@ Each of these was a fix. Reverting one brings the bug back.
 - **`alignment.py` and `device.py` must not import torch, numpy or soundfile.**
   `device.py` takes torch as an argument (000049). The cheap
   server test run depends on it.
-- **Browser speech fallback is opt-in, off by default** (000018).
+- **Browser speech fallback is opt-in, off by default** (000018), with one
+  exception: in a browser that cannot run Kokoro at all (no WebGPU) and with
+  no server up, the system voice reads rather than nothing (000069). The
+  background marks that case `noKokoro` in its health answer; everything
+  else that stops Kokoro still waits.
 - **Extraction reads the live page with our own rules** (000058), not
   Readability, which dropped short comments and made highlighting search a
   copy of the page. Extraction and the text index share one skip rule

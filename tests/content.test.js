@@ -20,8 +20,11 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 // Loads content.js into a page. `engine` is what the background's health check
 // reports. TTS requests are left unanswered unless `tts` answers them, as they
 // are while the browser engine is still downloading its model. `logs` collects
-// the debug log lines the tab sends (000052).
-function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", settings = {} } = {}) {
+// the debug log lines the tab sends (000052). `health`, when given, answers
+// each HEALTH_CHECK instead, so a test can change it between polls. Browser
+// speech is recorded in `utterances`, and `poll()` runs the toolbar's 15s
+// health poll on demand.
+function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", settings = {}, health } = {}) {
   const dom = new JSDOM(`<!doctype html><body>${body}</body>`, {
     runScripts: "outside-only",
     pretendToBeVisual: true,
@@ -44,7 +47,7 @@ function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", set
         sent.push(msg.type);
         messages.push(msg);
         if (msg.type === "LOG") logs.push(msg);
-        if (msg.type === "HEALTH_CHECK") cb({ ok: true, engine, setting: "auto" });
+        if (msg.type === "HEALTH_CHECK") cb(health ? health() : { ok: true, engine, setting: "auto" });
         else if (msg.type === "TTS_REQUEST") {
           // A promise answers when it settles, so a test decides when each
           // sentence is ready.
@@ -62,8 +65,21 @@ function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", set
       onChanged: { addListener() {}, removeListener() {} },
     },
   };
-  window.speechSynthesis = { cancel() {}, pause() {}, resume() {}, speak() {} };
+  const utterances = [];
+  window.speechSynthesis = { cancel() {}, pause() {}, resume() {}, speak: (u) => utterances.push(u) };
+  window.SpeechSynthesisUtterance =
+    window.SpeechSynthesisUtterance ||
+    function SpeechSynthesisUtterance(text) {
+      this.text = text;
+    };
   window.CSS = window.CSS || {};
+
+  const polls = [];
+  const setIntervalReal = window.setInterval.bind(window);
+  window.setInterval = (fn, ms, ...rest) => {
+    if (ms === 15000) polls.push(fn);
+    return setIntervalReal(fn, ms, ...rest);
+  };
 
   // The toolbar's shadow root is closed; keep a handle to it.
   let shadow = null;
@@ -83,6 +99,8 @@ function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", set
     sent,
     logs,
     messages,
+    utterances,
+    poll: () => Promise.all(polls.map((fn) => fn())),
     click: (id) => shadow.getElementById(id).click(),
     toolbarEl: (id) => shadow?.getElementById(id),
     dispatch: (msg) => listeners.slice().forEach((fn) => fn(msg, {}, () => {})),
@@ -880,4 +898,66 @@ test("Roman numerals are sent as numbers and highlighted as written", async () =
   } finally {
     page.close();
   }
+});
+
+// Without WebGPU and with no server, nothing was ever read: browser speech
+// is opt-in (000018). Where Kokoro cannot run at all it reads with the system
+// voice instead, and hands back to Kokoro when a server appears (000069).
+test("a browser that can't run Kokoro reads with its own voice (000069)", async (t) => {
+  const TEXT = "The first sentence is here. The second one follows it.";
+  const noWebGPU = {
+    ok: false,
+    engine: "browser",
+    setting: "auto",
+    reason: "WebGPU is not available in this browser",
+    noKokoro: true,
+  };
+  const start = async (page) => {
+    page.dispatch({ type: "TOGGLE_READ_ALOUD", selectedText: TEXT });
+    for (let i = 0; i < 5; i++) await tick();
+  };
+
+  await t.test("reads with the system voice, and says why", async () => {
+    const page = loadPage({ health: () => noWebGPU });
+    try {
+      await start(page);
+      assert.deepEqual(page.utterances.map((u) => u.text), ["The first sentence is here."]);
+      assert.ok(!page.sent.includes("TTS_REQUEST"));
+      assert.equal(page.engineLabel(), "Browser TTS");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("still waits when Kokoro may yet come (the engine not built)", async () => {
+    const page = loadPage({ health: () => ({ ...noWebGPU, reason: "engine not built", noKokoro: false }) });
+    try {
+      await start(page);
+      assert.equal(page.utterances.length, 0);
+      assert.equal(page.engineLabel(), "No engine");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("hands over to Kokoro at the next sentence once a server is up", async () => {
+    let health = noWebGPU;
+    const page = loadPage({ health: () => health });
+    try {
+      await start(page);
+      assert.equal(page.utterances.length, 1);
+
+      health = { ok: true, engine: "server", setting: "auto" };
+      await page.poll();
+      await tick();
+      page.utterances[0].onend();
+      for (let i = 0; i < 5; i++) await tick();
+
+      assert.equal(page.utterances.length, 1, "no second system-voice sentence");
+      const requests = page.messages.filter((m) => m.type === "TTS_REQUEST").map((m) => m.text);
+      assert.ok(requests.includes("The second one follows it."), requests.join(" | "));
+    } finally {
+      page.close();
+    }
+  });
 });

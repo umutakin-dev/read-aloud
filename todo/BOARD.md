@@ -18,13 +18,14 @@
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
+| [000069](in-progress/000069-f-without-webgpu-read-with-the-system-voice-instead-.md) | ✨ | 🔴 | Without WebGPU, read with the system voice instead of nothing |
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
 
-## 📋 Backlog (14)
+## 📋 Backlog (13)
 
 *Now and Next are listed under Roadmap above.*
 
@@ -38,7 +39,6 @@
 | [000034](000034-b-text-index-goes-stale-on-single-page-app-navigatio.md) | 🐛 | 🟡 | Text index goes stale on single-page-app navigation |
 | [000033](000033-b-reading-in-a-second-tab-silently-breaks-the-first.md) | 🐛 | 🟡 | Reading in a second tab silently breaks the first |
 | [000027](000027-t-chrome-web-store-listing-privacy-policy-and-permis.md) | 🔧 | 🟡 | Chrome Web Store listing, privacy policy and permission justification |
-| [000026](000026-t-package-the-server-so-it-installs-and-runs-itself.md) | 🔧 | 🟡 | Package the server so it installs and runs itself |
 | [000043](000043-f-support-languages-other-than-american-english.md) | ✨ | 🟢 | Support languages other than American English |
 | [000042](000042-t-cache-synthesized-audio-so-a-re-read-is-instant.md) | 🔧 | 🟢 | Cache synthesized audio so a re-read is instant |
 | [000041](000041-f-preview-a-voice-before-choosing-it.md) | ✨ | 🟢 | Preview a voice before choosing it |
@@ -51,7 +51,7 @@
 
 *(none)*
 
-## ✅ Done (53)
+## ✅ Done (54)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
@@ -69,6 +69,7 @@
 | [000056](done/000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;26 | Audio keeps playing after the reading page reloads or navigates away |
 | [000040](done/000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Show progress through the document and allow scrubbing |
 | [000039](done/000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | Read from the selected text |
+| [000026](done/000026-t-package-the-server-so-it-installs-and-runs-itself.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;26 | Package the server so it installs and runs itself |
 | [000055](done/000055-t-build-a-chrome-and-a-firefox-package-from-the-one-.md) | 🔧 | 🔴 | 2026&#8209;11&#8209;23 | Build a Chrome and a Firefox package from the one extension tree |
 | [000053](done/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | Per-page sentence record, synthesized whole page ahead of the reader |
 | [000052](done/000052-f-debug-log-the-extension-records-and-the-popup-down.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | Debug log the extension records and the popup downloads |
