@@ -45,6 +45,9 @@ Fix: a line opening with `>` is a quotation by convention, never page furniture,
 
 ## Log
 
+### 2026-11-26 08:47 UTC
+- **Progress:** PR #25 opened: quote lines read however short, the > mark not spoken; HN fixture gains a quote-and-link reply
+
 ### 2026-11-26 08:46 UTC
 
 - **Progress:** Started work
