@@ -40,6 +40,9 @@ Fix: take the all-caps words misaki's dictionary says exactly like their lowerca
 
 ## Log
 
+### 2026-11-26 09:39 UTC
+- **Progress:** PR #31 opened: 50 acronyms said as words, generated from misaki's dictionary, sent lowercase
+
 ### 2026-11-26 09:38 UTC
 
 - **Progress:** Started work
