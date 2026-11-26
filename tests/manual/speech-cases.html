@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read Aloud speech cases</title>
+<!--
+  One page holding every case of "what the reader says" that was found on a
+  real site, so they can be heard without hunting for them (000065).
+
+  Each case's data-expect is what the listener should hear. It is shown by CSS
+  (::after), so it is not in the page's text and the reader never speaks it.
+  tests/speech-cases.test.js checks every data-expect against the real
+  extraction and spoken form, so this page cannot drift from the code.
+
+  The <header> is skipped by the extractor (a site header outside <main>), so
+  the instructions are not read either.
+-->
+<style>
+  :root {
+    --bg: #f6f6ef; --fg: #1d1d1b; --muted: #6b6b63; --line: #d9d9cf;
+    --hear-bg: #e8f0e3; --hear-fg: #2d5a1e; --keep-bg: #eeeae0; --keep-fg: #5c5340;
+    --quote: #828282;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1c1a; --fg: #e6e6df; --muted: #9a9a90; --line: #34352f;
+      --hear-bg: #22301c; --hear-fg: #a9d494; --keep-bg: #2c2a24; --keep-fg: #cfc4a6;
+      --quote: #9a9a90;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 17px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  header, main { max-width: 46rem; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 2rem; color: var(--muted); font-size: 0.95rem; }
+  header strong { color: var(--fg); }
+  header code { font-size: 0.9em; }
+  h1 { font-size: 1.6rem; margin: 1.5rem 0 0.25rem; }
+  h2 { font-size: 1.15rem; margin: 2.25rem 0 0.75rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--line); }
+  [data-expect] { margin: 0 0 1.1rem; }
+  [data-expect]::after {
+    display: block; width: fit-content; max-width: 100%;
+    margin-top: 0.3rem; padding: 0.15rem 0.55rem; border-radius: 4px;
+    font-size: 0.85rem; background: var(--hear-bg); color: var(--hear-fg);
+    content: "hear: " attr(data-expect);
+  }
+  .unchanged [data-expect]::after { background: var(--keep-bg); color: var(--keep-fg); }
+  .comment { padding-left: 1rem; border-left: 3px solid var(--line); }
+  .comment p { margin: 0.35rem 0 0; }
+  .comment a { color: inherit; word-break: break-all; }
+  .known::before { content: "known limitation · "; color: var(--muted); font-size: 0.85rem; }
+  footer { height: 3rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <p><strong>How to use:</strong> start Read Aloud on this page and listen. Under each case,
+  the green line is what you should hear; a beige line means the text should be read exactly as
+  written. Neither line is read aloud, and nor is this note.</p>
+  <p>Opened as a file, Chrome needs “Allow access to file URLs” on the extension. Or serve it:
+  <code>python3 -m http.server -d tests/manual 8000</code>, then open
+  <code>localhost:8000/speech-cases.html</code>.</p>
+</header>
+
+<main>
+  <h1>Speech cases</h1>
+
+  <h2>Quote lines</h2>
+  <!-- Hacker News markup: the first paragraph is bare text in the comment div,
+       the rest in <p>. A reply of a quote and a bare link was skipped (000062). -->
+  <div class="comment"><div class="commtext" data-expect="hn isn't indexed">&gt; hn isn't indexed<p><a href="https://hn.algolia.com/?dateRange=all&amp;page=0&amp;prefix=false&amp;query=nxnative">https://hn.algolia.com/?dateRange=all&amp;page=0&amp;prefix=false&amp;qu...</a></p></div></div>
+
+  <div class="comment"><div class="commtext" data-expect="the order is kept Short replies count too?">&gt; the order is kept<p>Short replies count too?</p></div></div>
+
+  <h2>Roman numerals</h2>
+  <p data-expect="Now with the launch of GTA six you may lose a bit of that revenue.">Now with the launch of GTA VI you may lose a bit of that revenue.</p>
+  <p data-expect="They are still making millions per month from GTA five.">They are still making millions per month from GTA V.</p>
+  <p data-expect="After World War two ended, the economy grew.">After World War II ended, the economy grew.</p>
+  <p data-expect="Rocky four is better than Rocky three.">Rocky IV is better than Rocky III.</p>
+  <p data-expect="I installed Mac OS ten on an Apple two emulator.">I installed Mac OS X on an Apple II emulator.</p>
+  <p data-expect="Chapter thirty-nine is the last one.">Chapter XXXIX is the last one.</p>
+  <p class="known" data-expect="Henry eight had six wives.">Henry VIII had six wives.</p>
+
+  <section class="unchanged">
+    <h2>Letters that are not numerals</h2>
+    <p data-expect="Malcolm X spoke in Harlem.">Malcolm X spoke in Harlem.</p>
+    <p data-expect="The nurse started an IV drip.">The nurse started an IV drip.</p>
+    <p data-expect="I think I said so.">I think I said so.</p>
+    <p data-expect="Plug the DC cable into the CD player.">Plug the DC cable into the CD player.</p>
+    <p data-expect="Plan V never worked.">Plan V never worked.</p>
+  </section>
+
+  <h2>Amounts</h2>
+  <p data-expect="They've announced 3.8 billion dollars in gross sales (about 32.5 million units).">They've announced $3.8B in gross sales (about 32.5M units).</p>
+  <p data-expect="They've made about 2.5 billion dollars in revenue until launch day.">They've made ~$2.5B in revenue until launch day.</p>
+  <p data-expect="Their reporting suggests about 825 million over the last 12 months.">Their reporting suggests ~825M over the last 12 months.</p>
+  <p data-expect="5 million pounds a year, a 1.2 billion euros deal, a 50 thousand dollars salary and a 1.1 trillion dollars market.">£5m a year, a €1.2bn deal, a $50K salary and a $1.1T market.</p>
+  <p data-expect="The model has 70 billion parameters and 1,200 million users.">The model has 70B parameters and 1,200M users.</p>
+
+  <section class="unchanged">
+    <h2>Units that are not amounts</h2>
+    <p data-expect="A 4K screen, a 3T magnet and a 5MB file.">A 4K screen, a 3T magnet and a 5MB file.</p>
+    <p data-expect="She ran 100m, and it costs $825 now.">She ran 100m, and it costs $825 now.</p>
+    <p data-expect="Roughly ~ half of them came.">Roughly ~ half of them came.</p>
+  </section>
+
+  <footer></footer>
+</main>
+
+</body>
+</html>

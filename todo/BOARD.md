@@ -52,10 +52,11 @@
 
 *(none)*
 
-## ✅ Done (48)
+## ✅ Done (49)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000065](done/000065-t-a-local-test-page-for-what-the-reader-says.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;26 | A local test page for what the reader says |
 | [000064](done/000064-f-money-and-counts-with-m-or-b-are-read-as-letters.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Money and counts with M or B are read as letters |
 | [000063](done/000063-f-roman-numerals-are-read-as-letters.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Roman numerals are read as letters |
 | [000062](done/000062-b-a-short-quoted-line-in-a-comment-is-skipped.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;26 | A short quoted line in a comment is skipped |

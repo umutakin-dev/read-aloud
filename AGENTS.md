@@ -35,6 +35,10 @@ server/               FastAPI + Kokoro, managed with uv
   src/tts_server/device.py      cuda → mps → cpu choice, kept free of torch
 tests/                node:test suites for the extension
   fixtures/pages/     saved pages the extractor is tested against
+  manual/speech-cases.html  one page of every "what the reader says" case, to
+                      hear by hand; each case shows what should be heard, and
+                      speech-cases.test.js holds the page to it. A new
+                      spoken-form rule adds its cases here
 spikes/               timeboxed experiments, not shipped
 todo/                 work items (see Workflow)
 ```
