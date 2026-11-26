@@ -18,11 +18,12 @@
 
 *(none)*
 
-## 🔨 In Progress (2)
+## 🔨 In Progress (3)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| [000064](in-progress/000064-f-money-and-counts-with-m-or-b-are-read-as-letters.md) | ✨ | 🟡 | Money and counts with M or B are read as letters |
 | [000063](in-progress/000063-f-roman-numerals-are-read-as-letters.md) | ✨ | 🟡 | Roman numerals are read as letters |
 
 ## 📋 Backlog (15)
