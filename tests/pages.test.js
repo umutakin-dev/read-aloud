@@ -56,6 +56,16 @@ test("Hacker News: every comment, none of the furniture", async (t) => {
     has(page, "Agreed.");
   });
 
+  await t.test("reads a quoted line however short, and speaks it without the mark (000062)", () => {
+    assert.ok(page.paragraphs.includes("> the order is kept"));
+    // A reply that is only a quote and a link: the link is furniture, the
+    // quote is the whole of what was said.
+    assert.ok(page.paragraphs.includes("> a quote alone"));
+    lacks(page, "algolia");
+    const { chunks } = kit.buildChunks(["> a quote alone"]);
+    assert.deepEqual(chunks.map((c) => c.text), ["a quote alone"]);
+  });
+
   await t.test("skips headers, timestamps, reply links, the comment box and the footer", () => {
     for (const text of ["Hacker News", "hours ago", "minutes ago", "reply", "parent", "[–]", "add comment", "Guidelines", "Search:", "login"]) {
       lacks(page, text);

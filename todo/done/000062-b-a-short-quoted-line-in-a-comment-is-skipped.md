@@ -1,0 +1,67 @@
+# A short quoted line in a comment is skipped
+
+**Type:** 🐛 Bug
+**Status:** ✅ Done
+**Priority:** 🟡 MEDIUM
+**Tracked In:** local
+**Created:** 2026-11-26 08:46 UTC
+
+## Description
+
+On Hacker News, a reply that quotes its parent with `> hn isn't indexed` and then gives only a link was not read at all.
+
+Why:
+- the quote line is 18 characters with no closing punctuation, so `worthReading` drops it as too short (`MIN_PARAGRAPH_CHARS` is 20)
+- the link paragraph is dropped as all-link
+- the saved HN fixture already had such a line (`> the order is kept`), dropped silently with no test noticing
+
+Lifting the length floor is not the fix: on the fixtures it lets in "Share this article", "6 February 2024" and "Hidden categories:".
+
+Fix: a line opening with `>` is a quotation by convention, never page furniture, so read it however short, as a heading is.
+
+## Estimation
+
+- **Start:**
+- **End:**
+- **Effort:** ~9m (p75 1h12)
+
+## Actual
+
+- **Start:** 2026-11-26 07:26 UTC
+- **End:** 2026-11-26 09:04 UTC
+- **Effort:** 1h38
+
+## Requirements
+
+- [ ]
+
+## Checklist
+
+- [ ] Reproduced
+- [ ] Root cause identified
+- [ ] Fix implemented
+- [ ] Fix verified — bug no longer reproduces
+- [ ] Regression tested
+
+## Log
+
+### 2026-11-26 09:04 UTC
+- **Note:** Took 1h38 against an estimate of 9m (10.9x) — measured since the previous item closed.
+
+### 2026-11-26 09:04 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 09:04 UTC
+- **Delivered:** PR #25: a line opening with > is read however short, and the mark is not spoken; the HN fixture gains a quote-and-link reply
+
+### 2026-11-26 08:47 UTC
+- **Progress:** PR #25 opened: quote lines read however short, the > mark not spoken; HN fixture gains a quote-and-link reply
+
+### 2026-11-26 08:46 UTC
+
+- **Progress:** Started work
+
+### 2026-11-26 08:46 UTC
+
+- **Note:** Item created

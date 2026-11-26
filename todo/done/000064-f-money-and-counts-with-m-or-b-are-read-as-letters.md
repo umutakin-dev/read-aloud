@@ -1,7 +1,7 @@
 # Money and counts with M or B are read as letters
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-26 09:04 UTC
@@ -28,8 +28,8 @@ Depends on 000063 (the spoken form, which lets the engine hear text that differs
 ## Actual
 
 - **Start:** 2026-11-26 09:05 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-26 09:11 UTC
+- **Effort:** 2m
 
 ## Requirements
 
@@ -44,6 +44,16 @@ Depends on 000063 (the spoken form, which lets the engine hear text that differs
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-26 09:11 UTC
+- **Note:** Took 2m against an estimate of 9m (0.2x) — measured since the previous item closed.
+
+### 2026-11-26 09:11 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 09:11 UTC
+- **Delivered:** PR #27: amounts with M/B/bn (K/T after a currency sign) sent as words with the currency last; ~ before a number sent as about
 
 ### 2026-11-26 09:06 UTC
 - **Progress:** PR #27 opened, stacked on #26 (000063): amounts with M/B/bn (K/T with a currency sign) sent as words, ~ before a number as about
