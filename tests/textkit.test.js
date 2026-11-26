@@ -785,7 +785,7 @@ test("spokenForm reads data sizes and rates as words", async (t) => {
   await t.test("a size describing something stays singular, a quantity is plural", () => {
     assert.equal(spoken("a 5MB file"), "a 5 megabyte file");
     assert.equal(spoken("a 2TB disk and an 8GiB stick"), "a 2 terabyte disk and an 8 gibibyte stick");
-    assert.equal(spoken("16GB of RAM"), "16 gigabytes of RAM");
+    assert.equal(spoken("16GB of RAM"), "16 gigabytes of ram");
     assert.equal(spoken("it is 5 MB"), "it is 5 megabytes");
     assert.equal(spoken("only 1GB left"), "only 1 gigabyte left");
     assert.equal(spoken("500KB and 3kB"), "500 kilobytes and 3 kilobytes");
@@ -820,5 +820,35 @@ test("spokenForm reads data sizes and rates as words", async (t) => {
     });
     kit.spansToPage(spans, edits);
     assert.deepEqual(spans.map((s) => page.slice(s.start_char, s.end_char)), ["a", "5", "MB", "file"]);
+  });
+});
+
+// espeak-ng, behind the browser engine, spelled "RAM" as "R-A-M" (000068).
+test("spokenForm sends acronyms said as words in lowercase", async (t) => {
+  const spoken = (text) => kit.spokenForm(text).text;
+
+  await t.test("the listed ones", () => {
+    assert.equal(spoken("16 gigabytes of RAM and a LAN party"), "16 gigabytes of ram and a lan party");
+    assert.equal(spoken("Enter your PIN, then the ROM loads."), "Enter your pin, then the rom loads.");
+  });
+
+  await t.test("leaves the rest as written", () => {
+    for (const text of [
+      "the GPU and the CD",  // spelled, rightly
+      "NASA and ASCII",      // espeak already says these
+      "RAMs and ROM-based",  // joined to more
+      "Ram and ram",         // not capitals
+    ]) {
+      assert.equal(spoken(text), text);
+    }
+  });
+
+  await t.test("the list is generated, sorted and all capitals", () => {
+    const source = require("node:fs").readFileSync(require.resolve("../extension/lib/textkit.js"), "utf8");
+    const block = source.slice(source.indexOf("BEGIN GENERATED"), source.indexOf("END GENERATED"));
+    const words = block.slice(block.indexOf("`") + 1, block.lastIndexOf("`")).trim().split(/\s+/);
+    assert.ok(words.includes("RAM"));
+    assert.deepEqual(words, [...words].sort());
+    assert.ok(words.every((w) => /^[A-Z]{2,6}$/.test(w)));
   });
 });

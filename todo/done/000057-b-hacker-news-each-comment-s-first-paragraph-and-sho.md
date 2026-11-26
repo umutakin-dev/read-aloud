@@ -1,7 +1,7 @@
 # Hacker News: each comment's first paragraph and short comments are not read
 
 **Type:** 🐛 Bug
-**Status:** 📋 Backlog
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-11-23 21:24 UTC
@@ -25,16 +25,16 @@ The first is ours to fix in textkit: text sitting directly inside a wrapper, bef
 
 ## Actual
 
-- **Start:**
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-26 09:49 UTC
+- **End:** 2026-11-26 09:49 UTC
+- **Effort:** 0m
 
 ## Requirements
 
-- [ ] Text directly inside a wrapper, before or between its blocks, is read as a paragraph
-- [ ] Short comments Readability drops are read, on Hacker News at least
-- [ ] Highlighting finds both kinds in the page
-- [ ] Tests cover both, using Hacker News's comment markup
+- [x] Text directly inside a wrapper, before or between its blocks, is read as a paragraph
+- [x] Short comments Readability drops are read, on Hacker News at least
+- [x] Highlighting finds both kinds in the page
+- [x] Tests cover both, using Hacker News's comment markup
 
 ## Checklist
 
@@ -45,6 +45,28 @@ The first is ours to fix in textkit: text sitting directly inside a wrapper, bef
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-26 09:49 UTC
+- **Note:** Took 0m against an estimate of 5h (0.0x) — measured since the previous item closed.
+
+### 2026-11-26 09:49 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 09:49 UTC
+- **Progress:** ☑ Checked (Requirements): Tests cover both, using Hacker News's comment markup
+
+### 2026-11-26 09:49 UTC
+- **Progress:** ☑ Checked (Requirements): Highlighting finds both kinds in the page
+
+### 2026-11-26 09:49 UTC
+- **Progress:** ☑ Checked (Requirements): Short comments Readability drops are read, on Hacker News at least
+
+### 2026-11-26 09:49 UTC
+- **Progress:** ☑ Checked (Requirements): Text directly inside a wrapper, before or between its blocks, is read as a paragraph
+
+### 2026-11-26 09:49 UTC
+- **Delivered:** Fixed by 000058 (our own text extractor in place of Readability): a comment's bare first paragraph and short replies are read; tests/pages.test.js covers both on the Hacker News fixture
 
 ### 2026-11-23 21:55 UTC
 - **Decision:** Roadmap: 🎯 NOW 4 → (unscheduled)
