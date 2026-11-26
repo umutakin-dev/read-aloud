@@ -1,9 +1,8 @@
 # Show progress through the document and allow scrubbing
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
-**Roadmap:** 🎯 NOW 5
 **Tracked In:** local
 **Created:** 2026-08-03
 
@@ -32,8 +31,8 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 ## Actual
 
 - **Start:** 2026-11-24 07:23 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-26 07:06 UTC
+- **Effort:** 1m
 
 ## Requirements
 
@@ -42,7 +41,7 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 - [x] Estimate accounts for playback rate and improves as it goes
 - [x] Dragging jumps, snapping to paragraph boundaries
 - [x] Scrubbing backwards re-synthesizes without stalling
-- [ ] Toolbar layout still works at narrow widths
+- [x] Toolbar layout still works at narrow widths
 - [x] The bar shows a second shade for sentences already synthesized, from 000053's record
 
 ## Checklist
@@ -54,6 +53,19 @@ The toolbar is already busy — prev, play, next, stop, speed, status, engine, c
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-26 07:06 UTC
+- **Note:** Took 1m against an estimate of 5h (0.0x) — measured since the previous item closed.
+
+### 2026-11-26 07:06 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 07:06 UTC
+- **Progress:** Umut tried the bar in Chrome and Firefox (2026-11-26), including dragging and a narrow window: it works in both. His screenshot shows 'Paragraph 22/119 · 14 min left' at 2.0x.
+
+### 2026-11-26 07:06 UTC
+- **Progress:** ☑ Checked (Requirements): Toolbar layout still works at narrow widths
 
 ### 2026-11-24 07:26 UTC
 - **Progress:** Built: bottom-edge bar (played, synthesized shade from the record, rest), time left in the status from measured durations / speed, click/drag/keys jump to paragraph starts, paused stays paused. 349 extension tests pass. Left for Umut: the look at narrow widths, in Chrome and Firefox.
