@@ -18,10 +18,11 @@
 
 *(none)*
 
-## 🔨 In Progress (2)
+## 🔨 In Progress (3)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
+| [000070](in-progress/000070-f-install-the-server-with-one-command-and-have-it-st.md) | ✨ | 🔴 | Install the server with one command and have it start at login |
 | [000069](in-progress/000069-f-without-webgpu-read-with-the-system-voice-instead-.md) | ✨ | 🔴 | Without WebGPU, read with the system voice instead of nothing |
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
 

@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # turned on to see. Capped independently of this app's level; set
 # READ_ALOUD_LOG_HTTP=1 on the rare occasion the wire traffic is the problem.
 HTTP_LEVEL = logging.DEBUG if os.environ.get("READ_ALOUD_LOG_HTTP") == "1" else logging.WARNING
-for noisy in ("httpx", "httpcore", "urllib3", "filelock", "huggingface_hub"):
+for noisy in ("httpx", "httpcore", "httpx2", "httpcore2", "urllib3", "filelock", "huggingface_hub"):
     logging.getLogger(noisy).setLevel(HTTP_LEVEL)
 
 

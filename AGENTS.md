@@ -33,6 +33,8 @@ dist/                     GENERATED, gitignored: dist/chrome/, dist/firefox/, th
 server/               FastAPI + Kokoro, managed with uv
   src/tts_server/alignment.py   token → character spans, kept free of torch
   src/tts_server/device.py      cuda → mps → cpu choice, kept free of torch
+  src/tts_server/cli.py         the read-aloud-server command; only `serve` loads the app
+  src/tts_server/service.py     start-at-login per OS (launchd, systemd --user, HKCU Run)
 tests/                node:test suites for the extension
   fixtures/pages/     saved pages the extractor is tested against
   manual/speech-cases.html  one page of every "what the reader says" case, to
@@ -77,9 +79,16 @@ Each of these was a fix. Reverting one brings the bug back.
   variables, because Chrome evicts the worker after about 30s idle (000005).
 - **The offscreen document's existence is queried** with `getContexts`, never
   remembered in a flag.
-- **`alignment.py` and `device.py` must not import torch, numpy or soundfile.**
-  `device.py` takes torch as an argument (000049). The cheap
-  server test run depends on it.
+- **`alignment.py`, `device.py`, `cli.py` and `service.py` must not import
+  torch, numpy or soundfile.** `device.py` takes torch as an argument (000049),
+  and `cli.py` imports the app only inside `serve` (000070). The cheap server
+  test run depends on it.
+- **The installed server starts at login and loads Kokoro on first use**
+  (000070). Without WebGPU it is the only way to hear Kokoro, and a server the
+  reader must remember to start is one they forget. Keep model loading out of
+  startup, so a server running from every login stays cheap until it reads.
+- **While Kokoro is down the toolbar also polls every 2s,** so a server started
+  meanwhile is picked up at once (000070). The 15s poll stays as the keepalive.
 - **Browser speech fallback is opt-in, off by default** (000018), with one
   exception: in a browser that cannot run Kokoro at all (no WebGPU) and with
   no server up, the system voice reads rather than nothing (000069). The

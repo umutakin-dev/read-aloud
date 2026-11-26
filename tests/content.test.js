@@ -22,8 +22,8 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 // are while the browser engine is still downloading its model. `logs` collects
 // the debug log lines the tab sends (000052). `health`, when given, answers
 // each HEALTH_CHECK instead, so a test can change it between polls. Browser
-// speech is recorded in `utterances`, and `poll()` runs the toolbar's 15s
-// health poll on demand.
+// speech is recorded in `utterances`, `poll()` runs the toolbar's 15s health
+// poll on demand, and `fastPoll()` its 2s one for while Kokoro is down (000070).
 function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", settings = {}, health } = {}) {
   const dom = new JSDOM(`<!doctype html><body>${body}</body>`, {
     runScripts: "outside-only",
@@ -75,9 +75,11 @@ function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", set
   window.CSS = window.CSS || {};
 
   const polls = [];
+  const fastPolls = [];
   const setIntervalReal = window.setInterval.bind(window);
   window.setInterval = (fn, ms, ...rest) => {
     if (ms === 15000) polls.push(fn);
+    if (ms === 2000) fastPolls.push(fn);
     return setIntervalReal(fn, ms, ...rest);
   };
 
@@ -101,6 +103,7 @@ function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", set
     messages,
     utterances,
     poll: () => Promise.all(polls.map((fn) => fn())),
+    fastPoll: () => Promise.all(fastPolls.map((fn) => fn())),
     click: (id) => shadow.getElementById(id).click(),
     toolbarEl: (id) => shadow?.getElementById(id),
     dispatch: (msg) => listeners.slice().forEach((fn) => fn(msg, {}, () => {})),
@@ -956,6 +959,55 @@ test("a browser that can't run Kokoro reads with its own voice (000069)", async 
       assert.equal(page.utterances.length, 1, "no second system-voice sentence");
       const requests = page.messages.filter((m) => m.type === "TTS_REQUEST").map((m) => m.text);
       assert.ok(requests.includes("The second one follows it."), requests.join(" | "));
+    } finally {
+      page.close();
+    }
+  });
+});
+
+test("a server started while the toolbar waits is noticed within 2s (000070)", async (t) => {
+  const down = { ok: false, engine: "server", setting: "server" };
+  const up = { ok: true, engine: "server", setting: "server" };
+  const healthChecks = (page) => page.sent.filter((type) => type === "HEALTH_CHECK").length;
+
+  await t.test("the 2s poll resumes reading once the server answers", async () => {
+    let health = down;
+    const page = loadPage({ health: () => health });
+    try {
+      await startReading(page);
+      assert.match(page.status(), /Waiting for the Kokoro server/);
+      assert.ok(!page.sent.includes("TTS_REQUEST"));
+
+      health = up;
+      await page.fastPoll();
+      for (let i = 0; i < 5; i++) await tick();
+
+      assert.ok(page.sent.includes("TTS_REQUEST"), page.sent.join(" "));
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("the 2s poll stays quiet while the server is up", async () => {
+    const page = loadPage({ health: () => up });
+    try {
+      await startReading(page);
+      const before = healthChecks(page);
+      await page.fastPoll();
+      await page.fastPoll();
+      assert.equal(healthChecks(page), before);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("the 15s poll still runs while the server is up", async () => {
+    const page = loadPage({ health: () => up });
+    try {
+      await startReading(page);
+      const before = healthChecks(page);
+      await page.poll();
+      assert.equal(healthChecks(page), before + 1);
     } finally {
       page.close();
     }

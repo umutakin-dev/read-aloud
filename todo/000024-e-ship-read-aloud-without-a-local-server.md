@@ -24,6 +24,7 @@ So the sequence is: find out whether the browser can do it (#000025), and only i
 - #000051 🐛 Toolbar says Kokoro · server while the browser engine downloads its model
 - #000055 🔧 Build a Chrome and a Firefox package from the one extension tree
 - #000069 ✨ Without WebGPU, read with the system voice instead of nothing
+- #000070 ✨ Install the server with one command and have it start at login
 
 ## Estimation
 
@@ -50,6 +51,9 @@ So the sequence is: find out whether the browser can do it (#000025), and only i
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-26 11:30 UTC
+- **Note:** Added #000070 Install the server with one command and have it start at login to Items
 
 ### 2026-11-26 09:52 UTC
 - **Note:** Added #000069 Without WebGPU, read with the system voice instead of nothing to Items
