@@ -13,25 +13,24 @@ const ReadAloudText = (() => {
   "use strict";
 
   // ─── Paragraphs ───────────────────────────────────────────────────────────
-  // Paragraphs come from block elements rather than from newlines in flattened
-  // text. Whether flattened text carries a newline where a paragraph ended is a
-  // property of the source markup, not of the document — on Hacker News it
-  // carries almost none, and a whole comment thread collapsed into two
-  // "paragraphs". The structure is in the DOM; flattening first throws it away.
-  const BLOCK_SELECTOR =
-    "p, li, blockquote, h1, h2, h3, h4, h5, h6, pre, dd, figcaption, td";
-
+  // Paragraphs come from the page's structure rather than from newlines in
+  // flattened text. Whether flattened text carries a newline where a paragraph
+  // ended is a property of the source markup, not of the document: on Hacker
+  // News it carries almost none, and a whole comment thread collapsed into two
+  // "paragraphs".
+  //
+  // Shorter than this, a block has to end like a sentence to be read ("Agreed."
+  // is a reply; "Share" is a button label).
   const MIN_PARAGRAPH_CHARS = 20;
 
   // ─── Citation markers ─────────────────────────────────────────────────────
   // Wikipedia's "[7]" and "[citation needed]", and a blog's footnote "¹" link,
   // are spoken mid-sentence as "seven" and break it in two (000047). They are
-  // recognised by shape, not class names: Readability strips classes, and the
-  // live page and its Readability copy have to agree on every node dropped.
+  // recognised by shape, not class names, so the rule holds on any site.
   //
   // Dropping one is safe for highlighting only because it is dropped on both
-  // sides — from the paragraph text here and from the text index below — so
-  // a chunk is still an exact run of the indexed page text.
+  // sides — from the extracted text and from the text index — by the one rule
+  // below (skipped()), so a chunk is still an exact run of the indexed text.
   const BRACKETED = /^\[[^[\]]{1,40}\]$/;
   const MAX_FOOTNOTE_LABEL = 4;
 
@@ -50,34 +49,218 @@ const ReadAloudText = (() => {
     );
   }
 
-  function insideCitationMarker(element) {
-    for (let el = element; el; el = el.parentElement) {
-      if (el.tagName === "SUP" && isCitationMarker(el)) return true;
-    }
-    return false;
+  // ─── What is not read ─────────────────────────────────────────────────────
+  // Our own rules on the live page (000058), in place of Readability: it
+  // rebuilt the article as new HTML and its clutter rules dropped short blocks
+  // under link-heavy headers, 67 of 291 comments on one Hacker News thread.
+  //
+  // One predicate, used by extraction and by the text index alike, decides
+  // what is skipped. Whatever one side drops the other drops too, so every
+  // extracted paragraph is an exact run of the indexed text.
+
+  // Never text a reader means to hear.
+  const SKIP_TAGS = new Set([
+    "SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE", "HEAD", "TITLE", "SVG", "CANVAS",
+    "IFRAME", "OBJECT", "EMBED", "VIDEO", "AUDIO", "MAP", "MATH",
+    // Page furniture, by what the markup says it is.
+    "NAV", "ASIDE", "FORM", "BUTTON", "SELECT", "OPTION", "INPUT", "TEXTAREA",
+    "LABEL", "DIALOG", "MENU",
+  ]);
+
+  const SKIP_ROLES = new Set([
+    "navigation", "banner", "contentinfo", "complementary", "search", "menu",
+    "menubar", "toolbar", "dialog", "alertdialog", "tablist", "button",
+    "tooltip", "status",
+  ]);
+
+  // An inline "[edit]" or "[–]": brackets around nothing but links. Always
+  // interface, never prose. A <sup> is left to the citation rule instead, so
+  // "Read citation markers" keeps deciding those.
+  const INLINE_CONTROLS = new Set(["SPAN", "SMALL", "B", "I", "EM", "STRONG", "FONT"]);
+
+  function isBracketedControl(element) {
+    // Only a small inline element can be one. Checked first, because reading
+    // textContent of every container on a deeply nested page (Hacker News is
+    // tables inside tables) repeats the whole page's text dozens of times.
+    if (!INLINE_CONTROLS.has(element.tagName) || element.childElementCount > 4) return false;
+    const text = element.textContent.replace(/\s+/g, " ").trim();
+    if (!BRACKETED.test(text)) return false;
+    const links = [...element.querySelectorAll("a")];
+    if (!links.length) return false;
+    const linked = links.reduce((n, a) => n + a.textContent.trim().length, 0);
+    return linked >= text.length - 2;
   }
 
-  function blockText(block, skipCitations) {
-    let source = block;
-    if (skipCitations && block.querySelector("sup")) {
-      source = block.cloneNode(true);
-      for (const sup of source.querySelectorAll("sup")) {
-        if (isCitationMarker(sup)) sup.remove();
+  function isHidden(element) {
+    if (element.hidden || element.getAttribute("aria-hidden") === "true") return true;
+    if (typeof element.checkVisibility === "function") {
+      return !element.checkVisibility({ visibilityProperty: true });
+    }
+    // jsdom, in the tests: no layout, so only what the style attribute says.
+    const style = element.getAttribute("style") || "";
+    return /display\s*:\s*none|visibility\s*:\s*hidden/i.test(style);
+  }
+
+  const DATA_TABLE =
+    ":scope > caption, :scope > thead, :scope > tr > th, :scope > tbody > tr > th";
+
+  function skippedHere(element, skipCitations) {
+    const tag = element.tagName;
+    if (SKIP_TAGS.has(tag)) return true;
+    const role = element.getAttribute("role");
+    if (role && SKIP_ROLES.has(role)) return true;
+    // A site's header and footer go. A header inside the article or the main
+    // region holds the title (Wikipedia puts its <h1> in one); a footer there
+    // is still small print, unless it is an article's own.
+    const within = tag === "HEADER" ? "article, main, [role=main]" : "article";
+    if ((tag === "HEADER" || tag === "FOOTER") && !element.parentElement?.closest(within)) {
+      return true;
+    }
+    // A data table (headings, a caption) reads as a stream of fragments. A
+    // table without them is layout, as on Hacker News, and holds the page.
+    // Only its own rows count: a nested table's headings are its own business,
+    // and searching every subtree costs a lot on pages of tables in tables.
+    if (tag === "TABLE" && element.querySelector(DATA_TABLE)) return true;
+    // A code listing read aloud is punctuation, one symbol at a time. A <pre>
+    // without <code> may be poetry or a plain-text page, and is read.
+    if (tag === "PRE" && element.querySelector("code")) return true;
+    if (skipCitations && tag === "SUP" && isCitationMarker(element)) return true;
+    if (isBracketedControl(element)) return true;
+    return isHidden(element);
+  }
+
+  // Remembers each element's answer for one pass, since the text index asks
+  // for every text node's ancestors.
+  function skipRule({ skipCitations = false } = {}) {
+    const memo = new Map();
+    const skipped = (element) => {
+      if (!element || element.nodeType !== 1) return false;
+      if (!memo.has(element)) {
+        memo.set(element, skippedHere(element, skipCitations) || skipped(element.parentElement));
       }
-    }
-    return source.textContent.replace(/\s+/g, " ").trim();
+      return memo.get(element);
+    };
+    return skipped;
   }
 
-  function paragraphsFromRoot(root, { skipCitations = false } = {}) {
-    const paragraphs = [];
-    for (const block of root.querySelectorAll(BLOCK_SELECTOR)) {
-      // A block containing another block is a wrapper — its text belongs to the
-      // children, and taking both would read it twice.
-      if (block.querySelector(BLOCK_SELECTOR)) continue;
-      const text = blockText(block, skipCitations);
-      if (text.length <= MIN_PARAGRAPH_CHARS) continue;
-      paragraphs.push(text);
+  // ─── Where the content is ─────────────────────────────────────────────────
+  // <main> when the page marks one. Otherwise go down from <body> while a
+  // single child holds nearly all of the readable text; stop where it splits,
+  // which is where the content is laid out. Counted without link text, so a
+  // menu weighs nothing.
+  const MAIN_SHARE = 0.9;
+  const CONTAINERS = new Set([
+    "DIV", "SECTION", "ARTICLE", "MAIN", "CENTER", "TABLE", "TBODY", "TR", "TD",
+  ]);
+
+  function chooseRoot(doc, skipped) {
+    const marked = doc.querySelector("main, [role=main]");
+    if (marked && !skipped(marked)) return marked;
+
+    const weight = new Map();
+    const measure = (node, inLink) => {
+      if (node.nodeType === 3) return inLink ? 0 : node.textContent.replace(/\s+/g, "").length;
+      if (node.nodeType !== 1 || skipped(node)) return 0;
+      let total = 0;
+      const link = inLink || node.tagName === "A";
+      for (const child of node.childNodes) total += measure(child, link);
+      weight.set(node, total);
+      return total;
+    };
+    const body = doc.body;
+    if (!body) return doc.documentElement;
+    measure(body, false);
+
+    let root = body;
+    // An article is a whole; going inside it would only lose its title.
+    while (root.tagName !== "ARTICLE") {
+      const total = weight.get(root) || 0;
+      if (!total) break;
+      let best = null;
+      for (const child of root.children) {
+        if ((weight.get(child) || 0) > (weight.get(best) || 0)) best = child;
+      }
+      if (!best || weight.get(best) < total * MAIN_SHARE) break;
+      // Only into a container: a lone <p> holding 90% is still one paragraph
+      // of the content, not the content.
+      if (!CONTAINERS.has(best.tagName)) break;
+      // The page's title is a few words beside the body of the text, so it
+      // weighs little; never leave it behind.
+      const title = root.querySelector("h1");
+      if (title && !best.contains(title) && !skipped(title)) break;
+      root = best;
     }
+
+    // A single <article> is the content, unless it is a teaser beside it.
+    const articles = root.querySelectorAll("article");
+    if (articles.length === 1 && (weight.get(articles[0]) || 0) >= (weight.get(root) || 0) * 0.5) {
+      return articles[0];
+    }
+    return root;
+  }
+
+  // ─── Paragraphs out of the page ───────────────────────────────────────────
+  // Every element that starts a new line ends the paragraph before it. Text
+  // sitting directly in a container is a paragraph of its own: Hacker News
+  // writes a comment's first paragraph as bare text and only the rest in <p>,
+  // and reading block elements alone lost that first line of every comment.
+  const BREAKS = new Set([
+    "ADDRESS", "ARTICLE", "BLOCKQUOTE", "BR", "CENTER", "DD", "DETAILS", "DIV",
+    "DL", "DT", "FIELDSET", "FIGCAPTION", "FIGURE", "FOOTER", "H1", "H2", "H3",
+    "H4", "H5", "H6", "HEADER", "HR", "LI", "MAIN", "OL", "P", "PRE", "SECTION",
+    "SUMMARY", "TABLE", "TBODY", "TD", "TFOOT", "TH", "THEAD", "TR", "UL",
+  ]);
+
+  // A block that is mostly link text is navigation: a menu, a comment's
+  // header, "reply". Judged per block, so a short comment under a header made
+  // of links is still read.
+  const MAX_LINK_SHARE = 0.5;
+
+  // A heading is read however short: "Interfaces" tells the listener where
+  // they are, the way it tells a reader.
+  const HEADING = /^H[1-6]$/;
+
+  function worthReading(text, linkChars, heading) {
+    if (!/[\p{L}\p{N}]/u.test(text)) return false;
+    const solid = text.replace(/\s+/g, "").length;
+    if (linkChars > solid * MAX_LINK_SHARE) return false;
+    return heading || text.length > MIN_PARAGRAPH_CHARS || /[.!?…]["'”’)\]]*$/.test(text);
+  }
+
+  function extractParagraphs(doc, options = {}) {
+    const skipped = skipRule(options);
+    const root = chooseRoot(doc, skipped);
+    const paragraphs = [];
+    let parts = [];
+    let linkChars = 0;
+    let inHeading = false;
+
+    const flush = () => {
+      const text = parts.join("").replace(/\s+/g, " ").trim();
+      if (text && worthReading(text, linkChars, inHeading)) paragraphs.push(text);
+      parts = [];
+      linkChars = 0;
+    };
+
+    const walk = (node, inLink) => {
+      for (const child of node.childNodes) {
+        if (child.nodeType === 3) {
+          parts.push(child.textContent);
+          if (inLink) linkChars += child.textContent.replace(/\s+/g, "").length;
+        } else if (child.nodeType === 1 && !skipped(child)) {
+          const breaks = BREAKS.has(child.tagName);
+          if (breaks) flush();
+          const outer = inHeading;
+          inHeading = inHeading || HEADING.test(child.tagName);
+          walk(child, inLink || child.tagName === "A");
+          if (breaks) flush();
+          inHeading = outer;
+        }
+      }
+    };
+
+    if (!skipped(root)) walk(root, false);
+    flush();
     return paragraphs;
   }
 
@@ -233,30 +416,18 @@ const ReadAloudText = (() => {
   // character span become a Range.
   const WHITESPACE = /\s/;
 
-  function isRenderedText(node) {
-    const parent = node.parentElement;
-    if (!parent) return false;
-    const tag = parent.tagName;
-    if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") return false;
-    // Hidden text is in the DOM but not in what Readability extracted, so
-    // including it would shift every offset after it.
-    if (typeof parent.checkVisibility === "function") {
-      return parent.checkVisibility({ visibilityProperty: true });
-    }
-    return true;
-  }
-
-  function buildTextIndex(root, { skipCitations = false } = {}) {
+  function buildTextIndex(root, options = {}) {
     const doc = root.ownerDocument || root;
+    // The same rule extraction uses, so every paragraph it found is an exact
+    // run of this text: a node skipped on one side and not the other would
+    // leave every chunk after it unmatchable (000047, 000058).
+    const skipped = skipRule(options);
     const walker = doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */, {
       acceptNode(node) {
         // Whitespace-only nodes are kept, not rejected: the space between
         // `<span>foo</span> <span>bar</span>` lives in one, and dropping it
         // would splice the two words into "foobar".
-        if (!isRenderedText(node)) return 2 /* REJECT */;
-        // Mirrors blockText(), or chunks would no longer match the page.
-        if (skipCitations && insideCitationMarker(node.parentElement)) return 2;
-        return 1 /* ACCEPT */;
+        return skipped(node.parentElement) ? 2 /* REJECT */ : 1 /* ACCEPT */;
       },
     });
 
@@ -342,11 +513,11 @@ const ReadAloudText = (() => {
   }
 
   return {
-    BLOCK_SELECTOR,
     MIN_PARAGRAPH_CHARS,
     MAX_CHUNK_CHARS,
     isCitationMarker,
-    paragraphsFromRoot,
+    extractParagraphs,
+    skipRule,
     splitIntoParagraphs,
     splitAroundUrls,
     splitIntoSentences,

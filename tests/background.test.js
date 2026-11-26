@@ -128,7 +128,7 @@ test("invoking Read Aloud on a tab", async (t) => {
     assert.deepEqual(calls, [
       "tab:TOGGLE_READ_ALOUD",
       "insertCSS:content.css",
-      "executeScript:lib/Readability.js,lib/textkit.js,lib/record.js,content.js",
+      "executeScript:lib/textkit.js,lib/record.js,content.js",
       "tab:TOGGLE_READ_ALOUD",
     ]);
   });
@@ -386,5 +386,31 @@ test("the debug log (000052)", async (t) => {
     await ask(listeners, { type: "CLEAR_LOG" });
     const log = await ask(listeners, { type: "GET_LOG" });
     assert.equal(log.count, 0);
+  });
+});
+
+test("the toggle path in the debug log", async (t) => {
+  const ask = (listeners, message) =>
+    new Promise((resolve) => listeners.message(message, { tab: { id: 7 } }, resolve));
+
+  await t.test("says the shortcut arrived, and why reading could not start", async () => {
+    const { listeners } = load({
+      inject: () => {
+        throw new Error("Cannot access contents of the page");
+      },
+    });
+    await listeners.command("toggle-read-aloud", { id: 7 });
+    await settle();
+    const { text } = await ask(listeners, { type: "GET_LOG" });
+    assert.match(text, /toggle via=shortcut tab=7/);
+    assert.match(text, /toggle\.fail tab=7 error="?Cannot access contents of the page/);
+  });
+
+  await t.test("names the menu when reading starts from it", async () => {
+    const { listeners } = load();
+    await listeners.contextMenu({ menuItemId: "read-aloud", selectionText: "" }, { id: 7 });
+    await settle();
+    const { text } = await ask(listeners, { type: "GET_LOG" });
+    assert.match(text, /toggle via=menu tab=7/);
   });
 });

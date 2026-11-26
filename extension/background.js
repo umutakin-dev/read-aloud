@@ -16,14 +16,16 @@ chrome.runtime.onInstalled.addListener(() => {
 // points below (action click, context menu item, commands shortcut).
 // Order matters: content.js reads ReadAloudText and ReadAloudRecord at load.
 const CONTENT_SCRIPTS = [
-  "lib/Readability.js",
   "lib/textkit.js",
   "lib/record.js",
   "content.js",
 ];
 const CONTENT_STYLES = ["content.css"];
 
-async function toggleReadAloud(tabId, selectedText) {
+async function toggleReadAloud(tabId, selectedText, via) {
+  // Logged at each step, so a shortcut that "does nothing" says whether it
+  // arrived at all and, if it did, where it stopped.
+  log("toggle", { via, tab: tabId });
   if (tabId === undefined) return;
   const message = { type: "TOGGLE_READ_ALOUD", selectedText: selectedText || null };
 
@@ -40,8 +42,10 @@ async function toggleReadAloud(tabId, selectedText) {
     await chrome.scripting.insertCSS({ target: { tabId }, files: CONTENT_STYLES });
     await chrome.scripting.executeScript({ target: { tabId }, files: CONTENT_SCRIPTS });
     await chrome.tabs.sendMessage(tabId, message);
-  } catch {
+    log("toggle.injected", { tab: tabId });
+  } catch (e) {
     // Genuinely unscriptable: chrome:// URLs, the PDF viewer, the Web Store.
+    log("toggle.fail", { tab: tabId, error: e?.message || String(e) });
     showUnavailableBadge(tabId);
   }
 }
@@ -60,14 +64,14 @@ function showUnavailableBadge(tabId) {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "read-aloud") {
-    toggleReadAloud(tab?.id, info.selectionText);
+    toggleReadAloud(tab?.id, info.selectionText, "menu");
   }
 });
 
 // Keyboard shortcut
 chrome.commands.onCommand.addListener((command, tab) => {
   if (command === "toggle-read-aloud") {
-    toggleReadAloud(tab?.id);
+    toggleReadAloud(tab?.id, null, "shortcut");
   }
 });
 

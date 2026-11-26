@@ -3,7 +3,7 @@
 **Type:** 🐛 Bug
 **Status:** 📋 Backlog
 **Priority:** 🟡 MEDIUM
-**Roadmap:** 🎯 NOW 1
+**Roadmap:** 🎯 NOW 3
 **Tracked In:** local
 **Created:** 2026-11-23 21:24 UTC
 
@@ -17,8 +17,8 @@ Refreshing the page mid-read leaves the current audio playing to its end (Umut, 
 
 ## Estimation
 
-- **Start:** 2026-11-23
-- **End:** 2026-11-24
+- **Start:** 2026-11-25
+- **End:** 2026-11-27
 - **Effort:** ~5h (p75 5h)
 
 ## Actual
@@ -42,6 +42,9 @@ Refreshing the page mid-read leaves the current audio playing to its end (Umut, 
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-23 22:06 UTC
+- **Decision:** Roadmap: 🎯 NOW 3 → 🎯 NOW 2
 
 ### 2026-11-23 21:24 UTC
 - **Decision:** Roadmap: (unscheduled) → 🎯 NOW 2

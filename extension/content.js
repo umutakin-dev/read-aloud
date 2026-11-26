@@ -143,7 +143,7 @@
   // chunking, the text index and word spans. It is separated because that is
   // where the subtle bugs are, and it is covered by tests/textkit.test.js.
   const {
-    paragraphsFromRoot,
+    extractParagraphs: extractFromPage,
     splitIntoParagraphs,
     buildChunks,
     buildTextIndex,
@@ -159,35 +159,26 @@
     return { skipCitations: !state.readCitations };
   }
 
+  // Read from the live page by our own rules (000058), not from a copy: what
+  // is extracted is then exactly what the text index finds.
   function extractParagraphs() {
-    try {
-      const clone = document.cloneNode(true);
-      const article = new Readability(clone).parse();
-
-      // article.content is the cleaned HTML, which still has the block
-      // structure. article.textContent is the same thing already flattened.
-      if (article && article.content) {
-        const doc = new DOMParser().parseFromString(article.content, "text/html");
-        const paragraphs = paragraphsFromRoot(doc.body, textOptions());
-        if (paragraphs.length) return paragraphs;
-      }
-      if (article && article.textContent && article.textContent.trim().length > 100) {
-        return splitIntoParagraphs(article.textContent);
-      }
-    } catch (e) {
-      console.warn("Read Aloud: Readability failed, falling back to page structure", e);
-    }
-
-    // Readability declined — usually a page that is not article-shaped. The
-    // live document still has blocks worth reading.
-    const fromDom = paragraphsFromRoot(document.body, textOptions());
-    if (fromDom.length) return fromDom;
-
+    const paragraphs = extractFromPage(document, textOptions());
+    if (paragraphs.length) return paragraphs;
+    // Nothing structured survived the rules: read what the page shows.
     return splitIntoParagraphs(document.body.innerText);
   }
 
+  // Logged with its time and why it was built (000058): a rebuild on every
+  // miss would freeze the tab on a large page, and the log has to show it.
+  function timedIndex(reason, chunkIndex) {
+    const started = performance.now();
+    const index = buildTextIndex(document.body, textOptions());
+    log("index.build", { reason, chunk: chunkIndex, ms: Math.round(performance.now() - started) });
+    return index;
+  }
+
   function findParagraphOffset(paragraphText, chunkIndex) {
-    if (!state.textIndex) state.textIndex = buildTextIndex(document.body, textOptions());
+    if (!state.textIndex) state.textIndex = timedIndex("first", chunkIndex);
 
     // Search forward from the nearest chunk already located, so a phrase that
     // appears more than once on the page resolves to the copy being read
@@ -200,13 +191,13 @@
       // images, expanding sections, ads settling. Rebuild once before giving up.
       // Every remembered offset pointed into the old index, so they go with it,
       // and this search starts from the beginning rather than a stale hint.
-      state.textIndex = buildTextIndex(document.body, textOptions());
+      state.textIndex = timedIndex("miss", chunkIndex);
       state._chunkOffsets = {};
       idx = findChunkOffset(state.textIndex.text, paragraphText, 0);
     }
     if (idx === -1) {
-      // Readability sometimes alters a paragraph slightly (entity decoding,
-      // dropped inline nodes). A prefix match still anchors the highlight.
+      // The page may have changed inside the paragraph since it was read (an
+      // edited comment, a live counter). A prefix match still anchors it.
       const probe = paragraphText.slice(0, 60);
       if (probe.length >= 20) {
         idx = findChunkOffset(state.textIndex.text, probe, from);
@@ -855,6 +846,7 @@
   // so a server that died mid-article went unreported until the next chunk
   // failed — the toolbar kept claiming Kokoro while nothing was wrong yet.
   function startHealthCheckTimer() {
+    startStallWatch();
     state.healthCheckTimer = setInterval(async () => {
       // This interval is what kept an orphaned copy alive, throwing on every
       // tick for as long as the tab stayed open. Nothing else notices, because
@@ -889,7 +881,30 @@
     }, 15000);
   }
 
+  // A tick that arrives seconds late means this tab's thread was busy, or the
+  // browser held its timers back because the tab was hidden. Either one stops
+  // reading for that long, so it goes in the debug log with which it was
+  // (000058: one 6.3s silence on Hacker News that the log could not explain).
+  const STALL_TICK_MS = 500;
+  const STALL_LOG_MS = 2000;
+  let stallTimer = null;
+
+  function startStallWatch() {
+    clearInterval(stallTimer);
+    let last = performance.now();
+    stallTimer = setInterval(() => {
+      const now = performance.now();
+      const late = now - last - STALL_TICK_MS;
+      last = now;
+      if (late > STALL_LOG_MS && state.active) {
+        log("tab.stall", { ms: Math.round(late), hidden: document.hidden, chunk: state.currentChunk });
+      }
+    }, STALL_TICK_MS);
+  }
+
   function stopHealthCheckTimer() {
+    clearInterval(stallTimer);
+    stallTimer = null;
     if (state.healthCheckTimer) {
       clearInterval(state.healthCheckTimer);
       state.healthCheckTimer = null;
@@ -1274,6 +1289,7 @@
     updateToolbarStatus("Extracting text...");
 
     // A selection is plain text with no structure to read; the page has both.
+    const extractStarted = performance.now();
     const paragraphs = selectedText
       ? splitIntoParagraphs(selectedText)
       : extractParagraphs();
@@ -1300,6 +1316,7 @@
       host: location.hostname,
       paragraphs: paragraphCount(),
       chunks: state.chunks.length,
+      extractMs: Math.round(performance.now() - extractStarted),
       engine: state.engine,
       ok: serverOk,
       speed: state.speed,

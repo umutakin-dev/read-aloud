@@ -6,15 +6,16 @@
 ## 🗺️ Roadmap
 
 *What is being built and in what order. Everything under Backlog is the implicit Later.*
+*Start and End are projected from the lane order at this repo's measured pace, as of 2026-11-26 (the folder's newest entry); `todo schedule` shows the working.*
 
 ### 🎯 Now (4)
 
-| # | ID | Type | Priority | Title |
-|---|----|------|----------|-------|
-| 1 | [000056](000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | Audio keeps playing after the reading page reloads or navigates away |
-| 2 | [000057](000057-b-hacker-news-each-comment-s-first-paragraph-and-sho.md) | 🐛 | 🔴 | Hacker News: each comment's first paragraph and short comments are not read |
-| 3 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | Read from the selected text |
-| 4 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
+| # | ID | Type | Priority | Start | End | Title |
+|---|----|------|----------|-------|-----|-------|
+| 1 | [000059](000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;27 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| 2 | [000056](000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;27 | 2026&#8209;11&#8209;28 | Audio keeps playing after the reading page reloads or navigates away |
+| 3 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | 2026&#8209;11&#8209;28 | 2026&#8209;11&#8209;30 | Read from the selected text |
+| 4 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | 2026&#8209;11&#8209;30 | 2026&#8209;12&#8209;01 | Show progress through the document and allow scrubbing |
 
 ### 🔜 Next (0)
 
@@ -24,12 +25,13 @@
 
 *(none)*
 
-## 📋 Backlog (14)
+## 📋 Backlog (15)
 
 *Now and Next are listed under Roadmap above.*
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
+| [000057](000057-b-hacker-news-each-comment-s-first-paragraph-and-sho.md) | 🐛 | 🔴 | Hacker News: each comment's first paragraph and short comments are not read |
 | [000038](000038-f-keyboard-controls-and-screen-reader-support-for-th.md) | ✨ | 🔴 | Keyboard controls and screen reader support for the toolbar |
 | [000028](000028-e-make-read-aloud-rock-solid.md) | 👑 | 🔴 | Make Read Aloud rock solid |
 | [000024](000024-e-ship-read-aloud-without-a-local-server.md) | 👑 | 🔴 | Ship Read Aloud without a local server |
@@ -51,10 +53,11 @@
 
 *(none)*
 
-## ✅ Done (39)
+## ✅ Done (40)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000058](done/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | Our own text extractor in place of Readability, reading the live page |
 | [000055](done/000055-t-build-a-chrome-and-a-firefox-package-from-the-one-.md) | 🔧 | 🔴 | 2026&#8209;11&#8209;23 | Build a Chrome and a Firefox package from the one extension tree |
 | [000053](done/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | Per-page sentence record, synthesized whole page ahead of the reader |
 | [000052](done/000052-f-debug-log-the-extension-records-and-the-popup-down.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | Debug log the extension records and the popup downloads |

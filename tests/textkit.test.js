@@ -11,15 +11,18 @@ function bodyOf(html) {
   return new JSDOM(`<!doctype html><body>${html}</body>`).window.document.body;
 }
 
-// ─── paragraphsFromRoot ─────────────────────────────────────────────────────
-test("paragraphsFromRoot", async (t) => {
+// What the extension reads from a page made of this body (000058).
+const paragraphsOf = (body, options) => kit.extractParagraphs(body.ownerDocument, options);
+
+// ─── extractParagraphs ──────────────────────────────────────────────────────
+test("extractParagraphs", async (t) => {
   await t.test("takes one paragraph per block element", () => {
     const body = bodyOf(`
       <h1>A heading long enough to survive the filter</h1>
       <p>The first paragraph, which is comfortably past the minimum length.</p>
       <p>The second paragraph, also long enough to be worth reading aloud.</p>
     `);
-    assert.equal(kit.paragraphsFromRoot(body).length, 3);
+    assert.equal(paragraphsOf(body).length, 3);
   });
 
   await t.test("does not emit a wrapper alongside the blocks inside it", () => {
@@ -31,35 +34,35 @@ test("paragraphsFromRoot", async (t) => {
         <p>The second half of that same comment, also long enough to count.</p>
       </div></td>
     `);
-    const paragraphs = kit.paragraphsFromRoot(body);
+    const paragraphs = paragraphsOf(body);
     assert.equal(paragraphs.length, 2);
     assert.ok(!paragraphs.some((p) => p.includes("first half") && p.includes("second half")));
   });
 
   await t.test("does not emit a list item and its paragraph twice", () => {
     const body = bodyOf(`<li><p>A list item wrapping a paragraph of real text.</p></li>`);
-    assert.equal(kit.paragraphsFromRoot(body).length, 1);
+    assert.equal(paragraphsOf(body).length, 1);
   });
 
   await t.test("keeps inline markup inside one paragraph", () => {
     const body = bodyOf(
       `<p>Body text with <em>emphasis</em> and a <a href="#">link</a> inside it.</p>`
     );
-    const paragraphs = kit.paragraphsFromRoot(body);
+    const paragraphs = paragraphsOf(body);
     assert.equal(paragraphs.length, 1);
     assert.equal(paragraphs[0], "Body text with emphasis and a link inside it.");
   });
 
   await t.test("drops blocks too short to be worth reading", () => {
     const body = bodyOf(`<p>short</p><p>A paragraph that is long enough to keep.</p>`);
-    assert.deepEqual(kit.paragraphsFromRoot(body), [
+    assert.deepEqual(paragraphsOf(body), [
       "A paragraph that is long enough to keep.",
     ]);
   });
 
   await t.test("collapses whitespace so the text index can match it", () => {
     const body = bodyOf(`<p>  Text   with\n\n  irregular\twhitespace throughout.  </p>`);
-    assert.deepEqual(kit.paragraphsFromRoot(body), [
+    assert.deepEqual(paragraphsOf(body), [
       "Text with irregular whitespace throughout.",
     ]);
   });
@@ -301,7 +304,7 @@ test("buildTextIndex", async (t) => {
     const html = `<p>The first paragraph here.</p><p>The second paragraph here.</p>`;
     const body = bodyOf(html);
     const index = kit.buildTextIndex(body);
-    for (const paragraph of kit.paragraphsFromRoot(body)) {
+    for (const paragraph of paragraphsOf(body)) {
       assert.ok(index.text.includes(paragraph), `${JSON.stringify(paragraph)} not in index`);
     }
   });
@@ -445,17 +448,17 @@ test("citation markers", async (t) => {
     'Individuals weighted new information ("cold cognition"). More recent theories were motivational or affective.';
 
   await t.test("are skipped from paragraph text when asked", () => {
-    assert.deepEqual(kit.paragraphsFromRoot(bodyOf(WIKI), { skipCitations: true }), [SPOKEN]);
+    assert.deepEqual(paragraphsOf(bodyOf(WIKI), { skipCitations: true }), [SPOKEN]);
   });
 
   await t.test("are kept by default", () => {
-    const [text] = kit.paragraphsFromRoot(bodyOf(WIKI));
+    const [text] = paragraphsOf(bodyOf(WIKI));
     assert.match(text, /\[7\]/);
   });
 
   await t.test("the skipped paragraph is still found in the skipped index", () => {
     const body = bodyOf(WIKI);
-    const [paragraph] = kit.paragraphsFromRoot(body, { skipCitations: true });
+    const [paragraph] = paragraphsOf(body, { skipCitations: true });
     const index = kit.buildTextIndex(body, { skipCitations: true });
     assert.notEqual(index.text.indexOf(paragraph), -1, index.text);
   });
@@ -529,5 +532,59 @@ test("splitParagraphIntoChunks gives one sentence per chunk", async (t) => {
     for (const c of kit.splitParagraphIntoChunks(paragraph)) {
       assert.ok(paragraph.includes(c), c);
     }
+  });
+});
+
+// ─── What is not read (000058) ─────────────────────────────────────────────
+test("extractParagraphs skips page furniture by what the markup says", async (t) => {
+  const BODY = "A paragraph of the article, long enough to be read aloud.";
+  const only = (html) => paragraphsOf(bodyOf(`${html}<p>${BODY}</p>`));
+
+  const cases = [
+    ["a nav", `<nav><p>Home, About, and all the other places to go.</p></nav>`],
+    ["an aside", `<aside><p>A sidebar with related reading in it, long enough.</p></aside>`],
+    ["a form and its labels", `<form><label>Your name, please, in full if you can.</label><textarea>draft</textarea></form>`],
+    ["a button", `<p><button>Subscribe to the newsletter today.</button></p>`],
+    ["role=navigation", `<div role="navigation"><p>Previous article and the next article too.</p></div>`],
+    ["role=banner", `<div role="banner"><p>The site's banner with its long tagline here.</p></div>`],
+    ["the hidden attribute", `<p hidden>Text the page keeps but never shows to anyone.</p>`],
+    ["aria-hidden", `<p aria-hidden="true">Text hidden from assistive technology entirely.</p>`],
+    ["display:none", `<p style="display: none">A collapsed section's long text, not shown.</p>`],
+    ["a site header", `<header><p>The site's name and its long tagline go here.</p></header>`],
+    ["a data table", `<table><tr><th>Year</th><th>Event</th></tr><tr><td>1779</td><td>Kratzenstein's vowel machine won a prize.</td></tr></table>`],
+    ["a code listing", `<pre><code>for (const word of sentence.split(" ")) speak(word);</code></pre>`],
+    ["a menu of links", `<ul><li><a href="/a">The first section of the site</a></li><li><a href="/b">The second section of the site</a></li></ul>`],
+  ];
+  for (const [name, html] of cases) {
+    await t.test(`skips ${name}`, () => assert.deepEqual(only(html), [BODY]));
+  }
+
+  await t.test("reads a layout table, as on Hacker News", () => {
+    const html = `<table><tr><td>A comment laid out in a table cell, long enough to read.</td></tr></table>`;
+    assert.deepEqual(only(html), ["A comment laid out in a table cell, long enough to read.", BODY]);
+  });
+
+  await t.test("reads an article's own header, which holds its title", () => {
+    const body = bodyOf(`<article><header><h1>Title</h1></header><p>${BODY}</p></article>`);
+    assert.deepEqual(paragraphsOf(body), ["Title", BODY]);
+  });
+
+  await t.test("reads a paragraph with a link in it, as long as it is mostly prose", () => {
+    const text = "Read the full report on the agency's site before deciding.";
+    const html = `<p>Read the full <a href="/r">report</a> on the agency's site before deciding.</p>`;
+    assert.deepEqual(only(html), [text, BODY]);
+  });
+
+  await t.test("drops [edit] beside a heading, but not a citation when asked to read them", () => {
+    const body = bodyOf(
+      `<h2>History<span class="mw-editsection"><span>[</span><a href="/e">edit</a><span>]</span></span></h2>` +
+        `<p>${BODY}<sup><a href="#c1">[1]</a></sup></p>`
+    );
+    assert.deepEqual(paragraphsOf(body, { skipCitations: false }), ["History", `${BODY}[1]`]);
+  });
+
+  await t.test("goes into <main> when the page marks one", () => {
+    const body = bodyOf(`<div><p>Promotional text outside the main region, long enough.</p></div><main><p>${BODY}</p></main>`);
+    assert.deepEqual(paragraphsOf(body), [BODY]);
   });
 });

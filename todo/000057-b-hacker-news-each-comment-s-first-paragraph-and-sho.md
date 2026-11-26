@@ -3,7 +3,6 @@
 **Type:** 🐛 Bug
 **Status:** 📋 Backlog
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 2
 **Tracked In:** local
 **Created:** 2026-11-23 21:24 UTC
 
@@ -20,8 +19,8 @@ The first is ours to fix in textkit: text sitting directly inside a wrapper, bef
 
 ## Estimation
 
-- **Start:** 2026-11-24
-- **End:** 2026-11-25
+- **Start:** 2026-11-27
+- **End:** 2026-11-28
 - **Effort:** ~5h (p75 5h)
 
 ## Actual
@@ -46,6 +45,12 @@ The first is ours to fix in textkit: text sitting directly inside a wrapper, bef
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-23 21:55 UTC
+- **Decision:** Roadmap: 🎯 NOW 4 → (unscheduled)
+
+### 2026-11-23 21:55 UTC
+- **Decision:** Umut, 2026-11-24: replace Readability with our own extractor rather than patching around it. Both causes are fixed by 000058, and this item closes when it lands.
 
 ### 2026-11-23 21:24 UTC
 - **Decision:** Roadmap: (unscheduled) → 🎯 NOW 3
