@@ -1,10 +1,27 @@
 /* Word-level highlighting via CSS Custom Highlight API */
+
+/* The word is a solid yellow with its own dark text, never the page's colour
+   (000038). The old half-transparent yellow over inherited text left light
+   text on a dark site sitting on a mid-tone, about 2:1. #1a1a1a on #ffd54f is
+   about 12:1 whatever the page looks like. content.js gives this highlight
+   the higher priority, so its colours win over the sentence's. */
 ::highlight(read-aloud-word) {
-  background-color: rgba(255, 213, 79, 0.5);
-  color: inherit;
+  background-color: #ffd54f;
+  color: #1a1a1a;
 }
 
+/* A faint tint, so it keeps the page's own text colour: light on a light page
+   and dark on a dark one, the contrast the page already has stays. */
 ::highlight(read-aloud-sentence) {
   background-color: rgba(100, 181, 246, 0.2);
   color: inherit;
+}
+
+/* Windows high contrast and other forced colours: the system's own selection
+   pair, which the reader has chosen to be readable. */
+@media (forced-colors: active) {
+  ::highlight(read-aloud-word) {
+    background-color: Highlight;
+    color: HighlightText;
+  }
 }

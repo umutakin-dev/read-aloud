@@ -61,7 +61,7 @@ function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", set
       },
     },
     storage: {
-      local: { get: async () => ({ ...settings }) },
+      local: { get: async () => ({ ...settings }), set: async () => {} },
       onChanged: { addListener() {}, removeListener() {} },
     },
   };
@@ -103,6 +103,8 @@ function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", set
     poll: () => Promise.all(polls.map((fn) => fn())),
     click: (id) => shadow.getElementById(id).click(),
     toolbarEl: (id) => shadow?.getElementById(id),
+    focused: () => shadow?.activeElement?.id,
+    announced: () => shadow?.getElementById("announcer")?.textContent,
     dispatch: (msg) => listeners.slice().forEach((fn) => fn(msg, {}, () => {})),
     engineLabel: () => shadow?.getElementById("engine")?.textContent,
     status: () => shadow?.getElementById("status")?.textContent,
@@ -960,4 +962,249 @@ test("a browser that can't run Kokoro reads with its own voice (000069)", async 
       page.close();
     }
   });
+});
+
+test("the toolbar without a mouse and with a screen reader (000038)", async (t) => {
+  const TEXT = [
+    "The first sentence is here. The second sentence follows it.",
+    "The third sentence opens this one. The fourth sentence closes it.",
+  ].join("\n\n");
+  const settle = async () => {
+    for (let i = 0; i < 20; i++) await tick();
+  };
+  // Announcements land a moment after they are made (see announce()).
+  const heard = () => new Promise((r) => setTimeout(r, 80));
+  const open = (opts = {}) =>
+    loadPage({
+      body: '<p>Some page text.</p><input id="field">',
+      tts: () => ({ ok: true, engine: "server", data: { audio_base64: "a", timestamps: [] } }),
+      ...opts,
+    });
+  const start = async (page) => {
+    page.dispatch({ type: "TOGGLE_READ_ALOUD", selectedText: TEXT });
+    await settle();
+  };
+  const plays = (page) => page.messages.filter((m) => m.type === "PLAY_AUDIO").map((m) => m.key);
+  const press = (page, el, key, type = "keydown") => {
+    const event = new page.window.KeyboardEvent(type, { key, bubbles: true, cancelable: true, composed: true });
+    el.dispatchEvent(event);
+    return event;
+  };
+
+  await t.test("is a labelled region whose buttons are named in words", async () => {
+    const page = open();
+    try {
+      await start(page);
+      const region = page.toolbarEl("btn-play").closest("[role=region]");
+      assert.equal(region?.getAttribute("aria-label"), "Read Aloud");
+      const names = ["btn-prev", "btn-play", "btn-next", "btn-stop", "btn-close", "speed-slider"].map((id) =>
+        page.toolbarEl(id).getAttribute("aria-label")
+      );
+      assert.deepEqual(names, ["Previous paragraph", "Play", "Next paragraph", "Stop", "Close Read Aloud", "Speed"]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("takes focus when it opens and gives it back when it closes", async () => {
+    const page = open();
+    try {
+      const field = page.window.document.getElementById("field");
+      field.focus();
+      await start(page);
+      assert.equal(page.focused(), "btn-play");
+      press(page, page.toolbarEl("btn-play"), "Escape");
+      assert.equal(page.window.document.activeElement, field);
+      assert.equal(page.window.document.getElementById("read-aloud-toolbar-host"), null, "the toolbar closed");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("leaves focus alone on close once the reader has moved into the page", async () => {
+    const page = open();
+    try {
+      await start(page);
+      const field = page.window.document.getElementById("field");
+      field.focus();
+      page.dispatch({ type: "TOGGLE_READ_ALOUD" }); // the shortcut, to stop
+      await settle();
+      assert.equal(page.window.document.activeElement, field);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("play/pause says its state through aria-pressed", async () => {
+    const page = open();
+    try {
+      await start(page);
+      const play = page.toolbarEl("btn-play");
+      assert.equal(play.getAttribute("aria-pressed"), "true");
+      play.click();
+      await settle();
+      assert.equal(play.getAttribute("aria-pressed"), "false");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("Space pauses and resumes from anywhere in the toolbar, and is announced", async () => {
+    const page = open();
+    try {
+      await start(page);
+      const prev = page.toolbarEl("btn-prev");
+      const down = press(page, prev, " ");
+      // Its keyup would press the focused button; that must not happen.
+      const up = press(page, prev, " ", "keyup");
+      await settle();
+      assert.ok(down.defaultPrevented && up.defaultPrevented);
+      assert.ok(page.sent.includes("PAUSE_AUDIO"), page.sent.join(" "));
+      await heard();
+      assert.equal(page.announced(), "Paused");
+
+      press(page, prev, " ");
+      await settle();
+      assert.ok(page.sent.includes("RESUME_AUDIO"), page.sent.join(" "));
+      await heard();
+      assert.equal(page.announced(), "Playing");
+      assert.deepEqual(plays(page), [0], "Space never pressed Previous");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("the arrows move by paragraph", async () => {
+    const page = open();
+    try {
+      await start(page);
+      press(page, page.toolbarEl("btn-play"), "ArrowRight");
+      await settle();
+      press(page, page.toolbarEl("btn-play"), "ArrowRight"); // already on the last
+      await settle();
+      press(page, page.toolbarEl("btn-play"), "ArrowLeft"); // at its start: back one, as Prev does
+      await settle();
+      assert.deepEqual(plays(page), [0, 2, 0]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("+ and - step the speed and say it", async () => {
+    const page = open({ settings: { speed: 1 } });
+    try {
+      await start(page);
+      press(page, page.toolbarEl("btn-play"), "+");
+      press(page, page.toolbarEl("btn-play"), "+");
+      press(page, page.toolbarEl("btn-play"), "-");
+      const speeds = page.messages.filter((m) => m.type === "SET_AUDIO_SPEED").map((m) => m.speed);
+      assert.deepEqual(speeds, [1.1, 1.2, 1.1]);
+      assert.equal(page.toolbarEl("speed-slider").getAttribute("aria-valuetext"), "1.1x");
+      await heard();
+      assert.equal(page.announced(), "Speed 1.1x");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("the sliders keep their own arrows", async () => {
+    const page = open({ settings: { speed: 1 } });
+    try {
+      await start(page);
+      const event = press(page, page.toolbarEl("speed-slider"), "ArrowRight");
+      await settle();
+      assert.equal(event.defaultPrevented, false, "left to the slider");
+      assert.deepEqual(plays(page), [0], "not a paragraph jump");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("a key it uses is not seen by the page; one it does not use is", async () => {
+    const page = open();
+    try {
+      await start(page);
+      const seen = [];
+      page.window.document.addEventListener("keydown", (e) => seen.push(e.key));
+      press(page, page.toolbarEl("btn-play"), "ArrowRight");
+      press(page, page.toolbarEl("btn-play"), "j");
+      assert.deepEqual(seen, ["j"]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("keys typed into the page's own fields do nothing", async () => {
+    const page = open();
+    try {
+      await start(page);
+      const field = page.window.document.getElementById("field");
+      field.focus();
+      const event = press(page, field, " ");
+      press(page, field, "ArrowRight");
+      await settle();
+      assert.equal(event.defaultPrevented, false);
+      assert.ok(!page.sent.includes("PAUSE_AUDIO"));
+      assert.deepEqual(plays(page), [0]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("the server going away is announced with what to do", async () => {
+    const page = open({ health: () => ({ ok: false, engine: "server", setting: "server" }) });
+    try {
+      await start(page);
+      await heard();
+      assert.match(page.announced(), /^Waiting for the Kokoro server at /);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("a working engine at the start is not announced over the reading", async () => {
+    const page = open();
+    try {
+      await start(page);
+      await heard();
+      assert.equal(page.announced(), "");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("the time left is never announced", async () => {
+    const page = open();
+    try {
+      await start(page);
+      page.dispatch({ type: "AUDIO_ENDED", key: 0 });
+      await settle();
+      await heard();
+      assert.doesNotMatch(page.announced(), /left|%/);
+    } finally {
+      page.close();
+    }
+  });
+});
+
+// WCAG 2.2 1.4.3: text in the highlighted word against its background, which
+// content.css now sets both of rather than leaving the page's text colour on
+// a see-through yellow (000038).
+test("the highlighted word's text contrasts with its background on any page", () => {
+  const css = read("content.css");
+  const rule = css.match(/::highlight\(read-aloud-word\)\s*{([^}]*)}/)[1];
+  const hex = (name) => rule.match(new RegExp(`${name}:\\s*(#[0-9a-f]{6})`, "i"))?.[1];
+  const bg = hex("background-color");
+  const fg = hex("(?<!-)color");
+  assert.ok(bg && fg, "both colours are solid, not inherited or translucent");
+  const luminance = (h) => {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const c = parseInt(h.slice(i, i + 2), 16) / 255;
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const [hi, lo] = [luminance(bg), luminance(fg)].sort((a, b) => b - a);
+  assert.ok((hi + 0.05) / (lo + 0.05) >= 4.5, `${fg} on ${bg}`);
+  assert.match(css, /forced-colors:\s*active/);
 });
