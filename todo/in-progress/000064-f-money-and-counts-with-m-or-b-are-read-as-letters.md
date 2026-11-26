@@ -45,6 +45,9 @@ Depends on 000063 (the spoken form, which lets the engine hear text that differs
 
 ## Log
 
+### 2026-11-26 09:06 UTC
+- **Progress:** PR #27 opened, stacked on #26 (000063): amounts with M/B/bn (K/T with a currency sign) sent as words, ~ before a number as about
+
 ### 2026-11-26 09:05 UTC
 
 - **Progress:** Started work
