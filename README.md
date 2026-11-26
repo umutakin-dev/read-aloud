@@ -6,8 +6,8 @@ Browser extension for Firefox and Chrome that reads web pages aloud with Kokoro 
 
 | | In the browser | Local server |
 |---|---|---|
-| Install | nothing; a ~310MB model downloads once, on first use | Python, uv, espeak-ng, CUDA torch |
-| Needs | WebGPU | the server running |
+| Install | nothing; a ~310MB model downloads once, on first use | one `uv` command; it then starts at login |
+| Needs | WebGPU | the server installed |
 | Speed | ~4x realtime after a few seconds of warm-up | 16–80x realtime |
 | Highlighting | exact per sentence; words estimated within it | exact per word |
 
@@ -39,26 +39,52 @@ For the extension:
 
 For the optional server:
 
-- Python 3.10+
-- [uv](https://docs.astral.sh/uv/) package manager
+- [uv](https://docs.astral.sh/uv/getting-started/installation/), which fetches
+  Python 3.10+ itself if there is none
 - An NVIDIA GPU with CUDA, or an Apple Silicon Mac (recommended) — falls back to CPU automatically
-- [espeak-ng](https://github.com/espeak-ng/espeak-ng/releases) installed on system PATH
 
-### Installing espeak-ng (Windows)
-
-Download the MSI installer from [espeak-ng releases](https://github.com/espeak-ng/espeak-ng/releases) and ensure it's on your PATH.
+espeak-ng, which Kokoro uses for pronunciation, comes with the server's
+dependencies; nothing else needs installing.
 
 ## Setup
 
 ### TTS Server
+
+Install it once, and have it start at every login:
+
+```bash
+uv tool install "git+https://github.com/umutakin-dev/read-aloud#subdirectory=server"
+read-aloud-server install-service
+```
+
+That registers a per-user login service (a launchd agent on macOS, a systemd
+user unit on Linux, a `Run` entry on Windows) and starts the server now on
+`http://localhost:7860`. Nothing needs admin rights, and there is no terminal
+to keep open. It loads the Kokoro model on the first reading, not at login, so
+the first sentence of the day takes a few seconds longer and an unused server
+costs little. The first reading ever also downloads the model (~350MB).
+
+Logs go to `~/Library/Logs/read-aloud-server.log` on macOS,
+`journalctl --user -u read-aloud-server` on Linux, and
+`%LOCALAPPDATA%\read-aloud-server\server.log` on Windows.
+
+```bash
+read-aloud-server uninstall-service   # stop starting it at login
+uv tool upgrade tts-server            # update; the login service keeps working
+uv tool uninstall tts-server          # remove it (uninstall the service first)
+read-aloud-server                     # or just run it in a terminal instead
+```
+
+If the toolbar was already waiting when the server came up, reading resumes
+by itself within two seconds.
+
+For working on the server itself, run it from the checkout:
 
 ```bash
 cd server
 uv sync
 uv run uvicorn tts_server.main:app --port 7860
 ```
-
-The server will download the Kokoro model on first run (~350MB).
 
 #### GPU and CPU
 
@@ -79,7 +105,8 @@ Using device: cpu — this torch is a CPU-only build (2.10.0+cpu), so any GPU
 ```
 
 That last line means the wrong wheel is installed, not that the machine lacks a
-GPU. Re-run `uv sync` in `server/`. On a Mac, CPU lines give Mac advice instead.
+GPU. Re-run `uv sync` in `server/` (or `uv tool install --reinstall` for the
+installed server). On a Mac, CPU lines give Mac advice instead.
 
 On MPS the first chunk after a fresh install compiles Metal kernels, so the
 server synthesizes one word when it builds the pipeline. Metal also compiles

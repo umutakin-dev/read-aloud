@@ -70,6 +70,7 @@
     _timedSeconds: 0,
     _currentDuration: 0,
     healthCheckTimer: null,
+    fastHealthCheckTimer: null,
     animFrameId: null,
     textIndex: null,       // { text, nodes, offsets } — collapsed page text mapped to the DOM
     _chunkOffsets: {},     // chunk index -> where it was found in textIndex.text
@@ -924,16 +925,33 @@
   // Polls in both directions. Previously it only ran while already fallen back,
   // so a server that died mid-article went unreported until the next chunk
   // failed — the toolbar kept claiming Kokoro while nothing was wrong yet.
+  // While nothing can speak Kokoro, the likeliest next event is the reader
+  // starting the server, so look every 2s instead of making them wait up to a
+  // full poll for reading to resume (000070). Once healthy, only the 15s poll
+  // runs; that one is also the keepalive Firefox's event page needs, so it
+  // must stay under 30s.
+  const HEALTH_POLL_MS = 15000;
+  const HEALTH_POLL_DOWN_MS = 2000;
+  let healthTickRunning = false;
+
   function startHealthCheckTimer() {
     startStallWatch();
-    state.healthCheckTimer = setInterval(async () => {
-      // This interval is what kept an orphaned copy alive, throwing on every
-      // tick for as long as the tab stayed open. Nothing else notices, because
-      // the teardown handshake only runs when a replacement is injected.
-      if (!extensionAlive()) {
-        selfDestruct();
-        return;
-      }
+    state.healthCheckTimer = setInterval(healthTick, HEALTH_POLL_MS);
+    state.fastHealthCheckTimer = setInterval(() => {
+      if (state.serverHealthy === false && !healthTickRunning) healthTick();
+    }, HEALTH_POLL_DOWN_MS);
+  }
+
+  async function healthTick() {
+    // This interval is what kept an orphaned copy alive, throwing on every
+    // tick for as long as the tab stayed open. Nothing else notices, because
+    // the teardown handshake only runs when a replacement is injected.
+    if (!extensionAlive()) {
+      selfDestruct();
+      return;
+    }
+    healthTickRunning = true;
+    try {
       const healthy = await checkServerHealth();
       if (!state.active || healthy === state.serverHealthy) return;
       log("health.change", { ok: healthy, engine: state.engine, reason: state.unavailableReason || undefined });
@@ -957,7 +975,9 @@
         state.useServer = true;
       }
       updateEngineIndicator();
-    }, 15000);
+    } finally {
+      healthTickRunning = false;
+    }
   }
 
   // A tick that arrives seconds late means this tab's thread was busy, or the
@@ -988,6 +1008,8 @@
       clearInterval(state.healthCheckTimer);
       state.healthCheckTimer = null;
     }
+    clearInterval(state.fastHealthCheckTimer);
+    state.fastHealthCheckTimer = null;
   }
 
   // ─── Progress through the page (000040) ───────────────────────────────────
@@ -1408,6 +1430,11 @@
     if (label) label.textContent = `${Number(value).toFixed(1)}x`;
   }
 
+  // Said wherever the toolbar asks for the server, since the likeliest reason
+  // it is down is that it was never installed to start by itself (000070).
+  const SERVER_INSTALL_HINT =
+    "Installed with read-aloud-server install-service, it starts at every login (see the README).";
+
   // Which engine is producing the audio is persistent state, so it gets its own
   // persistent indicator rather than borrowing the status line — which is
   // rewritten on every chunk and so lost any "(Browser TTS)" suffix almost
@@ -1425,19 +1452,22 @@
       cls = "engine down";
       title =
         `Can't read in this browser (${state.unavailableReason || "unknown reason"}). ` +
-        `Start the Kokoro server at ${state.serverUrl}, or enable browser speech in the popup.`;
+        `Start the Kokoro server at ${state.serverUrl}, or enable browser speech in the popup. ` +
+        SERVER_INSTALL_HINT;
     } else if (state.waitingForServer) {
       label = "Server down";
       cls = "engine down";
       title =
         `Waiting for the Kokoro server at ${state.serverUrl}. ` +
-        "Enable browser fallback in the extension popup to read without it.";
+        "Enable browser fallback in the extension popup to read without it. " +
+        SERVER_INSTALL_HINT;
     } else if (!state.useServer) {
       label = "Browser TTS";
       cls = "engine fallback";
       title = state.noKokoroHere
         ? `This browser can't run Kokoro (${state.unavailableReason || "no WebGPU"}), so its ` +
-          `built-in speech is reading. Start the Kokoro server at ${state.serverUrl} to hear Kokoro.`
+          `built-in speech is reading. Start the Kokoro server at ${state.serverUrl} to hear Kokoro. ` +
+          SERVER_INSTALL_HINT
         : "Kokoro server unavailable — using the browser's built-in speech";
     } else if (state.serverHealthy === false) {
       // Reached while buffered chunks are still playing — the poll notices the

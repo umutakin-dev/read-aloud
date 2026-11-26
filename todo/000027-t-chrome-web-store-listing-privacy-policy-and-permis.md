@@ -3,6 +3,7 @@
 **Type:** 🔧 Task
 **Status:** 📋 Backlog
 **Priority:** 🟡 MEDIUM
+**Roadmap:** 🔜 NEXT @1000
 **Tracked In:** local
 **Created:** 2026-08-03
 
@@ -47,6 +48,9 @@ Needed: a hosted privacy policy, store description, screenshots, a promo tile, a
 - [ ] Verified
 
 ## Log
+
+### 2026-11-26 11:48 UTC
+- **Decision:** Roadmap: (unscheduled) → 🔜 NEXT 1
 
 ### 2026-08-03
 

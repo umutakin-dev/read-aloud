@@ -18,6 +18,11 @@ dependencies = [
     "en-core-web-sm",
 ]
 
+[project.scripts]
+# `uv tool install` puts this on PATH; `read-aloud-server install-service`
+# then starts it at every login (000070).
+read-aloud-server = "tts_server.cli:main"
+
 [dependency-groups]
 # httpx is what starlette's TestClient drives; both are already present
 # transitively, but the tests depend on them directly so they are named here.

@@ -42,6 +42,9 @@ Umut, 2026-11-26: fall back automatically. When the browser engine is unsupporte
 
 ## Log
 
+### 2026-11-26 11:48 UTC
+- **Note:** PR #32 merged 2026-11-26. Left open: not yet tried in a browser without WebGPU (Firefox on Linux is the likely one). Close once heard reading with the system voice and handing over to Kokoro when the server comes up.
+
 ### 2026-11-26 09:54 UTC
 - **Progress:** PR #32 opened: noKokoro in the health answer, system voice used where Kokoro cannot run, hand-over to Kokoro at the next sentence. Not yet tried in a browser without WebGPU.
 
