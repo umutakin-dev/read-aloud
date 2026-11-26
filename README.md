@@ -23,7 +23,7 @@ Without WebGPU, the browser engine is not offered: its CPU fallback runs at
 - High-quality text-to-speech via Kokoro, in the browser on the GPU or on a local server
 - Word and sentence-level highlighting using CSS Custom Highlight API
 - Reads the page itself, by its structure: articles, docs and discussion threads, with menus, sidebars, footers, code listings and hidden text left out
-- Toolbar with play/pause, prev/next paragraph, speed control, and a progress bar showing what has been synthesized, with the time left; click or drag it, or use the arrow keys, to jump to a paragraph
+- Toolbar with play/pause, prev/next paragraph, speed control, and a progress bar showing what has been synthesized, and the listening time left at the current speed with the percent read; click or drag it, or use the arrow keys, to jump to a paragraph
 - Optional Web Speech API fallback when the server is unavailable (off by default)
 - Auto-reconnect when server comes back online
 - Right-click context menu and keyboard shortcut (Ctrl+Shift+U; on a Mac ⌘⇧U in Chrome, ⌃⇧U in Firefox)

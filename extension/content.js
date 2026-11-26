@@ -676,14 +676,14 @@
 
     state.currentChunk = index;
     const token = ++playToken;
-    const label = `Paragraph ${currentParagraph() + 1}/${paragraphCount()}`;
+    const label = statusLabel();
 
     try {
       const record = state.record;
       record.setCursor(index);
       if (!record.has(index)) {
         // Say so while waiting. A cold server has to load the model before it
-        // can synthesize anything, and jumping straight to the paragraph label
+        // can synthesize anything, and jumping straight to the progress label
         // makes that look like a hang.
         updateToolbarStatus(`${label} — synthesizing...`);
       }
@@ -782,7 +782,7 @@
         setTimeout(() => state.active && playChunkWithWebSpeech(index), 1000);
       } else {
         log("chunk.retry", { chunk: index });
-        updateToolbarStatus(`Retrying paragraph ${currentParagraph() + 1}...`);
+        updateToolbarStatus(`${statusLabel()} — retrying...`);
         setTimeout(() => state.active && playChunkWithServer(index), 500);
       }
     }
@@ -832,7 +832,7 @@
     }
 
     state.currentChunk = index;
-    updateToolbarStatus(`Paragraph ${currentParagraph() + 1}/${paragraphCount()}`);
+    updateToolbarStatus(statusLabel());
 
     const chunkText = state.chunks[index].text;
     const utterance = new SpeechSynthesisUtterance(chunkText);
@@ -1017,18 +1017,34 @@
     return `${Math.floor(minutes / 60)} h ${minutes % 60} min left`;
   }
 
-  function timeLeft() {
+  // Listening time from a point in the page to its end, at the current speed:
+  // not synthesis time. Null until some audio has been measured.
+  function timeLeftFrom(chars) {
     charStarts(); // also sets _totalChars, which nothing may have asked for yet
     if (!state._timedSeconds || !state._totalChars) return null;
     const perSecond = state._timedChars / state._timedSeconds;
-    const remaining = Math.max(0, state._totalChars - playedChars());
+    const remaining = Math.max(0, state._totalChars - chars);
     return remaining / perSecond / (state.speed || 1);
   }
 
+  function timeLeft() {
+    return timeLeftFrom(playedChars());
+  }
+
+  // "31 min left · 2%". No paragraph count: the extractor's blocks include
+  // headings, captions and list items, so "Paragraph 3/119" named the page
+  // title paragraph 1 and meant nothing to a listener (000061). Floored, so
+  // 100% means finished.
+  function labelAt(chars) {
+    charStarts();
+    const total = state._totalChars || 0;
+    const percent = total ? Math.floor((Math.min(chars, total) / total) * 100) : 0;
+    const left = timeLeftFrom(chars);
+    return left == null ? `${percent}%` : `${formatTimeLeft(left)} · ${percent}%`;
+  }
+
   function statusLabel() {
-    const where = `Paragraph ${currentParagraph() + 1}/${paragraphCount()}`;
-    const left = timeLeft();
-    return left == null ? where : `${where} · ${formatTimeLeft(left)}`;
+    return labelAt(playedChars());
   }
 
   // The played part follows the audio every frame; the synthesized shade only
@@ -1108,15 +1124,19 @@
       const rect = bar.getBoundingClientRect();
       return rect.width > 0 ? (event.clientX - rect.left) / rect.width : 0;
     };
+    // Where a release would land: the start of the nearest paragraph.
+    const preview = (event) => {
+      const paragraph = paragraphAtFraction(fractionAt(event));
+      updateToolbarStatus(labelAt(charStarts()[state.paragraphStarts[paragraph]]));
+    };
     bar.addEventListener("pointerdown", (event) => {
       dragging = true;
       bar.classList.add("dragging");
       bar.setPointerCapture?.(event.pointerId);
-      updateToolbarStatus(`Paragraph ${paragraphAtFraction(fractionAt(event)) + 1}/${paragraphCount()}`);
+      preview(event);
     });
     bar.addEventListener("pointermove", (event) => {
-      if (!dragging) return;
-      updateToolbarStatus(`Paragraph ${paragraphAtFraction(fractionAt(event)) + 1}/${paragraphCount()}`);
+      if (dragging) preview(event);
     });
     const finish = (event, jump) => {
       if (!dragging) return;
@@ -1278,7 +1298,7 @@
         <button class="close-btn" id="btn-close" title="Close">&times;</button>
         <div class="progress" id="progress" role="slider" tabindex="0"
              aria-label="Position in the page" aria-valuemin="1"
-             title="Drag or click to jump to a paragraph"><div class="played" id="progress-played"></div></div>
+             title="Drag or click to jump; time left is listening time at this speed"><div class="played" id="progress-played"></div></div>
       </div>
     `;
 
@@ -1334,6 +1354,8 @@
       const val = parseFloat(speedSlider.value);
       state.speed = val;
       speedLabel.textContent = `${val.toFixed(1)}x`;
+      // Time left is listening time at this speed, so it moves with the slider.
+      if (state.playing) updateToolbarStatus(statusLabel());
       postMessage({ type: "SET_AUDIO_SPEED", speed: val });
       chrome.storage.local.set({ speed: val });
     });

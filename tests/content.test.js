@@ -502,7 +502,8 @@ test("the tab follows the player when it moves on by itself (000059)", async (t)
       assert.deepEqual(plays(page), [0]);
       const played = page.logs.filter((l) => l.ev === "chunk.played").map((l) => [l.chunk, l.outcome]);
       assert.deepEqual(played, [[0, "advanced"], [1, "advanced"]]);
-      assert.match(page.status(), /Paragraph 2\/2/);
+      assert.match(page.status(), /\d+%/);
+      assert.doesNotMatch(page.status(), /Paragraph/);
     } finally {
       page.close();
     }
@@ -752,7 +753,36 @@ test("the progress bar (000040)", async (t) => {
     const page = open();
     try {
       await start(page);
-      assert.match(page.status(), /Paragraph 1\/2 · 2 min left/);
+      // 122 characters at 1 a second, none played yet (000061: no paragraph count).
+      assert.equal(page.status(), "2 min left · 0%");
+      assert.equal(page.toolbarEl("progress").getAttribute("aria-valuetext"), "2 min left · 0%");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("shows the percent alone until some audio is measured", async () => {
+    const page = loadPage({
+      settings: { speed: 1 },
+      tts: () => ({ ok: true, engine: "server", data: { audio_base64: "a", timestamps: [] } }),
+    });
+    try {
+      await start(page);
+      assert.equal(page.status(), "0%");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("dragging previews the time left and percent where it would land", async () => {
+    const page = open();
+    try {
+      await start(page);
+      const bar = page.toolbarEl("progress");
+      bar.getBoundingClientRect = () => ({ left: 0, width: 1000, top: 0, height: 4 });
+      bar.dispatchEvent(new page.window.MouseEvent("pointerdown", { clientX: 600, bubbles: true }));
+      // Paragraph 2 starts at 58 of 122: 64 seconds left, 47% in.
+      assert.equal(page.status(), "1 min left · 47%");
     } finally {
       page.close();
     }
@@ -762,7 +792,7 @@ test("the progress bar (000040)", async (t) => {
     const page = open({ speed: 2 });
     try {
       await start(page);
-      assert.match(page.status(), /· 1 min left/);
+      assert.equal(page.status(), "1 min left · 0%"); // 122s at 2x
     } finally {
       page.close();
     }
@@ -813,7 +843,7 @@ test("the progress bar (000040)", async (t) => {
       );
       await settle();
       assert.deepEqual(plays(page), [0]);
-      assert.match(page.status(), /Paragraph 2\/2 .*paused/);
+      assert.equal(page.status(), "1 min left · 47% — paused");
     } finally {
       page.close();
     }
