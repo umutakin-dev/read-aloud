@@ -1,7 +1,7 @@
 # Firefox on a Mac ignores the Command-Shift-U shortcut
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
 **Tracked In:** local
 **Created:** 2026-11-26 07:07 UTC
@@ -18,16 +18,16 @@ In Firefox on a Mac, the shortcut is bound to ⇧⌘U (manifest Ctrl+Shift+U, wh
 
 ## Actual
 
-- **Start:** 2026-11-26 07:07 UTC
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-26 07:06 UTC
+- **End:** 2026-11-26 07:12 UTC
+- **Effort:** 6m
 
 ## Requirements
 
 - [x] The Firefox package's Mac default is ⌃⇧U; Chrome's and other platforms' are unchanged
 - [x] A test checks both derived manifests
 - [x] The popup shows ⌃⇧U in Firefox on a Mac
-- [ ] Umut confirms ⌃⇧U toggles reading in Firefox from a fresh install of dist/firefox
+- [x] Umut confirms ⌃⇧U toggles reading in Firefox from a fresh install of dist/firefox
 
 ## Checklist
 
@@ -38,6 +38,16 @@ In Firefox on a Mac, the shortcut is bound to ⇧⌘U (manifest Ctrl+Shift+U, wh
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-26 07:12 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 07:12 UTC
+- **Progress:** Umut confirmed (2026-11-26): ⌃⇧U toggles reading in Firefox from a fresh install of dist/firefox.
+
+### 2026-11-26 07:12 UTC
+- **Progress:** ☑ Checked (Requirements): Umut confirms ⌃⇧U toggles reading in Firefox from a fresh install of dist/firefox
 
 ### 2026-11-26 07:08 UTC
 - **Progress:** firefoxManifest sets suggested_key.mac to MacCtrl+Shift+U; Chrome's manifest has no mac key and keeps ⇧⌘U. Two package tests; the popup already renders MacCtrl as ⌃ (existing popup test). README's three mentions updated. dist/ rebuilt. Waiting on Umut: remove and reinstall dist/firefox (a reload keeps a binding already set), then ⌃⇧U toggles reading.
