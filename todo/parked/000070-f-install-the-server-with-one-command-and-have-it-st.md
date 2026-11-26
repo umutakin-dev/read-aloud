@@ -1,9 +1,9 @@
 # Install the server with one command and have it start at login
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** 📋 Backlog
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW @1000
+**Parked-Until:** Umut has a free moment on the Mac to log out and in, then read a page without starting the server; the service is already installed there
 **Tracked In:** local
 **Created:** 2026-11-26 11:30 UTC
 
@@ -54,6 +54,12 @@ No new extension permission: `http://localhost:7860/*` is already in `host_permi
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-26 22:05 UTC
+- **Decision:** PARKED — reopen when Umut has a free moment on the Mac to log out and in, then read a page without starting the server; the service is already installed there
+
+### 2026-11-26 22:05 UTC
+- **Progress:** Fixed the stray 'Boot-out failed: 3: No such process' line on a first macOS install: the bootout before loading the agent now runs quiet (commit on PR #33). Verified on the Mac: service uninstalled, installed fresh with no stray line, launchd shows it running with runatload, /api/health answers ok, MPS available. Still to do: log out and in, then read a page without starting anything.
 
 ### 2026-11-26 11:48 UTC
 - **Decision:** Roadmap: (unscheduled) → 🎯 NOW 1
