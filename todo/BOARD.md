@@ -18,11 +18,12 @@
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| [000068](in-progress/000068-f-acronyms-said-as-words-like-ram-are-spelled-out-on.md) | ✨ | 🟡 | Acronyms said as words, like RAM, are spelled out on the browser engine |
 
 ## 📋 Backlog (15)
 
