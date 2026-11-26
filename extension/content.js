@@ -50,6 +50,7 @@
     engine: null,
     unavailableReason: null, // why neither engine can speak, from HEALTH_CHECK
     allowBrowserFallback: false,  // opt-in; otherwise we wait for Kokoro
+    noKokoroHere: false,   // this browser can't run Kokoro and no server is up (000069)
     readCitations: false,  // speak "[7]"-style markers (000047); skipped by default
     readFromSelection: true, // selecting text jumps there (000039); on by default
     userPaused: false,     // the reader pressed pause, as opposed to waiting on audio
@@ -423,7 +424,16 @@
     if (response?.engine) state.engine = response.engine;
     state.engineSetting = response?.setting || state.engineSetting;
     state.unavailableReason = response?.ok ? null : response?.reason || null;
+    state.noKokoroHere = !response?.ok && response?.noKokoro === true;
     return Boolean(response && response.ok);
+  }
+
+  // Browser speech is opt-in (000018): someone here for Kokoro's voice would
+  // rather wait for the server than hear a substitute. But where this browser
+  // cannot run Kokoro at all (no WebGPU) and no server is up, waiting means
+  // never reading, so the system voice speaks instead (000069).
+  function mayUseBrowserSpeech() {
+    return state.allowBrowserFallback || state.noKokoroHere;
   }
 
   // Audio is always synthesized at 1.0x and sped up at playback time via
@@ -777,7 +787,7 @@
       if (!state.active) return;
       state.serverHealthy = serverOk;
       if (!serverOk) {
-        if (!state.allowBrowserFallback) {
+        if (!mayUseBrowserSpeech()) {
           // Reading in a voice the user did not ask for is worse than not
           // reading. Hold here; the health poll picks it up when it returns.
           log("wait.server", { chunk: index, reason: state.unavailableReason || undefined });
@@ -877,7 +887,15 @@
         return;
       }
       if (state.active) {
-        playChunkWithWebSpeech(index + 1);
+        // Through playCurrentChunk, not straight to the next utterance, so a
+        // Kokoro engine that came up meanwhile (the poll sets useServer) takes
+        // over at this sentence boundary instead of never (000069).
+        if (index + 1 >= state.chunks.length) {
+          stopReadAloud();
+          return;
+        }
+        state.currentChunk = index + 1;
+        playCurrentChunk();
       }
     };
 
@@ -895,7 +913,7 @@
   function playCurrentChunk() {
     // Browser speech only ever runs when it has been opted into — a stale
     // useServer=false must not become a silent voice swap.
-    if (!state.useServer && state.allowBrowserFallback) {
+    if (!state.useServer && mayUseBrowserSpeech()) {
       playChunkWithWebSpeech(state.currentChunk);
     } else {
       playChunkWithServer(state.currentChunk);
@@ -1417,7 +1435,10 @@
     } else if (!state.useServer) {
       label = "Browser TTS";
       cls = "engine fallback";
-      title = "Kokoro server unavailable — using the browser's built-in speech";
+      title = state.noKokoroHere
+        ? `This browser can't run Kokoro (${state.unavailableReason || "no WebGPU"}), so its ` +
+          `built-in speech is reading. Start the Kokoro server at ${state.serverUrl} to hear Kokoro.`
+        : "Kokoro server unavailable — using the browser's built-in speech";
     } else if (state.serverHealthy === false) {
       // Reached while buffered chunks are still playing — the poll notices the
       // server before the prefetch runs out. What happens when it does depends
@@ -1622,7 +1643,7 @@
       voice: state.voice,
     });
 
-    if (!serverOk && !state.allowBrowserFallback) {
+    if (!serverOk && !mayUseBrowserSpeech()) {
       // Start the poll before waiting, or nothing would ever notice recovery.
       startHealthCheckTimer();
       waitForServer(0);

@@ -469,9 +469,13 @@ async function handleEngineHealth(serverUrl) {
     return { ok: false, engine: "server", setting, reason: "server unreachable" };
   }
   const support = await browserEngineSupport();
-  return support.ok
-    ? { ok: true, engine: "browser", setting }
-    : { ok: false, engine: "browser", setting, reason: support.reason };
+  if (support.ok) return { ok: true, engine: "browser", setting };
+  // Without WebGPU no Kokoro will ever speak in this browser unless a server
+  // is started, so the tab reads with the system voice instead of nothing
+  // (000069). Other failures (the engine not built) may be fixed and are
+  // asked again, so they still wait, as does a setting of server only.
+  const noKokoro = /WebGPU/.test(support.reason || "");
+  return { ok: false, engine: "browser", setting, reason: support.reason, noKokoro };
 }
 
 async function handleSpeechRequest(message, sender) {

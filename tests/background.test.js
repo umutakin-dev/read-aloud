@@ -244,7 +244,8 @@ test("choosing an engine", async (t) => {
   });
 
   await t.test("health says why when nothing can speak", async () => {
-    // No server, and a browser without WebGPU: the toolbar waits, and says so.
+    // No server, and a browser without WebGPU: no Kokoro will ever speak
+    // here, which the tab answers with the system voice (000069).
     const { listeners } = load({
       serverUp: false,
       offscreenReply: (msg) =>
@@ -255,6 +256,25 @@ test("choosing an engine", async (t) => {
     const health = await ask(listeners, { type: "HEALTH_CHECK" });
     assert.equal(health.ok, false);
     assert.match(health.reason, /WebGPU/);
+    assert.equal(health.noKokoro, true);
+  });
+
+  await t.test("a failure that may be fixed is not reported as no Kokoro", async () => {
+    const { listeners } = load({
+      serverUp: false,
+      offscreenReply: (msg) =>
+        msg.type === "ENGINE_SUPPORTED" ? { ok: true, supported: false, reason: "engine not built" } : { ok: true },
+    });
+    const health = await ask(listeners, { type: "HEALTH_CHECK" });
+    assert.equal(health.ok, false);
+    assert.equal(health.noKokoro, false);
+  });
+
+  await t.test("server only and down is not no Kokoro: it waits for the server", async () => {
+    const { listeners } = load({ serverUp: false, settings: { engine: "server" } });
+    const health = await ask(listeners, { type: "HEALTH_CHECK" });
+    assert.equal(health.ok, false);
+    assert.ok(!health.noKokoro);
   });
 
   await t.test("voices come from the browser engine without asking the server", async () => {

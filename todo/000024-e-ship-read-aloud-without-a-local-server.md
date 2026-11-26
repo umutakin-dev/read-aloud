@@ -23,6 +23,7 @@ So the sequence is: find out whether the browser can do it (#000025), and only i
 - #000046 ✨ In-browser Kokoro engine on WebGPU, with the server as an optional upgrade
 - #000051 🐛 Toolbar says Kokoro · server while the browser engine downloads its model
 - #000055 🔧 Build a Chrome and a Firefox package from the one extension tree
+- #000069 ✨ Without WebGPU, read with the system voice instead of nothing
 
 ## Estimation
 
@@ -49,6 +50,12 @@ So the sequence is: find out whether the browser can do it (#000025), and only i
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-26 09:52 UTC
+- **Note:** Added #000069 Without WebGPU, read with the system voice instead of nothing to Items
+
+### 2026-11-26 09:51 UTC
+- **Decision:** Umut, 2026-11-26: no server is the default and nothing may depend on one. 000026 retired. Browsers without WebGPU fall back to the system voice automatically (new item). First release unlisted on both Chrome and Firefox; privacy policy on GitHub Pages, support via GitHub issues (000027).
 
 ### 2026-11-23 20:32 UTC
 - **Note:** Added #000055 Build a Chrome and a Firefox package from the one extension tree to Items
