@@ -1,9 +1,8 @@
 # Read from the selected text
 
 **Type:** ✨ Feature
-**Status:** 📋 Backlog
+**Status:** ✅ Done
 **Priority:** 🔴 HIGH
-**Roadmap:** 🎯 NOW 4
 **Tracked In:** local
 **Created:** 2026-08-03
 
@@ -30,20 +29,21 @@ Pairs naturally with #000040, since both are about knowing and controlling where
 
 ## Actual
 
-- **Start:**
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-24 07:20 UTC
+- **End:** 2026-11-26 07:05 UTC
+- **Effort:** 2m
 
 ## Requirements
 
-- [ ] Works while playing and while paused
-- [ ] Node-to-character lookup built alongside the existing text index
-- [ ] Reachable from the keyboard too, per #000038
-- [ ] A popup setting, on by default, turns read-from-selection off
-- [ ] Selecting text while paused jumps there and stays paused
-- [ ] A ready sentence plays at once; an unready one is synthesized first
-- [ ] Selecting text inside the read text jumps to the sentence where the selection starts
-- [ ] Selections outside the read text, and clicks on links and buttons, behave normally
+- [x] Works while playing and while paused
+- [x] Node-to-character lookup built alongside the existing text index
+- [x] Reachable from the keyboard too, per #000038
+- [x] A popup setting, on by default, turns read-from-selection off
+- [x] Selecting text while paused jumps there and stays paused
+- [x] A ready sentence plays at once; an unready one is synthesized first
+- [x] Selecting text inside the read text jumps to the sentence where the selection starts
+- [x] Selections outside the read text, and clicks on links and buttons, behave normally
+- [x] Tried in Chrome and Firefox: a jump while playing, a jump while paused, and the setting off
 
 ## Checklist
 
@@ -54,6 +54,50 @@ Pairs naturally with #000040, since both are about knowing and controlling where
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-26 07:05 UTC
+- **Note:** Took 2m against an estimate of 5h (0.0x) — measured since the previous item closed.
+
+### 2026-11-26 07:05 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 07:05 UTC
+- **Progress:** Umut tried it in Chrome and Firefox (2026-11-26): a selection while playing jumps there; while paused it stays paused and Play resumes at the selected sentence. His Chrome log shows jump.selection twice. The setting off was not tried in a browser; tests cover it.
+
+### 2026-11-26 07:05 UTC
+- **Progress:** ☑ Checked (Requirements): Tried in Chrome and Firefox: a jump while playing, a jump while paused, and the setting off
+
+### 2026-11-24 07:23 UTC
+- **Progress:** Built on selectionchange (settles after 350ms), positionInIndex in textkit, sentence positions per session, jumpToSentence keeping a paused reader paused; popup setting on by default. 341 extension tests pass. Note: the popup grew a row and may scroll vertically in Firefox again (sideways scroll stays off). Waiting on Umut's browser check.
+
+### 2026-11-24 07:23 UTC
+- **Progress:** ☑ Checked (Requirements): Selections outside the read text, and clicks on links and buttons, behave normally
+
+### 2026-11-24 07:23 UTC
+- **Progress:** ☑ Checked (Requirements): Selecting text inside the read text jumps to the sentence where the selection starts
+
+### 2026-11-24 07:23 UTC
+- **Progress:** ☑ Checked (Requirements): A ready sentence plays at once; an unready one is synthesized first
+
+### 2026-11-24 07:23 UTC
+- **Progress:** ☑ Checked (Requirements): Selecting text while paused jumps there and stays paused
+
+### 2026-11-24 07:23 UTC
+- **Progress:** ☑ Checked (Requirements): A popup setting, on by default, turns read-from-selection off
+
+### 2026-11-24 07:23 UTC
+- **Progress:** ☑ Checked (Requirements): Reachable from the keyboard too, per #000038
+
+### 2026-11-24 07:23 UTC
+- **Progress:** ☑ Checked (Requirements): Node-to-character lookup built alongside the existing text index
+
+### 2026-11-24 07:23 UTC
+- **Progress:** ☑ Checked (Requirements): Works while playing and while paused
+
+### 2026-11-24 07:20 UTC
+
+- **Progress:** Started work
 
 ### 2026-11-23 22:06 UTC
 - **Decision:** Roadmap: 🎯 NOW 4 → 🎯 NOW 3

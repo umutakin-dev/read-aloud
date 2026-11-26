@@ -185,6 +185,9 @@ In Firefox the shortcut can be changed under `about:addons` > gear menu >
 3. Press **Ctrl+Shift+U** (**⌘⇧U** on a Mac) or right-click > "Read Aloud"
 4. The toolbar appears at the top with playback controls
 5. Words highlight as they are spoken
+6. Select text anywhere in what is being read to jump to that sentence. While
+   paused, reading stays paused there until you press Play. The popup can turn
+   this off.
 
 The first read on the browser engine downloads the model (~310MB) and says so
 in the toolbar. Every later load comes from the browser's cache, followed by a

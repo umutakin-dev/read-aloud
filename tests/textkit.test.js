@@ -588,3 +588,41 @@ test("extractParagraphs skips page furniture by what the markup says", async (t)
     assert.deepEqual(paragraphsOf(body), [BODY]);
   });
 });
+
+// ─── From a point on the page to the index (000039) ─────────────────────────
+test("positionInIndex", async (t) => {
+  const body = bodyOf(
+    `<p>First para here.</p>\n  <p>Second <b>bold</b> para.</p><script>var x = 1;</script><p>Third.</p>`
+  );
+  const index = kit.buildTextIndex(body);
+  const [p1, p2, , p3] = body.children;
+  const text = (i) => index.text.slice(i, i + 6);
+
+  await t.test("a point inside a text node lands on that character", () => {
+    assert.equal(text(kit.positionInIndex(index, p1.firstChild, 6)), "para h");
+  });
+
+  await t.test("the start of a paragraph lands on its first letter, not the space before it", () => {
+    assert.equal(text(kit.positionInIndex(index, p2.firstChild, 0)), "Second");
+  });
+
+  await t.test("a point between elements moves forward to the next text", () => {
+    assert.equal(text(kit.positionInIndex(index, p2, 1)), "bold p");
+  });
+
+  await t.test("a point in text the index skips moves forward past it", () => {
+    const script = body.querySelector("script");
+    assert.equal(text(kit.positionInIndex(index, script.firstChild, 2)), "Third.");
+  });
+
+  await t.test("nothing after the point gives -1", () => {
+    assert.equal(kit.positionInIndex(index, p3.firstChild, 6), -1);
+  });
+
+  await t.test("every character maps back to itself", () => {
+    for (let i = 0; i < index.text.length; i++) {
+      if (index.text[i] === " ") continue;
+      assert.equal(kit.positionInIndex(index, index.nodes[i], index.offsets[i]), i);
+    }
+  });
+});

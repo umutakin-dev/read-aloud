@@ -21,8 +21,8 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 // reports. TTS requests are left unanswered unless `tts` answers them, as they
 // are while the browser engine is still downloading its model. `logs` collects
 // the debug log lines the tab sends (000052).
-function loadPage({ engine = "server", tts } = {}) {
-  const dom = new JSDOM("<!doctype html><body><p>Some page text.</p></body>", {
+function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", settings = {} } = {}) {
+  const dom = new JSDOM(`<!doctype html><body>${body}</body>`, {
     runScripts: "outside-only",
     pretendToBeVisual: true,
   });
@@ -58,7 +58,7 @@ function loadPage({ engine = "server", tts } = {}) {
       },
     },
     storage: {
-      local: { get: async () => ({}) },
+      local: { get: async () => ({ ...settings }) },
       onChanged: { addListener() {}, removeListener() {} },
     },
   };
@@ -593,6 +593,105 @@ test("leaving the page stops the audio (000056)", async (t) => {
       page.window.dispatchEvent(new page.window.Event("pagehide"));
       await settle();
       assert.deepEqual(page.sent, []);
+    } finally {
+      page.close();
+    }
+  });
+});
+
+test("reading from the selected text (000039)", async (t) => {
+  const BODY = `
+    <nav><p>Home, the archive and the other places on this site.</p></nav>
+    <p>The first sentence is here. The second sentence follows it.</p>
+    <p>The third sentence opens this one. The fourth sentence closes it.</p>
+    <form><textarea>A draft that is being typed, not read aloud at all.</textarea></form>`;
+  const settle = async (ms = 0) => {
+    for (let i = 0; i < 20; i++) await tick();
+    if (ms) await new Promise((r) => setTimeout(r, ms));
+    for (let i = 0; i < 20; i++) await tick();
+  };
+  const open = (settings) =>
+    loadPage({
+      body: BODY,
+      settings,
+      tts: (msg) => ({ ok: true, engine: "server", data: { audio_base64: `audio:${msg.text}`, timestamps: [] } }),
+    });
+  const start = async (page) => {
+    page.dispatch({ type: "TOGGLE_READ_ALOUD" });
+    await settle();
+  };
+  // Selects `length` characters starting `offset` into the text of the
+  // paragraph containing `needle`, the way a reader's drag would.
+  const select = async (page, needle, offset = 0, length = 5) => {
+    const doc = page.window.document;
+    const host = [...doc.querySelectorAll("p, textarea")].find((el) => el.textContent.includes(needle));
+    const node = host.firstChild;
+    const at = node.textContent.indexOf(needle) + offset;
+    doc.getSelection().setBaseAndExtent(node, at, node, at + length);
+    doc.dispatchEvent(new page.window.Event("selectionchange"));
+    await settle(400);
+  };
+  const plays = (page) => page.messages.filter((m) => m.type === "PLAY_AUDIO").map((m) => m.key);
+
+  await t.test("while playing, jumps to the sentence where the selection starts", async () => {
+    const page = open();
+    try {
+      await start(page);
+      await select(page, "fourth", 4); // inside "The fourth sentence closes it."
+      assert.deepEqual(plays(page), [0, 3]);
+      assert.equal(page.logs.find((l) => l.ev === "jump.selection")?.chunk, 3);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("while paused, moves there and stays paused until Play", async () => {
+    const page = open();
+    try {
+      await start(page);
+      page.click("btn-play"); // pause
+      await settle();
+      await select(page, "The third");
+      assert.deepEqual(plays(page), [0], "a paused reader must stay paused");
+      assert.match(page.status(), /paused/);
+      page.click("btn-play"); // play
+      await settle();
+      assert.deepEqual(plays(page), [0, 2]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("leaves a selection outside the read text alone", async () => {
+    const page = open();
+    try {
+      await start(page);
+      await select(page, "the archive");
+      await select(page, "A draft");
+      assert.deepEqual(plays(page), [0]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("does nothing when the setting is off", async () => {
+    const page = open({ readFromSelection: false });
+    try {
+      await start(page);
+      await select(page, "fourth");
+      assert.deepEqual(plays(page), [0]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("does not jump again while the same selection is extended", async () => {
+    const page = open();
+    try {
+      await start(page);
+      await select(page, "The third", 0, 5);
+      await select(page, "The third", 0, 20);
+      assert.deepEqual(plays(page), [0, 2]);
     } finally {
       page.close();
     }
