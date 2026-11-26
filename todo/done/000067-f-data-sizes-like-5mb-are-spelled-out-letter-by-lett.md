@@ -1,7 +1,7 @@
 # Data sizes like 5MB are spelled out letter by letter
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-26 09:26 UTC
@@ -25,9 +25,9 @@ Fix, through the spoken form (000063):
 
 ## Actual
 
-- **Start:** 2026-11-26 09:26 UTC
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-26 09:24 UTC
+- **End:** 2026-11-26 09:30 UTC
+- **Effort:** 6m
 
 ## Requirements
 
@@ -42,6 +42,16 @@ Fix, through the spoken form (000063):
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-26 09:30 UTC
+- **Note:** Took 6m against an estimate of 13m (0.5x) — measured since the previous item closed.
+
+### 2026-11-26 09:30 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 09:30 UTC
+- **Delivered:** PR #30: data sizes and rates after a number sent as words; singular after a/an, plural otherwise; bps and /s read per second
 
 ### 2026-11-26 09:27 UTC
 - **Progress:** PR #30 opened: data sizes and rates after a number sent as words (megabyte/megabytes, megabits per second)
