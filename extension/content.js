@@ -57,6 +57,7 @@
     // The page's sentence record (lib/record.js): each chunk's state and, once
     // made, its audio, kept for the session so going back never re-synthesizes.
     record: null,
+    _preloaded: new Set(), // sentence indices handed to the player ahead of time
     healthCheckTimer: null,
     animFrameId: null,
     textIndex: null,       // { text, nodes, offsets } — collapsed page text mapped to the DOM
@@ -477,7 +478,10 @@
 
   // Listen for audio events relayed from background
   function onAudioMessage(msg) {
-    if (msg.type === "AUDIO_TIME" && state.playing) {
+    // A keyed event about another sentence is stale: the player moved on by
+    // itself (000059) and the tab has not caught up, or a jump overtook it.
+    const otherSentence = msg.key != null && msg.key !== state.currentChunk;
+    if (msg.type === "AUDIO_TIME" && state.playing && !otherSentence) {
       state._currentTime = msg.currentTime;
       const now = Date.now();
       if (now - lastKeepalive > KEEPALIVE_MS) {
@@ -485,8 +489,9 @@
         postMessage({ type: "KEEPALIVE" });
       }
     }
-    if (msg.type === "AUDIO_ENDED") {
-      finishAudio("ended");
+    if (msg.type === "AUDIO_ENDED" && !otherSentence) {
+      // advancedTo: the player has already started the next sentence.
+      finishAudio(msg.advancedTo != null ? { advancedTo: msg.advancedTo } : "ended");
     }
     if (msg.type === "AUDIO_ERROR") {
       failAudio(new Error(msg.message || "Audio playback error"));
@@ -532,21 +537,20 @@
         } else if (!response.ok) {
           failAudio(new Error(response.error || "Audio play failed"));
         } else {
-          if (response.usedPreload) state._preloadedKey = null;
-          // Only now: the player drops any preload that is not the sentence
-          // it is starting, so one sent before this PLAY was thrown away and
-          // every sentence went without (000053, seen as preloaded=false on
-          // every audio.play in the debug log).
-          preloadNext(key + 1);
+          state._preloaded.delete(key);
+          // Only now: a PLAY drops the player's preloads that do not lie just
+          // ahead of it, so ones sent before it could be thrown away (000053,
+          // seen as preloaded=false on every audio.play in the debug log).
+          preloadAhead();
         }
       };
 
       // Ask the player to use what it already decoded. Shipping ~1.8MB of
       // base64 through two message hops is most of the gap at a chunk
       // boundary, so only do it when the player says it has nothing.
-      send(key !== state._preloadedKey).then((response) => {
+      send(!state._preloaded.has(key)).then((response) => {
         if (response?.needAudio) {
-          state._preloadedKey = null;
+          state._preloaded.delete(key);
           send(true).then(handle);
           return;
         }
@@ -593,7 +597,7 @@
           if (generation !== synthesis.generation || state.record !== record) return;
           const dropped = record.store(index, data);
           if (dropped.length) log("record.drop", { sentences: dropped.length, kept: record.usedBytes });
-          preloadNext(index);
+          preloadAhead();
         },
         (error) => {
           if (generation !== synthesis.generation || state.record !== record) return;
@@ -613,26 +617,34 @@
       });
   }
 
-  // Hand the immediately-next chunk to the player so it can decode and load it
-  // while the current one is still playing. Only the next one — anything
-  // further ahead would just be displaced by it.
-  function preloadNext(index) {
-    if (index !== state.currentChunk + 1) return;
-    const data = state.record?.get(index);
-    if (!data || state._preloadedKey === index) return;
-    state._preloadedKey = index;
-    postMessage({
-      type: "PRELOAD_AUDIO",
-      key: index,
-      audio_base64: data.audio_base64,
-    });
+  // Hand the sentences just ahead to the player so it can decode them while
+  // this one plays, and start each next one itself when this one ends
+  // (000059). Several, not one: a hidden tab can be held back for longer than
+  // a sentence lasts, and the player must not run dry while it is.
+  const PRELOAD_AHEAD = 6;
+
+  function preloadAhead() {
+    const record = state.record;
+    if (!record) return;
+    const here = state.currentChunk;
+    for (const key of state._preloaded) if (key <= here) state._preloaded.delete(key);
+    for (let i = here + 1; i <= here + PRELOAD_AHEAD && i < state.chunks.length; i++) {
+      if (state._preloaded.has(i)) continue;
+      const data = record.get(i);
+      if (!data) break; // in order: the player can only advance into the next one
+      state._preloaded.add(i);
+      postMessage({ type: "PRELOAD_AUDIO", key: i, audio_base64: data.audio_base64 });
+    }
   }
 
   // Bumped by every start and stop, so a call still waiting on its sentence
   // knows it has been overtaken by a jump, a stop or a voice change.
   let playToken = 0;
 
-  async function playChunkWithServer(index) {
+  // `started`: the player already began this sentence on its own when the
+  // one before ended (000059); set up for it, but send no PLAY. `paused`: the
+  // reader paused just as that happened, so stay paused on it.
+  async function playChunkWithServer(index, { started = false, paused = false } = {}) {
     if (index >= state.chunks.length) {
       stopReadAloud();
       return;
@@ -681,13 +693,24 @@
         updateEngineIndicator();
       }
 
-      state.playing = true;
-      startHighlightLoop();
+      state.playing = !paused;
+      if (state.playing) startHighlightLoop();
 
-      // The next sentence is preloaded once the player has started this one
-      // (see playAudioFromBase64), or by synthesis the moment it is stored.
-      const outcome = await playAudioFromBase64(data.audio_base64, index);
-      log("chunk.played", { chunk: index, outcome });
+      // The next sentences are preloaded once the player has started this one
+      // (see playAudioFromBase64), or by synthesis the moment each is stored.
+      let outcome;
+      if (started) {
+        state._preloaded.delete(index);
+        preloadAhead();
+        outcome = await new Promise((resolve, reject) => {
+          audioResolve = resolve;
+          audioReject = reject;
+        });
+      } else {
+        outcome = await playAudioFromBase64(data.audio_base64, index);
+      }
+      const advancedTo = outcome?.advancedTo;
+      log("chunk.played", { chunk: index, outcome: advancedTo != null ? "advanced" : outcome });
 
       // Stop/prev/next already tore down the highlight state and may have
       // started somewhere else — leave it alone.
@@ -697,7 +720,13 @@
       stopHighlightLoop();
       clearHighlights();
 
-      if (state.active && state.playing) {
+      if (!state.active) return;
+      if (advancedTo === index + 1) {
+        // The audio is already moving; catch up with it, paused or not.
+        const wasPlaying = state.playing;
+        state.playing = false;
+        playChunkWithServer(index + 1, { started: true, paused: !wasPlaying });
+      } else if (state.playing) {
         state.playing = false;
         playChunkWithServer(index + 1);
       }
@@ -1185,7 +1214,7 @@
     state.playing = false;
     state._currentTime = 0;
     // STOP drops the preload too, so the key must not survive it.
-    state._preloadedKey = null;
+    state._preloaded.clear();
     postMessage({ type: "STOP_AUDIO" });
     // Settle rather than drop it — a pending promise here would strand the
     // paragraph that is awaiting it.
@@ -1365,7 +1394,7 @@
     state._paragraphOffset = null;
     state._currentTime = 0;
     state._audioBase64 = null;
-    state._preloadedKey = null;
+    state._preloaded.clear();
   }
 
   // ─── Message Listener ─────────────────────────────────────────────────────

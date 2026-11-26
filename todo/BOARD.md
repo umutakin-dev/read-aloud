@@ -12,7 +12,7 @@
 
 | # | ID | Type | Priority | Start | End | Title |
 |---|----|------|----------|-------|-----|-------|
-| 1 | [000059](000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;27 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| 1 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;27 | 🔨 Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
 | 2 | [000056](000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;27 | 2026&#8209;11&#8209;28 | Audio keeps playing after the reading page reloads or navigates away |
 | 3 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | 2026&#8209;11&#8209;28 | 2026&#8209;11&#8209;30 | Read from the selected text |
 | 4 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | 2026&#8209;11&#8209;30 | 2026&#8209;12&#8209;01 | Show progress through the document and allow scrubbing |
@@ -21,9 +21,11 @@
 
 *(none)*
 
-## 🔨 In Progress (0)
+## 🔨 In Progress (1)
 
-*(none)*
+| ID | Type | Priority | Title |
+|----|------|----------|-------|
+| [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
 
 ## 📋 Backlog (15)
 

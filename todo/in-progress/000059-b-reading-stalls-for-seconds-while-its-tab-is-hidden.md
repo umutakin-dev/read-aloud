@@ -1,7 +1,7 @@
 # Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence
 
 **Type:** 🐛 Bug
-**Status:** 📋 Backlog
+**Status:** 🔨 In Progress
 **Priority:** 🔴 HIGH
 **Roadmap:** 🎯 NOW 2
 **Tracked In:** local
@@ -29,15 +29,15 @@ Every sentence boundary goes through the reading tab: the player reports AUDIO_E
 
 ## Actual
 
-- **Start:**
+- **Start:** 2026-11-24 07:15 UTC
 - **End:**
 - **Effort:**
 
 ## Requirements
 
 - [ ] With the tab hidden, sentences follow each other with no audible gap, in Firefox and Chrome
-- [ ] The player starts the preloaded next sentence itself, then tells the tab
-- [ ] Pause, stop, jumps and a voice change still win over an advance already under way
+- [x] The player starts the preloaded next sentence itself, then tells the tab
+- [x] Pause, stop, jumps and a voice change still win over an advance already under way
 - [ ] Highlighting catches up when the tab is shown again
 - [ ] tab.stall in the debug log shows hidden=true during a test, with gapMs still small
 
@@ -50,6 +50,22 @@ Every sentence boundary goes through the reading tab: the player reports AUDIO_E
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-26 07:01 UTC
+- **Note:** Code merged ahead of the browser check, since the PRs above it are stacked on it. Umut's Chrome log (2026-11-26) shows every boundary advanced=true with gapMs 0-3, but the tab was never hidden. Left open for: a read with the tab hidden in Firefox and Chrome, and highlighting catching up when it is shown again.
+
+### 2026-11-24 07:19 UTC
+- **Progress:** Built: player queue of up to 8 preloads, self-advance with AUDIO_ENDED advancedTo, tab follows without PLAY; keyed AUDIO_TIME/AUDIO_ENDED. 322 extension tests pass; the new tab tests fail on the old code. Waiting on Umut: read with the tab hidden in Firefox and Chrome, then a log with tab.stall hidden=true and small gapMs.
+
+### 2026-11-24 07:19 UTC
+- **Progress:** ☑ Checked (Requirements): Pause, stop, jumps and a voice change still win over an advance already under way
+
+### 2026-11-24 07:19 UTC
+- **Progress:** ☑ Checked (Requirements): The player starts the preloaded next sentence itself, then tells the tab
+
+### 2026-11-24 07:15 UTC
+
+- **Progress:** Started work
 
 ### 2026-11-23 22:34 UTC
 - **Decision:** Roadmap: (unscheduled) → 🎯 NOW 2

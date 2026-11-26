@@ -15,10 +15,11 @@ const SOURCE = fs.readFileSync(
   "utf8"
 );
 
-function load() {
+function load({ realInterval = false } = {}) {
   const events = [];
   const logs = [];
   const audios = [];
+  const emitted = [];
   let listener = null;
   let liveUrls = 0;
 
@@ -66,12 +67,13 @@ function load() {
       },
     },
     Audio: FakeAudio,
-    setInterval: () => 1,
-    clearInterval: () => {},
+    setInterval: realInterval ? setInterval : () => 1,
+    clearInterval: realInterval ? clearInterval : () => {},
     chrome: {
       runtime: {
         sendMessage: (m) => {
           if (m.type === "LOG") logs.push(m);
+          else emitted.push(m);
           return events.push(`emit:${m.type}`);
         },
         onMessage: { addListener: (fn) => (listener = fn) },
@@ -87,7 +89,7 @@ function load() {
       if (returned !== true) resolve(undefined);
     });
 
-  return { send, events, logs, audios, liveUrls: () => liveUrls };
+  return { send, events, logs, audios, emitted, liveUrls: () => liveUrls };
 }
 
 const AUDIO_A = Buffer.from("chunk-a-audio-bytes").toString("base64");
@@ -150,12 +152,17 @@ test("object URL lifetime", async (t) => {
     assert.ok(liveUrls() <= 2, `${liveUrls()} live`);
   });
 
-  await t.test("replacing a preload releases the one it displaces", async () => {
+  await t.test("preloading a key again releases the copy it replaces", async () => {
     const { send, liveUrls } = load();
     await send({ type: "PRELOAD", key: 1, audio_base64: AUDIO_B });
-    await send({ type: "PRELOAD", key: 2, audio_base64: AUDIO_B });
-    await send({ type: "PRELOAD", key: 3, audio_base64: AUDIO_B });
+    await send({ type: "PRELOAD", key: 1, audio_base64: AUDIO_B });
     assert.equal(liveUrls(), 1);
+  });
+
+  await t.test("holds a bounded queue, dropping the furthest ahead (000059)", async () => {
+    const { send, liveUrls } = load();
+    for (let key = 1; key <= 12; key++) await send({ type: "PRELOAD", key, audio_base64: AUDIO_B });
+    assert.equal(liveUrls(), 8);
   });
 
   await t.test("stop releases both the playing and the preloaded audio", async () => {
@@ -218,5 +225,69 @@ test("the gap between sentences, in the debug log (000053)", async (t) => {
     await send({ type: "PLAY", key: 0, audio_base64: AUDIO_A, speed: 1 });
     await send({ type: "PLAY", key: 5, audio_base64: AUDIO_B, speed: 1 });
     assert.equal(plays(logs)[1].gapMs, undefined);
+  });
+});
+
+test("the player moves on by itself (000059)", async (t) => {
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+  const ended = (emitted) => emitted.filter((m) => m.type === "AUDIO_ENDED");
+
+  await t.test("starts the preloaded next sentence when this one ends, then says so", async () => {
+    const { send, audios, emitted, logs } = load();
+    await send({ type: "PLAY", key: 4, audio_base64: AUDIO_A, speed: 1.5 });
+    await send({ type: "PRELOAD", key: 5, audio_base64: AUDIO_B });
+    const next = audios.at(-1);
+    audios[0].onended();
+    await tick();
+    assert.equal(next.paused, false, "sentence 5 did not start");
+    assert.equal(next.playbackRate, 1.5, "the speed carries over");
+    assert.deepEqual(ended(emitted).map((m) => [m.key, m.advancedTo]), [[4, 5]]);
+    const play = logs.filter((l) => l.ev === "audio.play").at(-1);
+    assert.equal(play.key, 5);
+    assert.equal(play.advanced, true);
+    assert.equal(typeof play.gapMs, "number");
+  });
+
+  await t.test("keeps going through a queue of several", async () => {
+    const { send, audios, emitted } = load();
+    await send({ type: "PLAY", key: 0, audio_base64: AUDIO_A, speed: 1 });
+    for (const key of [1, 2, 3]) await send({ type: "PRELOAD", key, audio_base64: AUDIO_B });
+    for (let i = 0; i < 3; i++) {
+      audios.find((a) => !a.paused && a.onended).onended();
+      await tick();
+    }
+    assert.deepEqual(ended(emitted).map((m) => m.advancedTo), [1, 2, 3]);
+  });
+
+  await t.test("reports a plain end when the next sentence is not loaded", async () => {
+    const { send, audios, emitted } = load();
+    await send({ type: "PLAY", key: 0, audio_base64: AUDIO_A, speed: 1 });
+    await send({ type: "PRELOAD", key: 2, audio_base64: AUDIO_B }); // not the next one
+    audios[0].onended();
+    await tick();
+    assert.deepEqual(ended(emitted).map((m) => [m.key, m.advancedTo]), [[0, undefined]]);
+    assert.equal(audios.at(-1).paused, true, "sentence 2 must not start in place of 1");
+  });
+
+  await t.test("advances into nothing after a stop", async () => {
+    const { send, audios, emitted } = load();
+    await send({ type: "PLAY", key: 0, audio_base64: AUDIO_A, speed: 1 });
+    await send({ type: "PRELOAD", key: 1, audio_base64: AUDIO_B });
+    const first = audios[0];
+    await send({ type: "STOP" });
+    first.onended?.();
+    await tick();
+    assert.equal(ended(emitted).length, 0);
+    assert.equal(audios.at(-1).paused, true);
+  });
+
+  await t.test("tags each time report with its sentence", async () => {
+    const { send, emitted } = load({ realInterval: true });
+    await send({ type: "PLAY", key: 7, audio_base64: AUDIO_A, speed: 1 });
+    await new Promise((r) => setTimeout(r, 80));
+    const time = emitted.find((m) => m.type === "AUDIO_TIME");
+    assert.ok(time, "no AUDIO_TIME emitted");
+    assert.equal(time.key, 7);
+    await send({ type: "STOP" });
   });
 });

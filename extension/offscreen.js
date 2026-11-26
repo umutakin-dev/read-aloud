@@ -37,10 +37,15 @@ let currentKey = null;
 let lastEndedAt = 0;
 const GAP_WINDOW_MS = 10000;
 
-// One chunk's audio, decoded and loaded while the previous one is still
-// playing. Only ever the immediately-next chunk, so this is a single slot
-// rather than a cache to evict.
-let preloaded = null; // { key, url, element }
+let currentSpeed = 1;
+
+// The sentences after this one, decoded and loaded while it plays: key ->
+// { url, element }. When a sentence ends and the next is here, the player
+// starts it at once and tells the tab afterwards (000059). The tab used to
+// decide every next sentence, and Firefox throttles a hidden tab for seconds
+// at a time; with several queued, reading carries on through that.
+const preloads = new Map();
+const MAX_PRELOADS = 8;
 
 function urlFromBase64(base64) {
   const binary = atob(base64);
@@ -55,7 +60,9 @@ function startTimeReporting() {
   clearInterval(timeInterval);
   timeInterval = setInterval(() => {
     if (audio && !audio.paused) {
-      ReadAloudPlayer.emit({ type: "AUDIO_TIME", currentTime: audio.currentTime });
+      // Keyed, so a tab that has not yet heard about an advance does not
+      // apply the new sentence's time to the old sentence's words.
+      ReadAloudPlayer.emit({ type: "AUDIO_TIME", key: currentKey, currentTime: audio.currentTime });
     }
   }, 50);
 }
@@ -76,10 +83,42 @@ function releaseAudio() {
   }
 }
 
-function releasePreloaded() {
-  if (!preloaded) return;
-  URL.revokeObjectURL(preloaded.url);
-  preloaded = null;
+function releasePreload(key) {
+  const entry = preloads.get(key);
+  if (!entry) return;
+  URL.revokeObjectURL(entry.url);
+  preloads.delete(key);
+}
+
+function releasePreloads(keep = () => false) {
+  for (const key of [...preloads.keys()]) if (!keep(key)) releasePreload(key);
+}
+
+// Starts a sentence's element. Shared by PLAY and by an advance on our own.
+function start(element, url, key, startAt) {
+  releaseAudio();
+  currentKey = key;
+  attach(element, url, startAt || 0);
+  audio.playbackRate = currentSpeed;
+  return audio.play().then(() => startTimeReporting());
+}
+
+// The sentence after the one that just ended, if it is already loaded.
+function advance(endedKey) {
+  const next = typeof endedKey === "number" ? preloads.get(endedKey + 1) : null;
+  if (!next) return false;
+  preloads.delete(endedKey + 1);
+  releasePreloads((key) => key > endedKey + 1);
+  const endedAt = lastEndedAt;
+  lastEndedAt = 0;
+  start(next.element, next.url, endedKey + 1).then(
+    () => playerLog("audio.play", { key: endedKey + 1, preloaded: true, advanced: true, gapMs: Date.now() - endedAt }),
+    (err) => {
+      playerLog("audio.play.fail", { key: endedKey + 1, error: `${err.name}: ${err.message}` });
+      ReadAloudPlayer.emit({ type: "AUDIO_ERROR", message: err.message });
+    }
+  );
+  return true;
 }
 
 function attach(element, url, startAt) {
@@ -100,8 +139,14 @@ function attach(element, url, startAt) {
   audio.onended = () => {
     clearInterval(timeInterval);
     lastEndedAt = Date.now();
-    playerLog("audio.ended", { key: currentKey, at: roundSeconds(audio?.currentTime) });
-    ReadAloudPlayer.emit({ type: "AUDIO_ENDED" });
+    const endedKey = currentKey;
+    playerLog("audio.ended", { key: endedKey, at: roundSeconds(audio?.currentTime) });
+    const advanced = advance(endedKey);
+    ReadAloudPlayer.emit({
+      type: "AUDIO_ENDED",
+      key: endedKey,
+      advancedTo: advanced ? endedKey + 1 : undefined,
+    });
   };
   audio.onerror = () => {
     clearInterval(timeInterval);
@@ -220,17 +265,19 @@ function handlePlayerMessage(msg, sendResponse) {
   }
 
   if (msg.type === "PRELOAD") {
-    releasePreloaded();
+    releasePreload(msg.key);
     const url = urlFromBase64(msg.audio_base64);
     const element = new Audio(url);
     element.preload = "auto";
     element.load();
-    preloaded = { key: msg.key, url, element };
+    preloads.set(msg.key, { url, element });
+    // Over the limit, the furthest ahead goes: it is needed last.
+    while (preloads.size > MAX_PRELOADS) releasePreload(Math.max(...preloads.keys()));
     return;
   }
 
   if (msg.type === "PLAY") {
-    const ready = preloaded && preloaded.key === msg.key ? preloaded : null;
+    const ready = preloads.get(msg.key) || null;
 
     // No audio and nothing preloaded under this key — the document was torn
     // down, or the preload never arrived. Ask for the bytes.
@@ -239,29 +286,26 @@ function handlePlayerMessage(msg, sendResponse) {
       return true;
     }
 
-    releaseAudio();
-
     let url, element;
     if (ready) {
-      preloaded = null;
+      preloads.delete(msg.key);
       url = ready.url;
       element = ready.element;
     } else {
-      releasePreloaded();
       url = urlFromBase64(msg.audio_base64);
       element = new Audio(url);
     }
+    // A jump makes the queue stale, except what still lies just ahead of the
+    // new position.
+    releasePreloads((key) => key > msg.key && key <= msg.key + MAX_PRELOADS);
+    if (msg.speed > 0) currentSpeed = msg.speed;
 
-    currentKey = msg.key;
-    attach(element, url, msg.startAt || 0);
-    audio.playbackRate = msg.speed || 1.0;
     // Only a sentence following one that just ended has a gap to report; the
     // first, a jump or a resume after a long pause does not.
     const endedAt = lastEndedAt && Date.now() - lastEndedAt < GAP_WINDOW_MS ? lastEndedAt : 0;
     lastEndedAt = 0;
 
-    audio
-      .play()
+    start(element, url, msg.key, msg.startAt)
       .then(() => {
         // Logged once playback has started, so the gap covers all of the
         // silence: the message hops, the decode and the start itself.
@@ -271,7 +315,6 @@ function handlePlayerMessage(msg, sendResponse) {
           startAt: msg.startAt || undefined,
           gapMs: endedAt ? Date.now() - endedAt : undefined,
         });
-        startTimeReporting();
         sendResponse({ ok: true, usedPreload: Boolean(ready) });
       })
       .catch((err) => {
@@ -310,11 +353,13 @@ function handlePlayerMessage(msg, sendResponse) {
 
   if (msg.type === "STOP") {
     releaseAudio();
-    releasePreloaded();
+    releasePreloads();
+    currentKey = null;
     return;
   }
 
   if (msg.type === "SET_SPEED") {
+    if (msg.speed > 0) currentSpeed = msg.speed;
     if (audio && msg.speed > 0) {
       try {
         audio.playbackRate = msg.speed;
