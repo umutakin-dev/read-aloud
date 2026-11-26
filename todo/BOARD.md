@@ -52,10 +52,11 @@
 
 *(none)*
 
-## ✅ Done (44)
+## ✅ Done (45)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000061](done/000061-t-toolbar-status-shows-time-left-and-percent-read-no.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;26 | Toolbar status shows time left and percent read, not a paragraph count |
 | [000060](done/000060-b-firefox-on-a-mac-ignores-the-command-shift-u-short.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | Firefox on a Mac ignores the Command-Shift-U shortcut |
 | [000058](done/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | Our own text extractor in place of Readability, reading the live page |
 | [000056](done/000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;26 | Audio keeps playing after the reading page reloads or navigates away |
