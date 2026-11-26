@@ -12,20 +12,21 @@
 
 | # | ID | Type | Priority | Start | End | Title |
 |---|----|------|----------|-------|-----|-------|
-| 1 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;27 | 🔨 Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
-| 2 | [000056](000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;27 | 2026&#8209;11&#8209;28 | Audio keeps playing after the reading page reloads or navigates away |
-| 3 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | 2026&#8209;11&#8209;28 | 2026&#8209;11&#8209;30 | Read from the selected text |
-| 4 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | 2026&#8209;11&#8209;30 | 2026&#8209;12&#8209;01 | Show progress through the document and allow scrubbing |
+| 1 | [000058](in-progress/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;26 | 🔨 Our own text extractor in place of Readability, reading the live page |
+| 2 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;26 | 🔨 Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| 3 | [000039](000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;26 | Read from the selected text |
+| 4 | [000040](000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;27 | Show progress through the document and allow scrubbing |
 
 ### 🔜 Next (0)
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| [000058](in-progress/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | Our own text extractor in place of Readability, reading the live page |
 
 ## 📋 Backlog (15)
 
@@ -55,11 +56,12 @@
 
 *(none)*
 
-## ✅ Done (40)
+## ✅ Done (41)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
 | [000058](done/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | Our own text extractor in place of Readability, reading the live page |
+| [000056](done/000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;26 | Audio keeps playing after the reading page reloads or navigates away |
 | [000055](done/000055-t-build-a-chrome-and-a-firefox-package-from-the-one-.md) | 🔧 | 🔴 | 2026&#8209;11&#8209;23 | Build a Chrome and a Firefox package from the one extension tree |
 | [000053](done/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | Per-page sentence record, synthesized whole page ahead of the reader |
 | [000052](done/000052-f-debug-log-the-extension-records-and-the-popup-down.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | Debug log the extension records and the popup downloads |
