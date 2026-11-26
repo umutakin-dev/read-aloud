@@ -48,6 +48,9 @@ The rule:
 
 ## Log
 
+### 2026-11-26 08:56 UTC
+- **Progress:** PR #26 opened: spoken form sent to the engine, word spans mapped back to the page; cautious I/V/X rule
+
 ### 2026-11-26 08:53 UTC
 
 - **Progress:** Started work
