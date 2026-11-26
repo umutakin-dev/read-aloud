@@ -651,15 +651,35 @@ test("spokenForm reads Roman numerals as numbers", async (t) => {
     for (const text of [
       "I think I said so.",       // the pronoun
       "Then I went home.",        // after a capital, still the pronoun
-      "an IV drip",               // after a lowercase word
-      "VI is an editor",          // nothing before it
       "Buy the CD and MIX it",    // not made of I, V and X alone
-      "Section IIII",             // not a numeral
       "GTA-V and GTA VIs",        // joined to something
       "Mr. V",                    // punctuation between
     ]) {
       assert.equal(spoken(text), text);
     }
+  });
+
+  // espeak-ng, behind the browser engine, read "an IV drip" as "an roman
+  // four drip" (000066). A run kept as letters is sent spelled out.
+  await t.test("a run kept as letters is sent hyphenated, so it is spelled", () => {
+    assert.equal(spoken("The nurse started an IV drip."), "The nurse started an I-V drip.");
+    assert.equal(spoken("VI is an editor"), "V-I is an editor");
+    assert.equal(spoken("Section IIII"), "Section I-I-I-I");
+    assert.equal(spoken("Malcolm X spoke"), "Malcolm X spoke");
+  });
+
+  await t.test("a spelled run is highlighted as written", () => {
+    const page = "an IV drip";
+    const { text, edits } = kit.spokenForm(page);
+    const spans = kit.spansToPage(
+      [
+        { word: "an", start_char: 0, end_char: 2 },
+        { word: "I-V", start_char: text.indexOf("I-V"), end_char: text.indexOf("I-V") + 3 },
+        { word: "drip", start_char: text.indexOf("drip"), end_char: text.indexOf("drip") + 4 },
+      ],
+      edits
+    );
+    assert.deepEqual(spans.map((s) => page.slice(s.start_char, s.end_char)), ["an", "IV", "drip"]);
   });
 
   await t.test("no edits when nothing changes", () => {

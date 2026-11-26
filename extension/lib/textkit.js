@@ -476,13 +476,21 @@ const ReadAloudText = (() => {
     return before.length > 1 && before === before.toUpperCase() && /\p{Lu}/u.test(before);
   }
 
+  // A run the rule above keeps as letters still has to reach the engine as
+  // letters. The browser engine voices words through espeak-ng, which reads
+  // any run it can place as a numeral with "roman" in front: "an IV drip" was
+  // "an roman four drip", "XX" "roman twenty" (000066). Hyphenated, "I-V" is
+  // read letter by letter by espeak and by the server's misaki alike.
   function romanNumerals(text) {
     const found = [];
     for (const match of text.matchAll(ROMAN_CANDIDATE)) {
       const at = match.index + match[1].length;
       const letters = match[2];
-      if (!isRomanNumeral(text, at, letters)) continue;
-      found.push({ at, length: letters.length, words: numberWords(romanValue(letters)) });
+      if (isRomanNumeral(text, at, letters)) {
+        found.push({ at, length: letters.length, words: numberWords(romanValue(letters)) });
+      } else if (letters.length > 1) {
+        found.push({ at, length: letters.length, words: letters.split("").join("-") });
+      }
     }
     return found;
   }
