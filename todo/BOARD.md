@@ -52,10 +52,11 @@
 
 *(none)*
 
-## ✅ Done (46)
+## ✅ Done (47)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000063](done/000063-f-roman-numerals-are-read-as-letters.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Roman numerals are read as letters |
 | [000062](done/000062-b-a-short-quoted-line-in-a-comment-is-skipped.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;26 | A short quoted line in a comment is skipped |
 | [000061](done/000061-t-toolbar-status-shows-time-left-and-percent-read-no.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;26 | Toolbar status shows time left and percent read, not a paragraph count |
 | [000060](done/000060-b-firefox-on-a-mac-ignores-the-command-shift-u-short.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | Firefox on a Mac ignores the Command-Shift-U shortcut |

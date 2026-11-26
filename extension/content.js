@@ -167,6 +167,8 @@
     findChunkOffset,
     searchStartFor,
     resolveWordSpans,
+    spokenForm,
+    spansToPage,
   } = ReadAloudText;
 
   // Extraction and the text index must be built with the same options: a
@@ -427,15 +429,21 @@
   // Audio is always synthesized at 1.0x and sped up at playback time via
   // audio.playbackRate. Doing it server-side too would compound the two rates,
   // and would bake a speed into every prefetched paragraph.
+  //
+  // The engine is sent the chunk's spoken form ("GTA six" for "GTA VI",
+  // 000063), and the word spans it returns are mapped back onto the chunk's
+  // page text here, before anything else sees them: the record, highlighting
+  // and progress only ever deal in page offsets.
   async function requestTTSWithTimestamps(text, index) {
     if (!extensionAlive()) throw new Error("Extension context invalidated");
     const started = Date.now();
-    log("chunk.request", { chunk: index, chars: text.length, text: preview(text) });
+    const spoken = spokenForm(text);
+    log("chunk.request", { chunk: index, chars: text.length, text: preview(spoken.text) });
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(
         {
           type: "TTS_REQUEST",
-          text,
+          text: spoken.text,
           voice: state.voice,
           serverUrl: state.serverUrl,
         },
@@ -450,6 +458,7 @@
               state.engine = response.engine;
               updateEngineIndicator();
             }
+            if (response.data) spansToPage(response.data.timestamps, spoken.edits);
             resolve(response.data);
           } else {
             log("chunk.fail", { chunk: index, error: response?.error || "no response" });

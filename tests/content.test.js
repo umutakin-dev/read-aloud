@@ -849,3 +849,35 @@ test("the progress bar (000040)", async (t) => {
     }
   });
 });
+
+// The engine is sent the spoken form, and the spans it returns are mapped
+// back onto the page text before the record keeps them (000063).
+test("Roman numerals are sent as numbers and highlighted as written", async () => {
+  const answered = [];
+  const page = loadPage({
+    tts: (msg) => {
+      const at = msg.text.indexOf("six");
+      const data = {
+        audio_base64: "audio",
+        timestamps: [
+          { word: "GTA", start: 0, end: 0.3, start_char: at - 4, end_char: at - 1 },
+          { word: "six", start: 0.3, end: 0.6, start_char: at, end_char: at + 3 },
+          { word: "soon", start: 0.6, end: 0.9, start_char: at + 4, end_char: at + 8 },
+        ],
+      };
+      answered.push(data);
+      return { ok: true, engine: "server", data };
+    },
+  });
+  try {
+    const text = "Waiting for GTA VI soon.";
+    page.dispatch({ type: "TOGGLE_READ_ALOUD", selectedText: text });
+    for (let i = 0; i < 5; i++) await tick();
+    const request = page.messages.find((m) => m.type === "TTS_REQUEST");
+    assert.equal(request.text, "Waiting for GTA six soon.");
+    const spans = answered[0].timestamps.map((s) => text.slice(s.start_char, s.end_char));
+    assert.deepEqual(spans, ["GTA", "VI", "soon"]);
+  } finally {
+    page.close();
+  }
+});

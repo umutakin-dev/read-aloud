@@ -422,6 +422,107 @@ const ReadAloudText = (() => {
     return { chunks, paragraphStarts };
   }
 
+  // ─── Spoken form ──────────────────────────────────────────────────────────
+  // What the engine is sent may differ from what the page shows (000063).
+  // Kokoro spells "GTA VI" as "G T A vee eye"; it has to be sent "GTA six".
+  // A chunk's text stays the page text, because that is what is found and
+  // highlighted, and the engine's word offsets, which count into the spoken
+  // text, are mapped back to it, so "six" lights up "VI".
+  //
+  // A Roman numeral is only I, V and X here, up to 39, which keeps CD, DC, MD
+  // and MIX out. The rule is cautious, because a wrong guess breaks a reading
+  // that was right:
+  //   - two or more letters after a capitalised word: "GTA VI", "World War II"
+  //   - a lone V or X only after an all-caps name: "GTA V", never "Malcolm X"
+  //   - a lone I never: it is the pronoun
+  // Always the plain number. "Henry VIII" is "Henry eight", not "the eighth";
+  // telling a ruler from a title would need a list of names.
+  const ROMAN = /^(X{0,3})(IX|IV|V?I{0,3})$/;
+  const ROMAN_CANDIDATE = /(^|[^\p{L}\p{N}_'’-])([IVX]+)(?![\p{L}\p{N}_-])/gu;
+  const ROMAN_VALUES = { I: 1, V: 5, X: 10 };
+  const ONES = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+  const TEENS = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+  const TENS = ["", "", "twenty", "thirty"];
+
+  function romanValue(letters) {
+    if (!ROMAN.test(letters)) return 0;
+    let total = 0;
+    for (let i = 0; i < letters.length; i++) {
+      const value = ROMAN_VALUES[letters[i]];
+      const next = ROMAN_VALUES[letters[i + 1]] || 0;
+      total += value < next ? -value : value;
+    }
+    return total;
+  }
+
+  function numberWords(n) {
+    if (n < 10) return ONES[n];
+    if (n < 20) return TEENS[n - 10];
+    const ones = ONES[n % 10];
+    return TENS[Math.floor(n / 10)] + (ones ? `-${ones}` : "");
+  }
+
+  // The word just before `at`, if only spaces separate the two.
+  function wordBefore(text, at) {
+    const match = text.slice(0, at).match(/([\p{L}\p{N}]+) +$/u);
+    return match ? match[1] : null;
+  }
+
+  function isRomanNumeral(text, at, letters) {
+    if (letters === "I" || !romanValue(letters)) return false;
+    const before = wordBefore(text, at);
+    if (!before || !/^\p{Lu}/u.test(before)) return false;
+    if (letters.length > 1) return true;
+    return before.length > 1 && before === before.toUpperCase() && /\p{Lu}/u.test(before);
+  }
+
+  // The text to send, and the edits that turn a spoken offset back into a page
+  // offset: each says where it starts in both texts and how long it is in each.
+  function spokenForm(text) {
+    const edits = [];
+    let spoken = "";
+    let cursor = 0;
+    for (const match of text.matchAll(ROMAN_CANDIDATE)) {
+      const at = match.index + match[1].length;
+      const letters = match[2];
+      if (!isRomanNumeral(text, at, letters)) continue;
+      const words = numberWords(romanValue(letters));
+      spoken += text.slice(cursor, at);
+      edits.push({ spokenAt: spoken.length, spokenLength: words.length, pageAt: at, pageLength: letters.length });
+      spoken += words;
+      cursor = at + letters.length;
+    }
+    spoken += text.slice(cursor);
+    return { text: spoken, edits };
+  }
+
+  // A spoken offset as a page offset. One inside a replaced word goes to that
+  // word's start, or its end when it closes a span.
+  function pageOffset(offset, edits, closing) {
+    let shift = 0;
+    for (const edit of edits) {
+      if (closing ? offset <= edit.spokenAt : offset < edit.spokenAt) break;
+      const end = edit.spokenAt + edit.spokenLength;
+      if (offset < end || offset === end && closing) {
+        return closing ? edit.pageAt + edit.pageLength : edit.pageAt;
+      }
+      shift = edit.pageAt + edit.pageLength - (edit.spokenAt + edit.spokenLength);
+    }
+    return offset + shift;
+  }
+
+  // Rewrites each word's span from the spoken text into the page text, in
+  // place. A word without a span is left for resolveWordSpans to estimate.
+  function spansToPage(timestamps, edits) {
+    if (!edits.length || !Array.isArray(timestamps)) return timestamps;
+    for (const ts of timestamps) {
+      if (ts.start_char == null || ts.end_char == null) continue;
+      ts.start_char = pageOffset(ts.start_char, edits, false);
+      ts.end_char = pageOffset(ts.end_char, edits, true);
+    }
+    return timestamps;
+  }
+
   // ─── Text index ───────────────────────────────────────────────────────────
   // Chunk text has its whitespace collapsed, so the page text has to be
   // collapsed identically or the chunk is never found. We build that collapsed
@@ -578,6 +679,8 @@ const ReadAloudText = (() => {
     skipRule,
     splitIntoParagraphs,
     splitAroundUrls,
+    spokenForm,
+    spansToPage,
     splitIntoSentences,
     splitParagraphIntoChunks,
     buildChunks,
