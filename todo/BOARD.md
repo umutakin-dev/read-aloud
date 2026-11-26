@@ -18,12 +18,11 @@
 
 *(none)*
 
-## 🔨 In Progress (2)
+## 🔨 In Progress (1)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
-| [000063](in-progress/000063-f-roman-numerals-are-read-as-letters.md) | ✨ | 🟡 | Roman numerals are read as letters |
 
 ## 📋 Backlog (15)
 
@@ -53,10 +52,11 @@
 
 *(none)*
 
-## ✅ Done (45)
+## ✅ Done (46)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000063](done/000063-f-roman-numerals-are-read-as-letters.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Roman numerals are read as letters |
 | [000061](done/000061-t-toolbar-status-shows-time-left-and-percent-read-no.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;26 | Toolbar status shows time left and percent read, not a paragraph count |
 | [000060](done/000060-b-firefox-on-a-mac-ignores-the-command-shift-u-short.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | Firefox on a Mac ignores the Command-Shift-U shortcut |
 | [000058](done/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | Our own text extractor in place of Readability, reading the live page |

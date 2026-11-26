@@ -1,7 +1,7 @@
 # Roman numerals are read as letters
 
 **Type:** ✨ Feature
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-26 08:53 UTC
@@ -30,9 +30,9 @@ The rule:
 
 ## Actual
 
-- **Start:** 2026-11-26 08:53 UTC
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-26 07:26 UTC
+- **End:** 2026-11-26 09:09 UTC
+- **Effort:** 1h43
 
 ## Requirements
 
@@ -47,6 +47,16 @@ The rule:
 - [ ] Documentation updated
 
 ## Log
+
+### 2026-11-26 09:09 UTC
+- **Note:** Took 1h43 against an estimate of 9m (11.4x) — measured since the previous item closed.
+
+### 2026-11-26 09:09 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 09:09 UTC
+- **Delivered:** PR #26: the engine is sent a spoken form (GTA six) and word spans are mapped back to the page; I/V/X numerals by a cautious rule
 
 ### 2026-11-26 08:56 UTC
 - **Progress:** PR #26 opened: spoken form sent to the engine, word spans mapped back to the page; cautious I/V/X rule
