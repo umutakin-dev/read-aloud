@@ -59,6 +59,9 @@ Worth checking the highlight colours against contrast requirements too, and how 
 ## Log
 
 ### 2026-11-26 22:21 UTC
+- **Progress:** PR #34 opened (keyboard controls, screen reader labels and announcements, highlight contrast). 406 extension tests pass. Left open for requirement 8: hear it with VoiceOver in Chrome and Firefox, including that Space on Previous does not also press it.
+
+### 2026-11-26 22:21 UTC
 - **Decision:** Keys act only while focus is in the toolbar (Umut, 2026-11-27): the toolbar takes focus on open, so they work at once, and the page keeps Space and the arrows for scrolling. Space is play/pause wherever focus is in the toolbar; Enter presses the focused button. Announcements are kept to play/pause, speed, the engine going or coming back and nothing to read, never the time left, which would talk over the reading.
 
 ### 2026-11-26 22:21 UTC
