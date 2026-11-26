@@ -28,6 +28,7 @@ running, and switches to Kokoro at the next sentence once it is.
 - Toolbar with play/pause, prev/next paragraph, speed control, and a progress bar showing what has been synthesized, and the listening time left at the current speed with the percent read; click or drag it, or use the arrow keys, to jump to a paragraph
 - Optional Web Speech API fallback when the server is unavailable (off by default; always on in a browser without WebGPU)
 - Auto-reconnect when server comes back online
+- Reads one tab at a time: starting in another tab moves reading there, and the first tab says so
 - Right-click context menu and keyboard shortcut (Ctrl+Shift+U; on a Mac ⌘⇧U in Chrome, ⌃⇧U in Firefox)
 
 ## Prerequisites

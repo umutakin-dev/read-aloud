@@ -187,6 +187,33 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   }
 });
 
+// One player, so one tab reads at a time (000033). A tab starting to read
+// takes the player over, out loud: the player is stopped, so the old tab's
+// sentence does not play on under the new tab's toolbar, and the old tab is
+// told, so it says where reading went instead of showing a toolbar that
+// claims to be playing and will never hear another event.
+async function takeOverReading(tabId) {
+  if (tabId === undefined) return;
+  const before = await getActiveTab();
+  await setActiveTab(tabId);
+  if (before === null || before === tabId) return;
+  log("read.takeover", { from: before, to: tabId });
+  if (await hasOffscreen()) await sendToOffscreen({ target: "offscreen", type: "STOP" });
+  // Gone, or navigated to a page without the content script: nothing to tell.
+  chrome.tabs.sendMessage(before, { type: "READING_MOVED" }).catch(() => {});
+}
+
+// A tab that has lost the player must not steer it. Its last messages can
+// still be on their way when it is told, and its own Stop on the way out
+// would otherwise cut off the tab that now reads. The popup has no tab and
+// always may.
+async function fromAnotherTab(sender) {
+  const tabId = sender?.tab?.id;
+  if (tabId === undefined) return false;
+  const active = await getActiveTab();
+  return active !== null && active !== tabId;
+}
+
 // Audio events from the player go to the tab that is reading.
 function relayAudioEvent(message) {
   getActiveTab().then((tabId) => {
@@ -314,6 +341,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === "READING_STARTED") {
+    takeOverReading(sender?.tab?.id)
+      .then(() => sendResponse({ ok: true }))
+      .catch((err) => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
+
+  // Everything below steers the one player, which only the reading tab may do.
+  const PLAYER_MESSAGES = ["PLAY_AUDIO", "PRELOAD_AUDIO", "RESUME_AUDIO", "PAUSE_AUDIO", "STOP_AUDIO", "SET_AUDIO_SPEED"];
+  if (PLAYER_MESSAGES.includes(message.type) && sender?.tab?.id !== undefined) {
+    fromAnotherTab(sender).then((other) => {
+      if (other) {
+        log("player.refused", { type: message.type, tab: sender.tab.id });
+        sendResponse({ ok: false, resumed: false, moved: true, error: "Reading moved to another tab" });
+        return;
+      }
+      // A fire-and-forget control answers nothing; close its channel.
+      if (handlePlayerMessage(message, sender, sendResponse) !== true) sendResponse();
+    });
+    return true;
+  }
+  return handlePlayerMessage(message, sender, sendResponse);
+});
+
+function handlePlayerMessage(message, sender, sendResponse) {
   // Audio control messages from content script → offscreen
   if (message.type === "PLAY_AUDIO") {
     const play = {
@@ -399,7 +451,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return;
   }
-});
+}
 
 // ─── Choosing an engine (000046) ──────────────────────────────────────────
 // Two engines produce the same response: the local server (exact word timings,

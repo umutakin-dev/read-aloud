@@ -961,3 +961,106 @@ test("a browser that can't run Kokoro reads with its own voice (000069)", async 
     }
   });
 });
+
+test("reading moved to another tab (000033)", async (t) => {
+  const TEXT = "The first sentence is here. The second sentence follows it.";
+  const settle = async () => {
+    for (let i = 0; i < 20; i++) await tick();
+  };
+  const open = () =>
+    loadPage({ tts: () => ({ ok: true, engine: "server", data: { audio_base64: "a", timestamps: [] } }) });
+  const start = async (page) => {
+    page.dispatch({ type: "TOGGLE_READ_ALOUD", selectedText: TEXT });
+    await settle();
+  };
+  const plays = (page) => page.messages.filter((m) => m.type === "PLAY_AUDIO").map((m) => m.key);
+  const host = (page) => page.window.document.getElementById("read-aloud-toolbar-host");
+
+  await t.test("claims the player before its first sentence plays", async () => {
+    const page = open();
+    try {
+      await start(page);
+      const started = page.sent.indexOf("READING_STARTED");
+      assert.ok(started !== -1 && started < page.sent.indexOf("PLAY_AUDIO"), page.sent.join(" "));
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("stops, and says why instead of claiming to play", async () => {
+    const page = open();
+    try {
+      await start(page);
+      page.dispatch({ type: "READING_MOVED" });
+      await settle();
+      assert.match(page.status(), /^Reading moved to another tab/);
+      assert.ok(host(page), "the toolbar stays to say so");
+      // jsdom does not apply the shadow root's styles, so check the class and
+      // the rule it switches on: everything but the reason and Close hidden.
+      assert.ok(page.toolbarEl("btn-play").closest(".toolbar").classList.contains("moved"));
+      const rule = page.toolbarEl("btn-play").getRootNode().querySelector("style").textContent;
+      const hidden = rule.match(/([^}]*)\{\s*display:\s*none;\s*\}/)[1];
+      for (const part of ["#btn-play", "#btn-prev", "#btn-next", "#btn-stop", ".engine", ".progress", ".speed-group"]) {
+        assert.ok(hidden.includes(`.toolbar.moved ${part}`), `${part} is hidden`);
+      }
+      assert.ok(!hidden.includes("btn-close"));
+      assert.ok(page.logs.some((l) => l.ev === "read.moved"));
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("plays nothing more, even if a late event arrives", async () => {
+    const page = open();
+    try {
+      await start(page);
+      page.dispatch({ type: "READING_MOVED" });
+      await settle();
+      page.dispatch({ type: "AUDIO_ENDED", key: 0 });
+      await page.poll();
+      await settle();
+      assert.deepEqual(plays(page), [0]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("Close removes the notice", async () => {
+    const page = open();
+    try {
+      await start(page);
+      page.dispatch({ type: "READING_MOVED" });
+      await settle();
+      page.click("btn-close");
+      assert.equal(host(page), null);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("reading here again replaces the notice with a working toolbar", async () => {
+    const page = open();
+    try {
+      await start(page);
+      page.dispatch({ type: "READING_MOVED" });
+      await settle();
+      await start(page);
+      assert.equal(page.window.document.querySelectorAll("#read-aloud-toolbar-host").length, 1);
+      assert.ok(!page.toolbarEl("btn-play").closest(".toolbar").classList.contains("moved"));
+      assert.deepEqual(plays(page), [0, 0]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("a tab that is not reading ignores it", async () => {
+    const page = open();
+    try {
+      page.dispatch({ type: "READING_MOVED" });
+      await settle();
+      assert.equal(host(page), null);
+    } finally {
+      page.close();
+    }
+  });
+});

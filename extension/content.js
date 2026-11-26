@@ -1288,6 +1288,11 @@
         .engine.warn::before { background: #f9e2af; }
         .engine.fallback::before { background: #fab387; }
         .engine.down::before { background: #f38ba8; }
+        /* Reading moved to another tab (000033): only the reason and Close
+           are left, so nothing here claims to be playing or can be pressed. */
+        .toolbar.moved #btn-prev, .toolbar.moved #btn-play, .toolbar.moved #btn-next,
+        .toolbar.moved #btn-stop, .toolbar.moved .speed-group, .toolbar.moved .engine,
+        .toolbar.moved .progress { display: none; }
         /* Position through the page (000040): played in the accent colour,
            synthesized but not yet played in a lighter shade (painted as a
            gradient from the sentence record), the rest dark. A strip along
@@ -1480,6 +1485,7 @@
   }
 
   function removeToolbar() {
+    cancelMovedClose();
     if (state.toolbar) {
       state.toolbar.remove();
       state.toolbar = null;
@@ -1605,6 +1611,8 @@
     state._chunkOffsets = {};
     state._sentenceStarts = null;
 
+    // A toolbar still saying reading moved away from here is replaced.
+    removeToolbar();
     createToolbar();
     updateToolbarStatus("Extracting text...");
 
@@ -1623,6 +1631,12 @@
       setTimeout(stopReadAloud, 3000);
       return;
     }
+
+    // Claim the one player before anything can play. A tab reading elsewhere
+    // is stopped and told (000033); awaited, so that stop cannot land on this
+    // tab's first sentence.
+    await sendMessage({ type: "READING_STARTED" });
+    if (!state.active) return;
 
     updateToolbarStatus(`Found ${paragraphCount()} paragraphs. Checking server...`);
     updateEngineIndicator();
@@ -1657,7 +1671,9 @@
     startHealthCheckTimer();
   }
 
-  function stopReadAloud() {
+  // keepToolbar leaves the toolbar up to say why reading stopped; it is only
+  // ever set by readingMoved, never by a click handler's event argument.
+  function stopReadAloud({ keepToolbar = false } = {}) {
     if (state.active) {
       log("read.stop", { chunk: state.currentChunk, of: state.chunks.length, ...state.record?.summary() });
     }
@@ -1665,7 +1681,7 @@
     stopHighlightLoop();
     stopHealthCheckTimer();
     clearHighlights();
-    removeToolbar();
+    if (keepToolbar !== true) removeToolbar();
     postMessage({ type: "STOP_AUDIO" });
     state.active = false;
     state.playing = false;
@@ -1702,7 +1718,60 @@
   function onToggleMessage(message) {
     if (message.type === "TOGGLE_READ_ALOUD") {
       toggleReadAloud(message.selectedText);
+    } else if (message.type === "READING_MOVED") {
+      readingMoved();
     }
+  }
+
+  // ─── Another tab took the player (000033) ─────────────────────────────────
+  // There is one player, so a second tab starting to read stops this one. The
+  // background has already stopped the audio; this stops everything else and
+  // says why, rather than leaving a toolbar that claims to be playing and will
+  // never hear another event. The notice stays until the reader has seen it:
+  // this tab is usually hidden when it happens, so the clock starts only once
+  // it is shown again.
+  const MOVED_NOTICE_MS = 6000;
+  let movedTimer = null;
+  let movedWatch = null;
+
+  function readingMoved() {
+    if (!state.active) return;
+    log("read.moved", { chunk: state.currentChunk, hidden: document.hidden });
+    stopReadAloud({ keepToolbar: true });
+    const toolbar = state._shadow?.querySelector(".toolbar");
+    if (!toolbar) return;
+    toolbar.classList.add("moved");
+    updatePlayButton(false);
+    updateToolbarStatus("Reading moved to another tab. Read Aloud can read one tab at a time.");
+    closeMovedLater();
+  }
+
+  function closeMovedLater() {
+    cancelMovedClose();
+    const later = () => {
+      movedTimer = setTimeout(() => {
+        movedTimer = null;
+        if (!state.active) removeToolbar();
+      }, MOVED_NOTICE_MS);
+    };
+    if (!document.hidden) {
+      later();
+      return;
+    }
+    movedWatch = () => {
+      if (document.hidden) return;
+      document.removeEventListener("visibilitychange", movedWatch);
+      movedWatch = null;
+      later();
+    };
+    document.addEventListener("visibilitychange", movedWatch);
+  }
+
+  function cancelMovedClose() {
+    clearTimeout(movedTimer);
+    movedTimer = null;
+    if (movedWatch) document.removeEventListener("visibilitychange", movedWatch);
+    movedWatch = null;
   }
 
   chrome.runtime.onMessage.addListener(onToggleMessage);
