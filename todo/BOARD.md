@@ -6,29 +6,24 @@
 ## 🗺️ Roadmap
 
 *What is being built and in what order. Everything under Backlog is the implicit Later.*
+*Start and End are projected from the lane order at this repo's measured pace, as of 2026-11-26 (the folder's newest entry); `todo schedule` shows the working.*
 
-### 🎯 Now (5)
+### 🎯 Now (2)
 
-| # | ID | Type | Priority | Title |
-|---|----|------|----------|-------|
-| 1 | [000058](in-progress/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | 🔨 Our own text extractor in place of Readability, reading the live page |
-| 2 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | 🔨 Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
-| 3 | [000056](in-progress/000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | 🔨 Audio keeps playing after the reading page reloads or navigates away |
-| 4 | [000039](in-progress/000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | 🔨 Read from the selected text |
-| 5 | [000040](in-progress/000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | 🔨 Show progress through the document and allow scrubbing |
+| # | ID | Type | Priority | Start | End | Title |
+|---|----|------|----------|-------|-----|-------|
+| 1 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;26 | 🔨 Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| 2 | [000040](in-progress/000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | 2026&#8209;11&#8209;26 | 🔨 Show progress through the document and allow scrubbing |
 
 ### 🔜 Next (0)
 
 *(none)*
 
-## 🔨 In Progress (5)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
-| [000058](in-progress/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | Our own text extractor in place of Readability, reading the live page |
-| [000039](in-progress/000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | Read from the selected text |
-| [000056](in-progress/000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | Audio keeps playing after the reading page reloads or navigates away |
 | [000040](in-progress/000040-f-show-progress-through-the-document-and-allow-scrub.md) | ✨ | 🟡 | Show progress through the document and allow scrubbing |
 
 ## 📋 Backlog (15)
@@ -59,10 +54,13 @@
 
 *(none)*
 
-## ✅ Done (39)
+## ✅ Done (42)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000058](done/000058-f-our-own-text-extractor-in-place-of-readability-rea.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | Our own text extractor in place of Readability, reading the live page |
+| [000056](done/000056-b-audio-keeps-playing-after-the-reading-page-reloads.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;26 | Audio keeps playing after the reading page reloads or navigates away |
+| [000039](done/000039-f-read-from-the-selected-text.md) | ✨ | 🔴 | 2026&#8209;11&#8209;26 | Read from the selected text |
 | [000055](done/000055-t-build-a-chrome-and-a-firefox-package-from-the-one-.md) | 🔧 | 🔴 | 2026&#8209;11&#8209;23 | Build a Chrome and a Firefox package from the one extension tree |
 | [000053](done/000053-f-per-page-sentence-record-synthesized-whole-page-ah.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | Per-page sentence record, synthesized whole page ahead of the reader |
 | [000052](done/000052-f-debug-log-the-extension-records-and-the-popup-down.md) | ✨ | 🔴 | 2026&#8209;11&#8209;23 | Debug log the extension records and the popup downloads |

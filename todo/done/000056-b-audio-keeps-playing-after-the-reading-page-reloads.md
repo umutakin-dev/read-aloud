@@ -1,9 +1,8 @@
 # Audio keeps playing after the reading page reloads or navigates away
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
-**Roadmap:** 🎯 NOW 3
 **Tracked In:** local
 **Created:** 2026-11-23 21:24 UTC
 
@@ -24,12 +23,12 @@ Refreshing the page mid-read leaves the current audio playing to its end (Umut, 
 ## Actual
 
 - **Start:** 2026-11-24 07:19 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-26 07:03 UTC
+- **Effort:** 4m
 
 ## Requirements
 
-- [ ] Reloading or leaving the page stops the audio at once, in Chrome and Firefox
+- [x] Reloading or leaving the page stops the audio at once, in Chrome and Firefox
 - [x] A same-page #fragment jump does not stop it
 - [x] A test covers the stop on pagehide
 
@@ -42,6 +41,19 @@ Refreshing the page mid-read leaves the current audio playing to its end (Umut, 
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-26 07:03 UTC
+- **Note:** Took 4m against an estimate of 5h (0.0x) — measured since the previous item closed.
+
+### 2026-11-26 07:03 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 07:03 UTC
+- **Progress:** Umut reloaded mid-sentence in Chrome and Firefox (2026-11-26): the audio stops at once in both. His Chrome log shows page.leave then read.stop.
+
+### 2026-11-26 07:03 UTC
+- **Progress:** ☑ Checked (Requirements): Reloading or leaving the page stops the audio at once, in Chrome and Firefox
 
 ### 2026-11-24 07:20 UTC
 - **Progress:** Built: pagehide stops reading (stopReadAloud sends STOP_AUDIO and removes the toolbar), logged as page.leave; a hashchange does not. Tests fail without the fix. Waiting on Umut: a reload mid-sentence in Firefox and Chrome.
