@@ -704,3 +704,57 @@ test("spansToPage maps spoken offsets back onto the page text", async (t) => {
     assert.equal(spans[0].start_char, null);
   });
 });
+
+// Kokoro read "$3.8B" as "three point eight B" (000064).
+test("spokenForm reads amounts with a unit letter as words", async (t) => {
+  const spoken = (text) => kit.spokenForm(text).text;
+
+  await t.test("the amounts on the page that found it", () => {
+    assert.equal(spoken("They've made ~825M last 12 month"), "They've made about 825 million last 12 month");
+    assert.equal(spoken("announced $3.8B in gross sales"), "announced 3.8 billion dollars in gross sales");
+    assert.equal(spoken("(about 32.5M units)."), "(about 32.5 million units).");
+    assert.equal(spoken("made ~$2.5B in revenue"), "made about 2.5 billion dollars in revenue");
+  });
+
+  await t.test("other currencies, units and spellings", () => {
+    assert.equal(spoken("£5m a year"), "5 million pounds a year");
+    assert.equal(spoken("€1.2bn deal"), "1.2 billion euros deal");
+    assert.equal(spoken("a $50K salary"), "a 50 thousand dollars salary");
+    assert.equal(spoken("$1.1T market"), "1.1 trillion dollars market");
+    assert.equal(spoken("1,200M users"), "1,200 million users");
+    assert.equal(spoken("70B parameters"), "70 billion parameters");
+    assert.equal(spoken("$5M/year"), "5 million dollars/year");
+  });
+
+  await t.test("leaves everything else alone", () => {
+    for (const text of [
+      "a 4K screen",          // K needs a currency sign
+      "a 3T magnet",          // so does T
+      "ran 100m",             // lowercase m without one is metres
+      "costs $825 now",       // no unit: the engine says dollars itself
+      "a 5MB file",           // the unit runs into more letters
+      "code 0x1B",            // part of a hex number
+      "about ~ half",         // a tilde before no number
+      "path~2",               // a tilde inside a word
+    ]) {
+      assert.equal(spoken(text), text);
+    }
+  });
+
+  await t.test("a highlighted word lands on the amount it came from", () => {
+    const page = "made ~$2.5B in revenue";
+    const { text, edits } = kit.spokenForm(page);
+    const words = ["made", "about", "2.5", "billion", "dollars", "in", "revenue"];
+    let from = 0;
+    const spans = words.map((word) => {
+      const at = text.indexOf(word, from);
+      from = at + word.length;
+      return { word, start_char: at, end_char: at + word.length };
+    });
+    kit.spansToPage(spans, edits);
+    assert.deepEqual(
+      spans.map((s) => page.slice(s.start_char, s.end_char)),
+      ["made", "~", "$2.5B", "$2.5B", "$2.5B", "in", "revenue"]
+    );
+  });
+});

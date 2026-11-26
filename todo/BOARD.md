@@ -52,10 +52,11 @@
 
 *(none)*
 
-## ✅ Done (47)
+## ✅ Done (48)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000064](done/000064-f-money-and-counts-with-m-or-b-are-read-as-letters.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Money and counts with M or B are read as letters |
 | [000063](done/000063-f-roman-numerals-are-read-as-letters.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Roman numerals are read as letters |
 | [000062](done/000062-b-a-short-quoted-line-in-a-comment-is-skipped.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;26 | A short quoted line in a comment is skipped |
 | [000061](done/000061-t-toolbar-status-shows-time-left-and-percent-read-no.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;26 | Toolbar status shows time left and percent read, not a paragraph count |

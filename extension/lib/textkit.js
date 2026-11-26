@@ -476,21 +476,72 @@ const ReadAloudText = (() => {
     return before.length > 1 && before === before.toUpperCase() && /\p{Lu}/u.test(before);
   }
 
-  // The text to send, and the edits that turn a spoken offset back into a page
-  // offset: each says where it starts in both texts and how long it is in each.
-  function spokenForm(text) {
-    const edits = [];
-    let spoken = "";
-    let cursor = 0;
+  function romanNumerals(text) {
+    const found = [];
     for (const match of text.matchAll(ROMAN_CANDIDATE)) {
       const at = match.index + match[1].length;
       const letters = match[2];
       if (!isRomanNumeral(text, at, letters)) continue;
-      const words = numberWords(romanValue(letters));
+      found.push({ at, length: letters.length, words: numberWords(romanValue(letters)) });
+    }
+    return found;
+  }
+
+  // Kokoro read "$3.8B" as "three point eight B" and "825M" as "825 M"
+  // (000064). An amount with a unit letter is sent as words, the currency
+  // last, the way it is said: "3.8 billion dollars". The digits stay digits;
+  // both engines read those well.
+  //   - M and B (and "bn") count on their own: "825M", "32.5M units"
+  //   - K and T only after a currency sign, since "4K" alone is usually a
+  //     screen and "3T" a magnet; lowercase "m" and "b" too, as in "£5m"
+  // An amount without a unit ("$825") is left to the engine, which says it.
+  const AMOUNT = /(^|[^\p{L}\p{N}_.,])([$€£])?(\d+(?:,\d{3})*(?:\.\d+)?)(bn|tn|[KkMmBbT])(?![\p{L}\p{N}_])/gu;
+  const UNIT_WORDS = { k: "thousand", m: "million", b: "billion", bn: "billion", t: "trillion", tn: "trillion" };
+  const CURRENCY_WORDS = { $: "dollars", "€": "euros", "£": "pounds" };
+  const UNIT_WITHOUT_CURRENCY = new Set(["M", "B", "bn"]);
+
+  function amounts(text) {
+    const found = [];
+    for (const match of text.matchAll(AMOUNT)) {
+      const [, lead, currency, digits, unit] = match;
+      if (!currency && !UNIT_WITHOUT_CURRENCY.has(unit)) continue;
+      const at = match.index + lead.length;
+      const length = match[0].length - lead.length;
+      const words = [digits, UNIT_WORDS[unit.toLowerCase()], currency && CURRENCY_WORDS[currency]];
+      found.push({ at, length, words: words.filter(Boolean).join(" ") });
+    }
+    return found;
+  }
+
+  // "~" before a number means about it: "~$2.5B" is "about 2.5 billion
+  // dollars" (000064). Elsewhere it is left alone.
+  const APPROXIMATELY = /(^|[\s(])~(?=[$€£]?\d)/g;
+
+  function approximations(text) {
+    return [...text.matchAll(APPROXIMATELY)].map((match) => ({
+      at: match.index + match[1].length,
+      length: 1,
+      words: "about ",
+    }));
+  }
+
+  // The text to send, and the edits that turn a spoken offset back into a page
+  // offset: each says where it starts in both texts and how long it is in each.
+  // Each rule names the page runs it replaces; where two claim the same text,
+  // the one starting first wins.
+  function spokenForm(text) {
+    const replacements = [...romanNumerals(text), ...amounts(text), ...approximations(text)].sort(
+      (a, b) => a.at - b.at
+    );
+    const edits = [];
+    let spoken = "";
+    let cursor = 0;
+    for (const { at, length, words } of replacements) {
+      if (at < cursor) continue;
       spoken += text.slice(cursor, at);
-      edits.push({ spokenAt: spoken.length, spokenLength: words.length, pageAt: at, pageLength: letters.length });
+      edits.push({ spokenAt: spoken.length, spokenLength: words.length, pageAt: at, pageLength: length });
       spoken += words;
-      cursor = at + letters.length;
+      cursor = at + length;
     }
     spoken += text.slice(cursor);
     return { text: spoken, edits };
