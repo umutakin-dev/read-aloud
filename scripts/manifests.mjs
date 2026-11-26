@@ -28,6 +28,11 @@ export function firefoxManifest(source) {
   // ahead of background.js.
   manifest.permissions = source.permissions.filter((p) => p !== "offscreen");
   manifest.background = { scripts: source.background.scripts };
+  // On a Mac, Ctrl in a shortcut means Command, and ⇧⌘U never reaches
+  // Firefox on Umut's machine, while ⌃⇧U does (000060). MacCtrl is the
+  // Control key itself. Chrome keeps ⇧⌘U, which works there.
+  const toggle = manifest.commands?.["toggle-read-aloud"]?.suggested_key;
+  if (toggle) toggle.mac = "MacCtrl+Shift+U";
   return manifest;
 }
 

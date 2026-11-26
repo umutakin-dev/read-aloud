@@ -33,6 +33,10 @@ test("the Chrome package's manifest (000055)", async (t) => {
     assert.ok(chrome.permissions.includes("offscreen"));
   });
 
+  await t.test("keeps ⇧⌘U on a Mac, which works in Chrome (000060)", () => {
+    assert.equal(chrome.commands["toggle-read-aloud"].suggested_key.mac, undefined);
+  });
+
   await t.test("changes nothing else", () => {
     assert.deepEqual(shared(chrome), shared(SOURCE));
   });
@@ -63,8 +67,22 @@ test("the Firefox package's manifest (000055)", async (t) => {
     assert.ok(fs.existsSync(path.join(EXT, "offscreen.html")));
   });
 
+  await t.test("defaults to ⌃⇧U on a Mac, where ⇧⌘U never reaches Firefox (000060)", () => {
+    const keys = firefox.commands["toggle-read-aloud"].suggested_key;
+    assert.equal(keys.mac, "MacCtrl+Shift+U");
+    assert.equal(keys.default, SOURCE.commands["toggle-read-aloud"].suggested_key.default);
+  });
+
   await t.test("changes nothing else", () => {
-    assert.deepEqual(shared(firefox), shared(SOURCE));
+    const { commands, ...rest } = shared(firefox);
+    const { commands: sourceCommands, ...sourceRest } = shared(SOURCE);
+    assert.deepEqual(rest, sourceRest);
+    const strip = (c) => {
+      const copy = structuredClone(c);
+      delete copy["toggle-read-aloud"].suggested_key.mac;
+      return copy;
+    };
+    assert.deepEqual(strip(commands), strip(sourceCommands));
   });
 });
 
