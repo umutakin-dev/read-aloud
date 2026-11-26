@@ -1,7 +1,7 @@
 # Toolbar status shows time left and percent read, not a paragraph count
 
 **Type:** 🔧 Task
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-26 07:15 UTC
@@ -18,9 +18,9 @@ The toolbar says 'Paragraph 3/119 · 31 min left'. The count includes headings, 
 
 ## Actual
 
-- **Start:** 2026-11-26 07:15 UTC
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-26 07:12 UTC
+- **End:** 2026-11-26 07:26 UTC
+- **Effort:** 14m
 
 ## Requirements
 
@@ -37,6 +37,13 @@ The toolbar says 'Paragraph 3/119 · 31 min left'. The count includes headings, 
 - [ ] Verified
 
 ## Log
+
+### 2026-11-26 07:26 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 07:26 UTC
+- **Progress:** Umut looked at it in the browser (2026-11-26): the wording is right.
 
 ### 2026-11-26 07:17 UTC
 - **Progress:** Status is now labelAt(chars): '`<time>` left · `<n>`%', the percent alone until audio is measured; the drag preview shows the same at the drop point; retry, web-speech and paused labels use it; the slider refreshes it at once. Bar tooltip says time left is listening time at this speed. 353 tests pass, dist/ rebuilt.
