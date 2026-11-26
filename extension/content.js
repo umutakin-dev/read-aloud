@@ -60,6 +60,14 @@
     // made, its audio, kept for the session so going back never re-synthesizes.
     record: null,
     _preloaded: new Set(), // sentence indices handed to the player ahead of time
+    // Progress (000040): where each sentence starts in characters, and how
+    // many characters per second the made sentences actually take.
+    _charStarts: null,
+    _totalChars: 0,
+    _timed: new Set(),
+    _timedChars: 0,
+    _timedSeconds: 0,
+    _currentDuration: 0,
     healthCheckTimer: null,
     animFrameId: null,
     textIndex: null,       // { text, nodes, offsets } — collapsed page text mapped to the DOM
@@ -140,6 +148,7 @@
     const chunk = state.currentChunk;
     stopCurrentAudio();
     state.record?.clear("voice changed");
+    scheduleProgressPaint();
     synthesis.generation++;
     state.currentChunk = chunk;
     // A change made while paused should not start it reading.
@@ -316,6 +325,7 @@
         state.textIndex,
         state._paragraphOffset
       );
+      paintPlayed();
       state.animFrameId = requestAnimationFrame(tick);
     }
     state.animFrameId = requestAnimationFrame(tick);
@@ -604,6 +614,8 @@
         (data) => {
           if (generation !== synthesis.generation || state.record !== record) return;
           const dropped = record.store(index, data);
+          noteDuration(index, data);
+          scheduleProgressPaint();
           if (dropped.length) log("record.drop", { sentences: dropped.length, kept: record.usedBytes });
           preloadAhead();
         },
@@ -678,7 +690,9 @@
       pumpSynthesis({ kick: true });
       const data = await record.whenReady(index);
       if (token !== playToken || !state.active) return;
-      updateToolbarStatus(label);
+      noteDuration(index, data);
+      state._currentDuration = durationOf(data);
+      updateToolbarStatus(statusLabel());
 
       state.timestamps = resolveWordSpans(data.timestamps || []);
       state._paragraphOffset = findParagraphOffset(state.chunks[index].text, index);
@@ -703,6 +717,7 @@
 
       state.playing = !paused;
       if (state.playing) startHighlightLoop();
+      paintProgress();
 
       // The next sentences are preloaded once the player has started this one
       // (see playAudioFromBase64), or by synthesis the moment each is stored.
@@ -948,6 +963,186 @@
     }
   }
 
+  // ─── Progress through the page (000040) ───────────────────────────────────
+  // Position is measured in characters, which track speaking time far better
+  // than a count of sentences or paragraphs: thirty short comments and thirty
+  // long ones are very different listens.
+
+  function charStarts() {
+    if (!state._charStarts) {
+      let total = 0;
+      state._charStarts = state.chunks.map((chunk) => {
+        const at = total;
+        total += chunk.text.length;
+        return at;
+      });
+      state._totalChars = total;
+    }
+    return state._charStarts;
+  }
+
+  // How long a sentence lasts at 1x: its last word's end when the engine
+  // timed words, else the length of its 16-bit mono WAV.
+  function durationOf(data) {
+    const last = data?.timestamps?.at?.(-1);
+    if (last && last.end > 0) return last.end;
+    const bytes = ((data?.audio_base64?.length || 0) * 3) / 4 - 44;
+    return bytes > 0 ? bytes / 2 / (data.sample_rate || 24000) : 0;
+  }
+
+  // Characters per second of speech, from every sentence made so far, so the
+  // estimate improves as synthesis goes on.
+  function noteDuration(index, data) {
+    const seconds = durationOf(data);
+    if (!(seconds > 0) || state._timed.has(index)) return;
+    state._timed.add(index);
+    state._timedChars += state.chunks[index].text.length;
+    state._timedSeconds += seconds;
+  }
+
+  function playedChars() {
+    const starts = charStarts();
+    const index = Math.min(state.currentChunk, state.chunks.length - 1);
+    if (index < 0) return 0;
+    const length = state.chunks[index].text.length;
+    const duration = state._currentDuration || 0;
+    const within = duration > 0 ? Math.min(1, (state._currentTime || 0) / duration) : 0;
+    return starts[index] + length * within;
+  }
+
+  function formatTimeLeft(seconds) {
+    if (seconds < 60) return "under a minute left";
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes} min left`;
+    return `${Math.floor(minutes / 60)} h ${minutes % 60} min left`;
+  }
+
+  function timeLeft() {
+    charStarts(); // also sets _totalChars, which nothing may have asked for yet
+    if (!state._timedSeconds || !state._totalChars) return null;
+    const perSecond = state._timedChars / state._timedSeconds;
+    const remaining = Math.max(0, state._totalChars - playedChars());
+    return remaining / perSecond / (state.speed || 1);
+  }
+
+  function statusLabel() {
+    const where = `Paragraph ${currentParagraph() + 1}/${paragraphCount()}`;
+    const left = timeLeft();
+    return left == null ? where : `${where} · ${formatTimeLeft(left)}`;
+  }
+
+  // The played part follows the audio every frame; the synthesized shade only
+  // changes when the record does, so it is repainted on a short delay.
+  function paintPlayed() {
+    const played = state._shadow?.getElementById("progress-played");
+    if (!played || !state.chunks.length) return;
+    charStarts();
+    const fraction = state._totalChars ? playedChars() / state._totalChars : 0;
+    played.style.width = `${(fraction * 100).toFixed(2)}%`;
+  }
+
+  function paintProgress() {
+    const bar = state._shadow?.getElementById("progress");
+    const record = state.record;
+    if (!bar || !record || !state.chunks.length) return;
+    const starts = charStarts();
+    const total = state._totalChars || 1;
+    const BASE = "#313244";
+    const MADE = "#585b70";
+    const stops = [];
+    for (let i = 0; i < state.chunks.length; ) {
+      if (!record.has(i)) {
+        i++;
+        continue;
+      }
+      let j = i;
+      while (j + 1 < state.chunks.length && record.has(j + 1)) j++;
+      const from = ((starts[i] / total) * 100).toFixed(2);
+      const to = (((starts[j] + state.chunks[j].text.length) / total) * 100).toFixed(2);
+      stops.push(`${BASE} ${from}%`, `${MADE} ${from}%`, `${MADE} ${to}%`, `${BASE} ${to}%`);
+      i = j + 1;
+    }
+    bar.style.background = stops.length ? `linear-gradient(to right, ${stops.join(", ")})` : BASE;
+    bar.setAttribute("aria-valuemax", String(paragraphCount()));
+    bar.setAttribute("aria-valuenow", String(currentParagraph() + 1));
+    bar.setAttribute("aria-valuetext", statusLabel());
+    paintPlayed();
+  }
+
+  let progressTimer = null;
+
+  function scheduleProgressPaint() {
+    if (progressTimer) return;
+    progressTimer = setTimeout(() => {
+      progressTimer = null;
+      paintProgress();
+    }, 250);
+  }
+
+  // The paragraph whose start is nearest to a point along the bar: snapping
+  // to paragraphs, the unit Prev and Next already move by.
+  function paragraphAtFraction(fraction) {
+    const starts = charStarts();
+    const target = Math.max(0, Math.min(1, fraction)) * (state._totalChars || 0);
+    let best = 0;
+    state.paragraphStarts.forEach((chunk, p) => {
+      if (Math.abs(starts[chunk] - target) < Math.abs(starts[state.paragraphStarts[best]] - target)) best = p;
+    });
+    return best;
+  }
+
+  function jumpToParagraphStart(paragraph) {
+    const p = Math.max(0, Math.min(paragraph, paragraphCount() - 1));
+    log("jump.progress", { paragraph: p, from: currentParagraph() });
+    jumpToSentence(state.paragraphStarts[p]);
+    paintProgress();
+  }
+
+  // Click or drag to jump; while dragging the status line shows where a
+  // release would land. Arrow keys move a paragraph, Home and End go to the
+  // ends, so the bar works without a mouse too.
+  function wireProgress(bar) {
+    if (!bar) return;
+    let dragging = false;
+    const fractionAt = (event) => {
+      const rect = bar.getBoundingClientRect();
+      return rect.width > 0 ? (event.clientX - rect.left) / rect.width : 0;
+    };
+    bar.addEventListener("pointerdown", (event) => {
+      dragging = true;
+      bar.classList.add("dragging");
+      bar.setPointerCapture?.(event.pointerId);
+      updateToolbarStatus(`Paragraph ${paragraphAtFraction(fractionAt(event)) + 1}/${paragraphCount()}`);
+    });
+    bar.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      updateToolbarStatus(`Paragraph ${paragraphAtFraction(fractionAt(event)) + 1}/${paragraphCount()}`);
+    });
+    const finish = (event, jump) => {
+      if (!dragging) return;
+      dragging = false;
+      bar.classList.remove("dragging");
+      if (jump) jumpToParagraphStart(paragraphAtFraction(fractionAt(event)));
+      else updateToolbarStatus(statusLabel());
+    };
+    bar.addEventListener("pointerup", (event) => finish(event, true));
+    bar.addEventListener("pointercancel", (event) => finish(event, false));
+    bar.addEventListener("keydown", (event) => {
+      const here = currentParagraph();
+      const to = {
+        ArrowRight: here + 1,
+        ArrowUp: here + 1,
+        ArrowLeft: here - 1,
+        ArrowDown: here - 1,
+        Home: 0,
+        End: paragraphCount() - 1,
+      }[event.key];
+      if (to === undefined) return;
+      event.preventDefault();
+      if (to >= 0 && to < paragraphCount() && to !== here) jumpToParagraphStart(to);
+    });
+  }
+
   // ─── Toolbar UI ────────────────────────────────────────────────────────────
   function createToolbar() {
     if (state.toolbar) return state.toolbar;
@@ -1046,6 +1241,28 @@
         .engine.warn::before { background: #f9e2af; }
         .engine.fallback::before { background: #fab387; }
         .engine.down::before { background: #f38ba8; }
+        /* Position through the page (000040): played in the accent colour,
+           synthesized but not yet played in a lighter shade (painted as a
+           gradient from the sentence record), the rest dark. A strip along
+           the bottom edge, so the controls row keeps its width. */
+        .progress {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 4px;
+          background: #313244;
+          cursor: pointer;
+          transition: height 0.1s;
+        }
+        .progress:hover, .progress.dragging, .progress:focus-visible { height: 8px; }
+        .progress:focus-visible { outline: 2px solid #89b4fa; outline-offset: -2px; }
+        .played {
+          width: 0;
+          height: 100%;
+          background: #89b4fa;
+          pointer-events: none;
+        }
       </style>
       <div class="toolbar">
         <button id="btn-prev" title="Previous paragraph">&#9664;&#9664;</button>
@@ -1059,6 +1276,9 @@
         <span class="status" id="status">Starting...</span>
         <span class="engine" id="engine">Connecting</span>
         <button class="close-btn" id="btn-close" title="Close">&times;</button>
+        <div class="progress" id="progress" role="slider" tabindex="0"
+             aria-label="Position in the page" aria-valuemin="1"
+             title="Drag or click to jump to a paragraph"><div class="played" id="progress-played"></div></div>
       </div>
     `;
 
@@ -1070,6 +1290,7 @@
     const btnClose = shadow.getElementById("btn-close");
     const speedSlider = shadow.getElementById("speed-slider");
     const speedLabel = shadow.getElementById("speed-label");
+    wireProgress(shadow.getElementById("progress"));
 
     speedSlider.value = state.speed;
     speedLabel.textContent = `${state.speed}x`;
@@ -1323,6 +1544,12 @@
     await loadSettings();
     state.active = true;
     state.userPaused = false;
+    state._charStarts = null;
+    state._totalChars = 0;
+    state._timed = new Set();
+    state._timedChars = 0;
+    state._timedSeconds = 0;
+    state._currentDuration = 0;
     state._chunkOffsets = {};
     state._sentenceStarts = null;
 
@@ -1393,6 +1620,14 @@
     state.waitingForServer = false;
     state.userPaused = false;
     state._sentenceStarts = null;
+    clearTimeout(progressTimer);
+    progressTimer = null;
+    state._charStarts = null;
+    state._totalChars = 0;
+    state._timed = new Set();
+    state._timedChars = 0;
+    state._timedSeconds = 0;
+    state._currentDuration = 0;
     state.chunks = [];
     state.paragraphStarts = [];
     state.currentChunk = 0;
@@ -1502,12 +1737,13 @@
     if (index === state.currentChunk && state.playing) return;
     stopCurrentAudio();
     state.currentChunk = index;
-    const label = `Paragraph ${currentParagraph() + 1}/${paragraphCount()}`;
     if (state.userPaused || state.waitingForServer) {
       // Stay put, but have the sentence made, so Play starts it at once.
       state.record?.setCursor(index);
       pumpSynthesis({ kick: true });
-      if (!state.waitingForServer) updateToolbarStatus(`${label} — paused`);
+      state._currentTime = 0;
+      if (!state.waitingForServer) updateToolbarStatus(`${statusLabel()} — paused`);
+      paintProgress();
       return;
     }
     playCurrentChunk();

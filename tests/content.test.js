@@ -84,6 +84,7 @@ function loadPage({ engine = "server", tts, body = "<p>Some page text.</p>", set
     logs,
     messages,
     click: (id) => shadow.getElementById(id).click(),
+    toolbarEl: (id) => shadow?.getElementById(id),
     dispatch: (msg) => listeners.slice().forEach((fn) => fn(msg, {}, () => {})),
     engineLabel: () => shadow?.getElementById("engine")?.textContent,
     status: () => shadow?.getElementById("status")?.textContent,
@@ -692,6 +693,127 @@ test("reading from the selected text (000039)", async (t) => {
       await select(page, "The third", 0, 5);
       await select(page, "The third", 0, 20);
       assert.deepEqual(plays(page), [0, 2]);
+    } finally {
+      page.close();
+    }
+  });
+});
+
+test("the progress bar (000040)", async (t) => {
+  // 27 + 31 + 34 + 30 = 122 characters, in two paragraphs.
+  const TEXT = [
+    "The first sentence is here. The second sentence follows it.",
+    "The third sentence opens this one. The fourth sentence closes it.",
+  ].join("\n\n");
+  const settle = async () => {
+    for (let i = 0; i < 20; i++) await tick();
+  };
+  // Every sentence lasts one second per character, so the page is 122s long.
+  const open = (settings) =>
+    loadPage({
+      settings,
+      tts: (msg) => ({
+        ok: true,
+        engine: "server",
+        data: { audio_base64: "a", timestamps: [{ word: "x", start: 0, end: msg.text.length }] },
+      }),
+    });
+  const start = async (page) => {
+    page.dispatch({ type: "TOGGLE_READ_ALOUD", selectedText: TEXT });
+    await settle();
+  };
+  const plays = (page) => page.messages.filter((m) => m.type === "PLAY_AUDIO").map((m) => m.key);
+
+  await t.test("is a slider over the paragraphs", async () => {
+    const page = open();
+    try {
+      await start(page);
+      const bar = page.toolbarEl("progress");
+      assert.equal(bar.getAttribute("role"), "slider");
+      assert.equal(bar.getAttribute("aria-valuemax"), "2");
+      assert.equal(bar.getAttribute("aria-valuenow"), "1");
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("shades what is synthesized", async () => {
+    const page = open();
+    try {
+      await start(page);
+      await new Promise((r) => setTimeout(r, 300)); // the shade repaints on a short delay
+      assert.match(page.toolbarEl("progress").style.background, /#585b70|rgb\(88, 91, 112\)/);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("estimates the time left from measured durations", async () => {
+    const page = open();
+    try {
+      await start(page);
+      assert.match(page.status(), /Paragraph 1\/2 · 2 min left/);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("divides the estimate by the playback speed", async () => {
+    const page = open({ speed: 2 });
+    try {
+      await start(page);
+      assert.match(page.status(), /· 1 min left/);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("clicking the bar jumps to the nearest paragraph start", async () => {
+    const page = open();
+    try {
+      await start(page);
+      const bar = page.toolbarEl("progress");
+      bar.getBoundingClientRect = () => ({ left: 0, width: 1000, top: 0, height: 4 });
+      const at = (type, x) => bar.dispatchEvent(new page.window.MouseEvent(type, { clientX: x, bubbles: true }));
+      at("pointerdown", 600); // past the middle: paragraph 2 starts at 58/122
+      at("pointerup", 600);
+      await settle();
+      assert.deepEqual(plays(page), [0, 2]);
+      assert.equal(page.logs.find((l) => l.ev === "jump.progress")?.paragraph, 1);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("arrow keys move a paragraph, End goes to the last", async () => {
+    const page = open();
+    try {
+      await start(page);
+      const bar = page.toolbarEl("progress");
+      bar.dispatchEvent(new page.window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      await settle();
+      bar.dispatchEvent(new page.window.KeyboardEvent("keydown", { key: "Home", bubbles: true }));
+      await settle();
+      bar.dispatchEvent(new page.window.KeyboardEvent("keydown", { key: "End", bubbles: true }));
+      await settle();
+      assert.deepEqual(plays(page), [0, 2, 0, 2]);
+    } finally {
+      page.close();
+    }
+  });
+
+  await t.test("scrubbing while paused moves there and stays paused", async () => {
+    const page = open();
+    try {
+      await start(page);
+      page.click("btn-play"); // pause
+      await settle();
+      page.toolbarEl("progress").dispatchEvent(
+        new page.window.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })
+      );
+      await settle();
+      assert.deepEqual(plays(page), [0]);
+      assert.match(page.status(), /Paragraph 2\/2 .*paused/);
     } finally {
       page.close();
     }
