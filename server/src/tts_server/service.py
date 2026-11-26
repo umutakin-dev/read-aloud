@@ -34,15 +34,18 @@ LAUNCHD_LABEL = "io.github.umutakin-dev.read-aloud-server"
 WINDOWS_RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 WINDOWS_RUN_VALUE = "ReadAloudServer"
 
-Runner = Callable[[Sequence[str]], int]
+# A runner takes the command and quiet=True for a call whose failure is
+# expected and means nothing, so its output does not read as an error.
+Runner = Callable[..., int]
 
 
 class ServiceError(RuntimeError):
     """A login service could not be set up; the message says what to do."""
 
 
-def default_runner(cmd: Sequence[str]) -> int:
-    return subprocess.run(list(cmd), check=False).returncode
+def default_runner(cmd: Sequence[str], quiet: bool = False) -> int:
+    out = subprocess.DEVNULL if quiet else None
+    return subprocess.run(list(cmd), check=False, stdout=out, stderr=out).returncode
 
 
 def serve_command(python: str, platform: str, log_file: pathlib.Path | None = None) -> list[str]:
@@ -91,8 +94,10 @@ def _launchd_install(home, python, run, uid) -> list[str]:
     log.parent.mkdir(parents=True, exist_ok=True)
     plist.write_bytes(launchd_plist(serve_command(python, "darwin"), log))
     # bootout first, so installing twice replaces the agent instead of failing
-    # because it is already loaded. Its failure just means it was not loaded.
-    run(["launchctl", "bootout", f"gui/{uid}/{LAUNCHD_LABEL}"])
+    # because it is already loaded. Its failure just means it was not loaded,
+    # so it runs quiet: on a first install launchctl would print "Boot-out
+    # failed" above the success lines.
+    run(["launchctl", "bootout", f"gui/{uid}/{LAUNCHD_LABEL}"], quiet=True)
     if run(["launchctl", "bootstrap", f"gui/{uid}", str(plist)]) != 0:
         raise ServiceError(f"launchctl could not load {plist}")
     return [f"Installed {plist}", f"Logs go to {log}"]
@@ -100,7 +105,8 @@ def _launchd_install(home, python, run, uid) -> list[str]:
 
 def _launchd_uninstall(home, run, uid) -> list[str]:
     plist, _ = launchd_paths(home)
-    run(["launchctl", "bootout", f"gui/{uid}/{LAUNCHD_LABEL}"])
+    # Not loaded is fine here too; what was removed is reported below.
+    run(["launchctl", "bootout", f"gui/{uid}/{LAUNCHD_LABEL}"], quiet=True)
     if plist.exists():
         plist.unlink()
         return [f"Removed {plist}"]

@@ -21,10 +21,12 @@ PYTHON = "/home/reader/.local/share/uv/tools/tts-server/bin/python"
 class Recorder:
     def __init__(self, fail=()):
         self.calls = []
+        self.quiet = []
         self.fail = set(fail)
 
-    def __call__(self, cmd):
+    def __call__(self, cmd, quiet=False):
         self.calls.append(list(cmd))
+        self.quiet.append(quiet)
         return 1 if cmd[1] in self.fail or (len(cmd) > 2 and cmd[2] in self.fail) else 0
 
 
@@ -77,6 +79,19 @@ class TestMacOS:
         run = Recorder()
         self.install(tmp_path, run)
         assert [c[:2] for c in run.calls] == [["launchctl", "bootout"], ["launchctl", "bootstrap"]]
+
+    def test_a_first_install_prints_no_boot_out_error(self, tmp_path):
+        # The bootout fails whenever no agent was loaded yet, which is every
+        # first install; its message must not show. The load stays loud, since
+        # its failure is real.
+        run = Recorder(fail={"bootout"})
+        self.install(tmp_path, run)
+        assert run.quiet == [True, False]
+
+    def test_the_quiet_runner_swallows_output(self, capfd):
+        script = "import sys; print('out'); print('err', file=sys.stderr); sys.exit(3)"
+        assert service.default_runner([sys.executable, "-c", script], quiet=True) == 3
+        assert capfd.readouterr() == ("", "")
 
     def test_a_failed_load_is_reported(self, tmp_path):
         with pytest.raises(service.ServiceError):
