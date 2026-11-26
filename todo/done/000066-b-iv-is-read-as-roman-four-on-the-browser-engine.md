@@ -1,7 +1,7 @@
 # IV is read as roman four on the browser engine
 
 **Type:** 🐛 Bug
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-26 09:19 UTC
@@ -23,8 +23,8 @@ Fix: a run of two or more of I, V and X that the 000063 rule keeps as letters is
 ## Actual
 
 - **Start:** 2026-11-26 09:19 UTC
-- **End:**
-- **Effort:**
+- **End:** 2026-11-26 09:24 UTC
+- **Effort:** 0m
 
 ## Requirements
 
@@ -39,6 +39,16 @@ Fix: a run of two or more of I, V and X that the 000063 rule keeps as letters is
 - [ ] Regression tested
 
 ## Log
+
+### 2026-11-26 09:24 UTC
+- **Note:** Took 0m against an estimate of 14m (0.0x) — measured since the previous item closed.
+
+### 2026-11-26 09:24 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 09:24 UTC
+- **Delivered:** PR #29: a run of I, V and X kept as letters is sent hyphenated (I-V), so espeak spells it instead of saying roman four
 
 ### 2026-11-26 09:21 UTC
 - **Progress:** PR #29 opened, stacked on #28 (000065): numeral lookalikes kept as letters are sent hyphenated (I-V) so espeak spells them

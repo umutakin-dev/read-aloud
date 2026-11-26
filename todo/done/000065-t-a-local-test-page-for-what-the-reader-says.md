@@ -1,7 +1,7 @@
 # A local test page for what the reader says
 
 **Type:** 🔧 Task
-**Status:** 🔨 In Progress
+**Status:** ✅ Done
 **Priority:** 🟡 MEDIUM
 **Tracked In:** local
 **Created:** 2026-11-26 09:13 UTC
@@ -23,9 +23,9 @@ Each case shows what should be heard, in a way the reader itself does not read. 
 
 ## Actual
 
-- **Start:** 2026-11-26 09:13 UTC
-- **End:**
-- **Effort:**
+- **Start:** 2026-11-26 09:11 UTC
+- **End:** 2026-11-26 09:24 UTC
+- **Effort:** 13m
 
 ## Requirements
 
@@ -38,6 +38,13 @@ Each case shows what should be heard, in a way the reader itself does not read. 
 - [ ] Verified
 
 ## Log
+
+### 2026-11-26 09:24 UTC
+
+- **Progress:** Completed
+
+### 2026-11-26 09:24 UTC
+- **Delivered:** PR #28: tests/manual/speech-cases.html with a data-expect per case, held to the real spoken form by speech-cases.test.js
 
 ### 2026-11-26 09:14 UTC
 - **Progress:** PR #28 opened: tests/manual/speech-cases.html plus speech-cases.test.js holding its expectations to the code

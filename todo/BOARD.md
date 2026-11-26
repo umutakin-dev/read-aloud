@@ -18,13 +18,11 @@
 
 *(none)*
 
-## 🔨 In Progress (3)
+## 🔨 In Progress (1)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
-| [000066](in-progress/000066-b-iv-is-read-as-roman-four-on-the-browser-engine.md) | 🐛 | 🟡 | IV is read as roman four on the browser engine |
-| [000065](in-progress/000065-t-a-local-test-page-for-what-the-reader-says.md) | 🔧 | 🟡 | A local test page for what the reader says |
 
 ## 📋 Backlog (15)
 
@@ -54,10 +52,12 @@
 
 *(none)*
 
-## ✅ Done (48)
+## ✅ Done (50)
 
 | ID | Type | Priority | Closed | Title |
 |----|------|----------|--------|-------|
+| [000066](done/000066-b-iv-is-read-as-roman-four-on-the-browser-engine.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;26 | IV is read as roman four on the browser engine |
+| [000065](done/000065-t-a-local-test-page-for-what-the-reader-says.md) | 🔧 | 🟡 | 2026&#8209;11&#8209;26 | A local test page for what the reader says |
 | [000064](done/000064-f-money-and-counts-with-m-or-b-are-read-as-letters.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Money and counts with M or B are read as letters |
 | [000063](done/000063-f-roman-numerals-are-read-as-letters.md) | ✨ | 🟡 | 2026&#8209;11&#8209;26 | Roman numerals are read as letters |
 | [000062](done/000062-b-a-short-quoted-line-in-a-comment-is-skipped.md) | 🐛 | 🟡 | 2026&#8209;11&#8209;26 | A short quoted line in a comment is skipped |
