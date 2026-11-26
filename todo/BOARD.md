@@ -18,11 +18,12 @@
 
 *(none)*
 
-## 🔨 In Progress (2)
+## 🔨 In Progress (3)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| [000066](in-progress/000066-b-iv-is-read-as-roman-four-on-the-browser-engine.md) | 🐛 | 🟡 | IV is read as roman four on the browser engine |
 | [000065](in-progress/000065-t-a-local-test-page-for-what-the-reader-says.md) | 🔧 | 🟡 | A local test page for what the reader says |
 
 ## 📋 Backlog (15)
