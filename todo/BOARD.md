@@ -18,11 +18,12 @@
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| [000065](in-progress/000065-t-a-local-test-page-for-what-the-reader-says.md) | 🔧 | 🟡 | A local test page for what the reader says |
 
 ## 📋 Backlog (15)
 
