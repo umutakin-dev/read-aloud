@@ -752,7 +752,6 @@ test("spokenForm reads amounts with a unit letter as words", async (t) => {
       "a 3T magnet",          // so does T
       "ran 100m",             // lowercase m without one is metres
       "costs $825 now",       // no unit: the engine says dollars itself
-      "a 5MB file",           // the unit runs into more letters
       "code 0x1B",            // part of a hex number
       "about ~ half",         // a tilde before no number
       "path~2",               // a tilde inside a word
@@ -776,5 +775,50 @@ test("spokenForm reads amounts with a unit letter as words", async (t) => {
       spans.map((s) => page.slice(s.start_char, s.end_char)),
       ["made", "~", "$2.5B", "$2.5B", "$2.5B", "in", "revenue"]
     );
+  });
+});
+
+// Both engines spelled "a 5MB file" as "a 5 M-B file" (000067).
+test("spokenForm reads data sizes and rates as words", async (t) => {
+  const spoken = (text) => kit.spokenForm(text).text;
+
+  await t.test("a size describing something stays singular, a quantity is plural", () => {
+    assert.equal(spoken("a 5MB file"), "a 5 megabyte file");
+    assert.equal(spoken("a 2TB disk and an 8GiB stick"), "a 2 terabyte disk and an 8 gibibyte stick");
+    assert.equal(spoken("16GB of RAM"), "16 gigabytes of RAM");
+    assert.equal(spoken("it is 5 MB"), "it is 5 megabytes");
+    assert.equal(spoken("only 1GB left"), "only 1 gigabyte left");
+    assert.equal(spoken("500KB and 3kB"), "500 kilobytes and 3 kilobytes");
+  });
+
+  await t.test("rates are per second, in bits or bytes as written", () => {
+    assert.equal(spoken("a 100Mbps link"), "a 100 megabits per second link");
+    assert.equal(spoken("10Gb/s over fibre"), "10 gigabits per second over fibre");
+    assert.equal(spoken("copies at 50 MB/s"), "copies at 50 megabytes per second");
+  });
+
+  await t.test("leaves everything else alone", () => {
+    for (const text of [
+      "a 5Mb file",      // bare Mb: megabits or megabytes, nobody agrees
+      "5MBs",            // the unit runs into more letters
+      "a 3GHz chip",     // the engines say GHz themselves
+      "the MB was fine", // no number
+    ]) {
+      assert.equal(spoken(text), text);
+    }
+  });
+
+  await t.test("the digits keep their own highlight", () => {
+    const page = "a 5MB file";
+    const { text, edits } = kit.spokenForm(page);
+    const words = ["a", "5", "megabyte", "file"];
+    let from = 0;
+    const spans = words.map((word) => {
+      const at = text.indexOf(word, from);
+      from = at + word.length;
+      return { word, start_char: at, end_char: at + word.length };
+    });
+    kit.spansToPage(spans, edits);
+    assert.deepEqual(spans.map((s) => page.slice(s.start_char, s.end_char)), ["a", "5", "MB", "file"]);
   });
 });

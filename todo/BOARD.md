@@ -18,11 +18,12 @@
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| [000067](in-progress/000067-f-data-sizes-like-5mb-are-spelled-out-letter-by-lett.md) | ✨ | 🟡 | Data sizes like 5MB are spelled out letter by letter |
 
 ## 📋 Backlog (15)
 

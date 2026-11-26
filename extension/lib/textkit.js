@@ -521,6 +521,36 @@ const ReadAloudText = (() => {
     return found;
   }
 
+  // Both engines spelled a data size out: "a 5MB file" was "a 5 M-B file",
+  // "100Mbps" "100 M-B-P-S" (000067). Only the unit is replaced, so the digits
+  // keep their own highlight. After "a" or "an" the size describes something
+  // and stays singular ("a 5 megabyte file"); otherwise it is a quantity and
+  // plural ("16 gigabytes of RAM"), unless it is 1. A bare "Mb" is left alone,
+  // since people write it for megabytes as often as megabits; with "/s" or as
+  // "Mbps" it is a rate, and that is bits.
+  const DATA_SIZE =
+    /(^|[^\p{L}\p{N}_.,])(\d+(?:,\d{3})*(?:\.\d+)?)( ?)([KMGTP]iB|[KMGTP]B|kB|[kKMGT]bps|[kKMGT]b(?=\/s))(\/s)?(?![\p{L}\p{N}_/])/gu;
+  const SIZE_PREFIXES = {
+    K: "kilo", k: "kilo", M: "mega", G: "giga", T: "tera", P: "peta",
+    Ki: "kibi", Mi: "mebi", Gi: "gibi", Ti: "tebi", Pi: "pebi",
+  };
+
+  function dataSizes(text) {
+    const found = [];
+    for (const match of text.matchAll(DATA_SIZE)) {
+      const [, lead, digits, space, unit, perSecond] = match;
+      const rate = unit.endsWith("bps") || Boolean(perSecond);
+      const prefix = SIZE_PREFIXES[unit.replace(/(bps|b|B)$/, "").replace(/iB$/, "")];
+      const base = /bps$|b$/.test(unit) ? "bit" : "byte";
+      const describing = !rate && /\b(?:a|an) $/i.test(text.slice(0, match.index + lead.length));
+      const singular = digits === "1" || describing;
+      const words = `${prefix}${base}${singular ? "" : "s"}${rate ? " per second" : ""}`;
+      const at = match.index + lead.length + digits.length + space.length;
+      found.push({ at, length: unit.length + (perSecond || "").length, words: (space ? "" : " ") + words });
+    }
+    return found;
+  }
+
   // "~" before a number means about it: "~$2.5B" is "about 2.5 billion
   // dollars" (000064). Elsewhere it is left alone.
   const APPROXIMATELY = /(^|[\s(])~(?=[$€£]?\d)/g;
@@ -538,7 +568,7 @@ const ReadAloudText = (() => {
   // Each rule names the page runs it replaces; where two claim the same text,
   // the one starting first wins.
   function spokenForm(text) {
-    const replacements = [...romanNumerals(text), ...amounts(text), ...approximations(text)].sort(
+    const replacements = [...romanNumerals(text), ...amounts(text), ...dataSizes(text), ...approximations(text)].sort(
       (a, b) => a.at - b.at
     );
     const edits = [];
