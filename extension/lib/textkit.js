@@ -220,11 +220,22 @@ const ReadAloudText = (() => {
   // they are, the way it tells a reader.
   const HEADING = /^H[1-6]$/;
 
+  // A line opening with ">" quotes what is being answered, the way comments
+  // and mail do: "> hn isn't indexed" followed by a link was a whole reply on
+  // Hacker News, and the length floor dropped it (000062). Page furniture
+  // never starts with ">", so a quote is read however short, as a heading is.
+  const QUOTE_LINE = /^>+\s*/;
+
   function worthReading(text, linkChars, heading) {
     if (!/[\p{L}\p{N}]/u.test(text)) return false;
     const solid = text.replace(/\s+/g, "").length;
     if (linkChars > solid * MAX_LINK_SHARE) return false;
-    return heading || text.length > MIN_PARAGRAPH_CHARS || /[.!?…]["'”’)\]]*$/.test(text);
+    return (
+      heading ||
+      QUOTE_LINE.test(text) ||
+      text.length > MIN_PARAGRAPH_CHARS ||
+      /[.!?…]["'”’)\]]*$/.test(text)
+    );
   }
 
   function extractParagraphs(doc, options = {}) {
@@ -379,7 +390,9 @@ const ReadAloudText = (() => {
 
   function splitParagraphIntoChunks(paragraph) {
     const chunks = [];
-    for (const piece of splitAroundUrls(paragraph)) {
+    // The quote mark is markup, not speech. What follows it is still an exact
+    // run of the page text, so the chunk is found just the same.
+    for (const piece of splitAroundUrls(paragraph.replace(QUOTE_LINE, ""))) {
       for (const sentence of splitIntoSentences(piece)) {
         // A lone "(1)" or "—" left between sentences is not worth a request.
         if (!/[a-z0-9]/i.test(sentence)) continue;

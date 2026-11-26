@@ -18,11 +18,12 @@
 
 *(none)*
 
-## 🔨 In Progress (1)
+## 🔨 In Progress (2)
 
 | ID | Type | Priority | Title |
 |----|------|----------|-------|
 | [000059](in-progress/000059-b-reading-stalls-for-seconds-while-its-tab-is-hidden.md) | 🐛 | 🔴 | Reading stalls for seconds while its tab is hidden, because the tab chooses each next sentence |
+| [000062](in-progress/000062-b-a-short-quoted-line-in-a-comment-is-skipped.md) | 🐛 | 🟡 | A short quoted line in a comment is skipped |
 
 ## 📋 Backlog (15)
 
